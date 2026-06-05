@@ -1,2 +1,2 @@
-VERSION = "1.2.0"
-CODENAME = "Red terminal UI refresh"
+VERSION = "1.3.0"
+CODENAME = "Custom flows, wordlist manager, extended presets"

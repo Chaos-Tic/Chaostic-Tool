@@ -92,6 +92,8 @@ sudo ./install.sh --profile full         # heavy Go/Cargo/pipx/pip/gem/source/AU
 
 The installer detects `pacman`, `apt`, `dnf`, `zypper`, or `apk`, skips unavailable packages instead of failing the whole run, and links registered user-installed Go, Cargo, pipx, pip, and local binaries into paths visible from root shells.
 
+The installation, especially the full version, may take some time because it will install the 50+ tools required for it to work properly, unless they are already installed.
+
 On ARM systems such as Raspberry Pi OS, the `full` profile uses portable fallbacks for tools that are often absent from the default repositories. Metasploit can still remain unavailable unless the system exposes a compatible `metasploit-framework` package.
 
 ## Uninstallation

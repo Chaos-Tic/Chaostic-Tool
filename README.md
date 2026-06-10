@@ -94,6 +94,29 @@ The installer detects `pacman`, `apt`, `dnf`, `zypper`, or `apk`, skips unavaila
 
 On ARM systems such as Raspberry Pi OS, the `full` profile uses portable fallbacks for tools that are often absent from the default repositories. Metasploit can still remain unavailable unless the system exposes a compatible `metasploit-framework` package.
 
+## Uninstallation
+
+```bash
+sudo ./uninstall.sh
+```
+
+The uninstaller removes, in order:
+
+- the `/usr/local/bin/chaostictool` launcher;
+- source-install wrappers (`responder`, `whatweb`, `xsstrike`) and Python-module wrappers (`secretsdump.py`, `psexec.py`, `GetUserSPNs.py`) from `/usr/local/bin`;
+- direct-download assets (`linpeas.sh`, `winpeas.exe`, `rustscan` release binary);
+- symlinks to user-local tool directories (`~/go/bin`, `~/.cargo/bin`, `~/.local/bin`) that the installer created;
+- the `/opt/chaostictool/` source checkouts and `/var/cache/chaostictool/` build staging area;
+- Tor and proxychains config modifications, restoring originals from the `.chaostictool.bak` backups.
+
+For Go, Cargo, pipx, and gem tools, the uninstaller asks for confirmation before removing each group. System packages installed via `pacman`, `apt`, or `dnf` are listed at the end for manual review — they are never removed automatically.
+
+The project directory itself is not touched. Remove it manually once the uninstaller has run:
+
+```bash
+sudo rm -rf Chaostic-Tool/
+```
+
 ## Quick Start
 
 1. Launch ChaosticTool:
@@ -259,7 +282,7 @@ Presets can also define custom prompt fields through `"prompt"`.
 
 ## Release
 
-Current release: `v1.2.0` - Red terminal UI refresh.
+Current release: `v1.3.0`.
 
 See releases: https://github.com/Chaos-Tic/Chaostic-Tool/releases
 

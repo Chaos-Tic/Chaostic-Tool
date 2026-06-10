@@ -159,6 +159,10 @@ pm_refresh() {
             echo -e "${CYAN}[*] Refreshing apk metadata${NC}"
             apk update
             ;;
+        dnf)
+            echo -e "${CYAN}[*] Refreshing dnf metadata${NC}"
+            dnf makecache -y
+            ;;
     esac
     REFRESH_DONE=1
 }
@@ -341,6 +345,22 @@ tor_packages() {
     esac
 }
 
+setup_epel() {
+    [ "$PM" = "dnf" ] || return 0
+    [ -f /etc/redhat-release ] || return 0
+    grep -qiE "centos|rhel|red hat enterprise|almalinux|rocky" /etc/redhat-release || return 0
+    if rpm -q epel-release >/dev/null 2>&1; then
+        echo -e "  ${DIM}EPEL already enabled${NC}"
+        return 0
+    fi
+    echo -e "${YELLOW}[!] EPEL not enabled — many security tools require it on RHEL/CentOS${NC}"
+    if confirm "Enable EPEL now? (recommended)"; then
+        dnf install -y epel-release || true
+        REFRESH_DONE=0
+        pm_refresh || true
+    fi
+}
+
 install_standard_tools() {
     local packages=()
     while IFS= read -r pkg; do
@@ -521,21 +541,30 @@ setup_tor() {
     echo ""
 }
 
-install_full_tools() {
-    if [ "$PROFILE" != "full" ] || [ "$NO_TOOLS" -eq 1 ]; then
-        return 0
-    fi
+install_extended_tools() {
+    [ "$NO_TOOLS" -eq 1 ] && return 0
+    [ "$PROFILE" = "minimal" ] && return 0
 
-    echo -e "\n${CYAN}[*] Installing remaining tools with the full resolver${NC}"
-    python3 - <<'PY'
+    echo -e "\n${CYAN}[*] Installing cross-platform tools${NC}"
+    if [ "$PROFILE" = "standard" ]; then
+        python3 - <<'PY'
 from core.installer import install_missing
 from core.tools import TOOLS
 from core.ui import SUPPORT_TOOLS, tool_available
-
+registry = {**TOOLS, **SUPPORT_TOOLS}
+missing = [(key, tool["binary"]) for key, tool in registry.items() if not tool_available(tool)]
+install_missing(missing, assume_yes=True, allowed_methods={"go", "pipx", "pip", "gem", "pywrap", "release", "direct"})
+PY
+    else
+        python3 - <<'PY'
+from core.installer import install_missing
+from core.tools import TOOLS
+from core.ui import SUPPORT_TOOLS, tool_available
 registry = {**TOOLS, **SUPPORT_TOOLS}
 missing = [(key, tool["binary"]) for key, tool in registry.items() if not tool_available(tool)]
 install_missing(missing, assume_yes=True)
 PY
+    fi
 }
 
 install_launcher() {
@@ -626,6 +655,7 @@ PY
 }
 
 install_python_runtime
+setup_epel
 
 if [ "$NO_TOOLS" -eq 0 ]; then
     case "$PROFILE" in
@@ -641,11 +671,13 @@ else
 fi
 
 setup_tor
-install_full_tools
+install_extended_tools
 install_launcher
 link_registered_user_bins
 show_tool_report
 
 echo ""
 echo -e "${GREEN}Launch:${NC} sudo chaostictool"
-echo -e "${DIM}Tip: use 'sudo ./install.sh --profile full --yes' later for the heavy optional arsenal.${NC}"
+echo -e "${DIM}If not found: sudo /usr/local/bin/chaostictool${NC}"
+echo -e "${DIM}Or from this directory: sudo python3 chaostictool.py${NC}"
+echo -e "${DIM}Tip: use 'sudo ./install.sh --profile full' later for the heavy optional arsenal (AUR, source builds).${NC}"

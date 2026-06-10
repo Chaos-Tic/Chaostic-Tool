@@ -705,10 +705,10 @@ def startup_check():
         )
     )
     rep = console.input(
-        "[brand.warn]Install missing tools now? [y/N][/brand.warn] [brand.white]›[/brand.white] "
+        "[brand.warn]Install missing tools now? [Y/n][/brand.warn] [brand.white]›[/brand.white] "
     ).strip().lower()
 
-    if rep in ("y", "yes", "o", "oui"):
+    if rep in ("", "y", "yes", "o", "oui"):
         install_missing([(k, b) for k, b, _ in missing], assume_yes=True)
 
     console.print()

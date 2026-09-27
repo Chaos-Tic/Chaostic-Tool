@@ -1,0 +1,152 @@
+{
+  "subfinder": {
+    "kind": "release",
+    "version": "v2.16.0",
+    "url": "https://github.com/projectdiscovery/subfinder/releases/download/v2.16.0/subfinder_2.16.0_windows_amd64.zip",
+    "sha256": "ef760f0a064c22811100c75a61da35ba73d71398cb99ae85d32d0eed44496ab8",
+    "binary": "subfinder.exe",
+    "repo": "projectdiscovery/subfinder",
+    "checksum_url": "https://github.com/projectdiscovery/subfinder/releases/download/v2.16.0/subfinder_2.16.0_checksums.txt",
+    "probe": [
+      "-version"
+    ]
+  },
+  "httpx": {
+    "kind": "release",
+    "version": "v1.12.0",
+    "url": "https://github.com/projectdiscovery/httpx/releases/download/v1.12.0/httpx_1.12.0_windows_amd64.zip",
+    "sha256": "14d8ccaa2d95ce9365162682f1a2ba3f14d2000bb4bfb0924af65ec5163ae021",
+    "binary": "httpx.exe",
+    "repo": "projectdiscovery/httpx",
+    "checksum_url": "https://github.com/projectdiscovery/httpx/releases/download/v1.12.0/httpx_1.12.0_checksums.txt",
+    "probe": [
+      "-version"
+    ]
+  },
+  "ffuf": {
+    "kind": "release",
+    "version": "v2.3.0",
+    "url": "https://github.com/ffuf/ffuf/releases/download/v2.3.0/ffuf_2.3.0_windows_amd64.zip",
+    "sha256": "091c8a22d0c7fbe07d343b3ae2c213dbd37b38a8a2ed40631fcd3128ea1764fb",
+    "binary": "ffuf.exe",
+    "repo": "ffuf/ffuf",
+    "checksum_url": "https://github.com/ffuf/ffuf/releases/download/v2.3.0/ffuf_2.3.0_checksums.txt",
+    "probe": [
+      "-V"
+    ]
+  },
+  "gobuster": {
+    "kind": "release",
+    "version": "v3.8.2",
+    "url": "https://github.com/OJ/gobuster/releases/download/v3.8.2/gobuster_Windows_x86_64.zip",
+    "sha256": "677abe8e56c5455804225ad2264dc6e9981e99673ef3ccd6a2fa2af8a2e92aba",
+    "binary": "gobuster.exe",
+    "repo": "OJ/gobuster",
+    "checksum_url": "https://github.com/OJ/gobuster/releases/download/v3.8.2/gobuster_3.8.2_checksums.txt",
+    "probe": [
+      "--version"
+    ]
+  },
+  "katana": {
+    "kind": "release",
+    "version": "v1.7.0",
+    "url": "https://github.com/projectdiscovery/katana/releases/download/v1.7.0/katana_1.7.0_windows_amd64.zip",
+    "sha256": "8d9632f95dfeae3bd6847971dbf6bef18f395056236fe7e43499d46b9789d278",
+    "binary": "katana.exe",
+    "repo": "projectdiscovery/katana",
+    "checksum_url": "https://github.com/projectdiscovery/katana/releases/download/v1.7.0/katana-1.7.0-checksums.txt",
+    "probe": [
+      "-version"
+    ]
+  },
+  "gau": {
+    "kind": "release",
+    "version": "v2.2.4",
+    "url": "https://github.com/lc/gau/releases/download/v2.2.4/gau_2.2.4_windows_amd64.zip",
+    "sha256": "46eac6d96c9479368d3006191611a33084f177fe4025efed985f40f4b7e51e64",
+    "binary": "gau.exe",
+    "repo": "lc/gau",
+    "checksum_url": "https://github.com/lc/gau/releases/download/v2.2.4/gau_2.2.4_checksums.txt",
+    "probe": [
+      "--version"
+    ]
+  },
+  "waybackurls": {
+    "kind": "release",
+    "version": "v0.1.0",
+    "url": "https://github.com/tomnomnom/waybackurls/releases/download/v0.1.0/waybackurls-windows-amd64-0.1.0.zip",
+    "sha256": "1b0d51d9d73c08b863fd15ef770524330bdf18ebbf5fb2c3a9d8e21c301e6729",
+    "binary": "waybackurls.exe",
+    "repo": "tomnomnom/waybackurls",
+    "checksum_url": "",
+    "probe": [
+      "-h"
+    ],
+    "verification_note": "Hash pinned from the official HTTPS release during build; upstream publishes no checksum."
+  },
+  "dalfox": {
+    "kind": "release",
+    "version": "v3.2.3",
+    "url": "https://github.com/hahwul/dalfox/releases/download/v3.2.3/dalfox-v3.2.3-windows-x86_64.zip",
+    "sha256": "0ad74b8937104d4603dea54c7e8d9d17e6802383a5f8b8133c7f55f19759e4a8",
+    "binary": "dalfox.exe",
+    "repo": "hahwul/dalfox",
+    "checksum_url": "https://github.com/hahwul/dalfox/releases/download/v3.2.3/checksum.txt",
+    "probe": [
+      "--version"
+    ]
+  },
+  "nuclei": {
+    "kind": "release",
+    "version": "v3.11.1",
+    "url": "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_windows_amd64.zip",
+    "sha256": "bb6cb9ff8939b753f6fcab06fd30a15f5bc61d8382a597871334c007a85ff9d2",
+    "binary": "nuclei.exe",
+    "repo": "projectdiscovery/nuclei",
+    "probe": [
+      "-version"
+    ]
+  },
+  "amass": {
+    "kind": "release",
+    "version": "v5.1.1",
+    "url": "https://github.com/owasp-amass/amass/releases/download/v5.1.1/amass_windows_amd64.tar.gz",
+    "sha256": "734aee6ce014c246e21f682bd49a42739e8c5feae32f6ec8a13fa2b8dc547b9f",
+    "binary": "amass.exe",
+    "repo": "owasp-amass/amass",
+    "probe": [
+      "-version"
+    ]
+  },
+  "naabu": {
+    "kind": "release",
+    "version": "v2.6.1",
+    "url": "https://github.com/projectdiscovery/naabu/releases/download/v2.6.1/naabu_2.6.1_windows_amd64.zip",
+    "sha256": "4efaa341f36a0c6e676164f75e2d93d5a72f4090d690fd1bc293f5a4b79c202b",
+    "binary": "naabu.exe",
+    "repo": "projectdiscovery/naabu",
+    "probe": [
+      "-version"
+    ]
+  },
+  "wafw00f": {
+    "kind": "pip",
+    "package": "wafw00f",
+    "version": "2.4.2",
+    "binary": "wafw00f.exe",
+    "probe": [
+      "--version"
+    ],
+    "url": "https://pypi.org/project/wafw00f/2.4.2/"
+  },
+  "sqlmap": {
+    "kind": "pip",
+    "package": "sqlmap",
+    "version": "1.10.9",
+    "binary": "sqlmap.exe",
+    "probe": [
+      "--version"
+    ],
+    "url": "https://pypi.org/project/sqlmap/1.10.9/"
+  }
+}

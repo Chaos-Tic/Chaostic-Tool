@@ -4,6 +4,13 @@
 
 # ChaosticTool
 
+> **Windows Desktop preview**: a native graphical companion is available in this
+> checkout. Start with [the Windows guide](docs/DESKTOP.md) for features,
+> installation, building the `.exe` and uninstallation. The Linux CLI below remains
+> available independently. Desktop entry point: `chaostic_desktop.py`.
+> See the [Windows port status](docs/WINDOWS_PORT.md) for the full tool matrix.
+> Installers are built by the [Windows Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/windows-desktop.yml) and available as artifacts on successful runs.
+
 ### Linux pentest control surface for structured recon, tool orchestration, routing control, and target-based evidence capture
 
 [![Version](https://img.shields.io/badge/version-1.3.2-ff3131?style=for-the-badge)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v1.3.2)

@@ -8,6 +8,8 @@
 
 *Capture réelle de Desktop 0.3.0 avec plusieurs outils déjà installés. Les états affichés dépendent de votre configuration.*
 
+> **[Guide Windows illustré](README_WINDOWS.md)** : premier lancement pas à pas, lecture des états, installation des outils, configuration WSL/SSH, sauvegarde et dépannage.
+
 ## Installer sous Windows
 
 | Votre système | Téléchargement |

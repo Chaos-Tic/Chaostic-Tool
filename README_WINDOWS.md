@@ -2,9 +2,9 @@
 
 Une application graphique pour retrouver vos outils, configurer leurs profils et suivre leurs résultats depuis la même interface.
 
-**[Télécharger Desktop 0.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.3.0)** · [Version Linux en terminal](README.md) · [Guide Desktop multi-systèmes](docs/DESKTOP.md)
+**[Télécharger Desktop 0.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.3.0)** · [Version Linux en terminal](README_LINUX.md) · [Guide Desktop multi-systèmes](docs/DESKTOP.md)
 
-> Desktop 0.3.0 est une préversion. Cette page présente l'application Windows ; les captures du README principal illustrent la CLI Linux.
+> Desktop 0.3.0 est une préversion. Cette page présente l'application Windows. La version Linux en terminal possède son [README dédié](README_LINUX.md).
 
 ## L'interface Windows
 
@@ -91,6 +91,6 @@ Les données personnelles restent dans `%LOCALAPPDATA%\ChaosticTool\Desktop` apr
 - [Guide Desktop complet](docs/DESKTOP.md) : prérequis, données, Linux/WSL/SSH et compilation.
 - [Catalogue et profils disponibles](docs/WINDOWS_PORT.md).
 - [Téléchargements publics](https://github.com/Chaos-Tic/Chaostic-Tool/releases).
-- [Version Linux en terminal](README.md).
+- [Version Linux en terminal](README_LINUX.md).
 
 Les captures de cette page correspondent à **Desktop 0.3.0** et doivent être renouvelées lorsque l'interface change.

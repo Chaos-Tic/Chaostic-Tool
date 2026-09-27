@@ -10,6 +10,7 @@ from pathlib import Path
 import pty
 import select
 import shutil
+import subprocess
 import signal
 import sys
 import time
@@ -23,6 +24,13 @@ def inventory(request):
         for name in candidates:
             path=shutil.which(name)
             if path:
+                markers=request.get('markers',{}).get(key,[])
+                if markers:
+                    try:
+                        probe=subprocess.run([path,'--help'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=5)
+                        help_text=probe.stdout.decode('utf-8',errors='replace').lower()
+                        if probe.returncode or not any(marker.lower() in help_text for marker in markers): continue
+                    except (OSError,subprocess.TimeoutExpired): continue
                 found[key]=path
                 break
     interfaces=[]

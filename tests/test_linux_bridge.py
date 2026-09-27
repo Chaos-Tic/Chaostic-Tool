@@ -18,6 +18,14 @@ class LinuxBridgeTests(unittest.TestCase):
         result=json.loads(p.stdout.readline())
         self.assertIn('python',result['tools']); self.assertNotIn('missing',result['tools'])
         self.assertEqual(p.wait(timeout=5),0)
+    def test_inventory_rejects_wrong_program_with_same_name(self):
+        with tempfile.TemporaryDirectory() as temp:
+            wrong=Path(temp)/'httpx'
+            wrong.write_text('#!/bin/sh\necho "Python HTTP client"\n')
+            wrong.chmod(0o755)
+            p=self.start({'op':'inventory','tools':{'httpx':[str(wrong)]},'markers':{'httpx':['projectdiscovery','-tech-detect']}})
+            self.assertEqual(json.loads(p.stdout.readline())['tools'],{})
+            self.assertEqual(p.wait(timeout=5),0)
     def test_interactive_input_and_real_tty(self):
         with tempfile.TemporaryDirectory() as temp:
             code="import os; print('TTY='+str(os.isatty(0)),flush=True); answer=input(); print('ANSWER='+answer,flush=True)"

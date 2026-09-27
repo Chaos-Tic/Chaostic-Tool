@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from pathlib import Path
 from core.tools import TOOLS
-from desktop.packages import MANIFEST, managed_command, installation_error
+from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python
+from desktop.profiles import normalized, validate_field, placeholders
+from desktop.backends import linux_status, get_config
 
 CATEGORIES = {
     "local": "Diagnostic", "osint": "OSINT", "recon": "Réseau",
@@ -69,32 +72,86 @@ ADAPTERS.update({
         dict(label='Détection standard', args=['-u', '{url}', '--batch', '--level=1', '--risk=1', '--disable-coloring']),
     ]),
 })
-for _key, _adapter in ADAPTERS.items():
-    if _key in MANIFEST:
-        _spec = MANIFEST[_key]
-        _adapter['package'] = _key
-        _adapter.setdefault('url', _spec['url'])
-        _adapter['note'] = ('Installation depuis l’application · Version ' + _spec['version'] +
-                            (' · Python 3.10 ou ultérieur requis.' if _spec['kind'] == 'pip' else ' · Archive Windows vérifiée par SHA-256.'))
-ADAPTERS['nuclei']['note'] += ' Les modèles sont téléchargés au premier lancement ; une connexion Internet est nécessaire.'
-ADAPTERS['naabu']['note'] += ' Npcap peut être nécessaire selon la configuration Windows.'
-ADAPTERS['amass']['note'] += ' Amass 5 exige un moteur de collecte externe. Son intégration Desktop reste à compléter ; l’installation du binaire seule ne suffit pas.'
-ADAPTERS['ffuf']['presets'].append(dict(label='Répertoires avec filtre de taille', args=['-u','{base_url}FUZZ','-w','{wordlist}','-fs','{size}','-noninteractive','-maxtime','300'], wordlist=True, fields={'size': ('Taille de réponse à ignorer', '0')}))
-ADAPTERS['katana']['presets'].append(dict(label='Profondeur personnalisée', args=['-u','{url}','-d','{depth}','-silent','-nc'], fields={'depth': ('Profondeur (1 à 10)', '2')}))
+
+# The original registry is preserved, including interactive and local-only profiles.
+for _key in ['dnsrecon','theharvester','shodan','xsstrike','secretsdump.py','psexec.py','GetUserSPNs.py','bloodhound-python','hashcat','john','sslscan','aircrack-ng']:
+    ADAPTERS[_key] = dict(presets=[dict(p) for p in TOOLS[_key]['presets']], note='Profils natifs. Une distribution Linux peut également être sélectionnée.', url='https://github.com/Chaos-Tic/Chaostic-Tool')
+    if _key in MANIFEST: ADAPTERS[_key]['package']=_key
+    elif _key in ('secretsdump.py','psexec.py','GetUserSPNs.py'): ADAPTERS[_key]['package']='impacket'
+ADAPTERS['shodan']['presets'].append(dict(label='Configurer la clé API Shodan',args=['init','{api_key}'],fields={'api_key':('Clé API','')}))
+ADAPTERS['theharvester']['presets']=[dict(label='Sources publiques crtsh',args=['-d','{host}','-b','crtsh']),dict(label='Sources personnalisées',args=['-d','{host}','-b','{sources}'],fields={'sources':('Sources séparées par des virgules','crtsh')})]
+ADAPTERS['winpeas']=dict(package='winpeas',url='https://github.com/peass-ng/PEASS-ng/releases',note='Exécution sur cet ordinateur Windows. Les résultats décrivent ce PC, pas une cible distante.',presets=[dict(label='Informations système de ce PC',args=['systeminfo','notcolor']),dict(label='Énumération complète de ce PC',args=['notcolor'])])
+ADAPTERS['amass']['presets']=[dict(label='Énumération avec moteur Amass',args=['enum','-d','{host}','-engine','{engine}'],fields={'engine':('URL du moteur de collecte','http://127.0.0.1:4000')},domain_only=True)]
+for _key in ['subfinder','httpx','gobuster','ffuf','sqlmap','nuclei']:
+    for _p in TOOLS[_key]['presets']:
+        _p=dict(_p)
+        if _key=='nuclei' and '-t' in _p['cmd']:
+            _p['cmd']=list(_p['cmd']); _idx=_p['cmd'].index('-t'); _p['cmd'][_idx]='-tags'; _p['cmd'][_idx+1]={'exposures':'exposure','network':'network'}[_p['cmd'][_idx+1]]
+        ADAPTERS[_key]['presets'].append(_p)
+ADAPTERS['ffuf']['presets'].append(dict(label='Répertoires avec filtre de taille',args=['-u','{base_url}FUZZ','-w','{wordlist}','-fs','{size}','-noninteractive','-maxtime','300'],wordlist=True,fields={'size':('Taille à ignorer','0')}))
+ADAPTERS['katana']['presets'].append(dict(label='Profondeur personnalisée',args=['-u','{url}','-d','{depth}','-silent','-nc'],fields={'depth':('Profondeur (1 à 10)','2')}))
+for _key,_adapter in ADAPTERS.items():
+    _package=_adapter.get('package',_key)
+    if _package in MANIFEST:
+        _adapter['package']=_package
+        _spec=MANIFEST[_package]
+        _adapter.setdefault('url',_spec.get('url','https://github.com/Chaos-Tic/Chaostic-Tool'))
+        _adapter['note']=_adapter.get('note','')+' Installation intégrée, version '+_spec['version']+'.'
+    _adapter.setdefault('note','Choisissez un exécutable compatible avec votre système.')
+    _adapter.setdefault('url','https://github.com/Chaos-Tic/Chaostic-Tool')
+    _adapter['presets']=[normalized(p) for p in _adapter['presets']]
+    for _p in _adapter['presets']:
+        _p['interactive']=bool(TOOLS[_key].get('interactive'))
+ADAPTERS['nuclei']['note']+=' Les modèles sont téléchargés lors du premier usage.'
+ADAPTERS['amass']['note']+=' Un moteur de collecte Amass configuré doit être accessible à l’URL indiquée.'
+ADAPTERS['hashcat']['note']+=' Un pilote GPU/OpenCL compatible est requis.'
+
+BUILTINS['whois']=dict(name='Whois',category='osint',desc='Consultez les informations d’enregistrement auprès du serveur Whois.',presets=[dict(label='Requête Whois',worker='whois',needs_target=True)])
+BUILTINS['dig']=dict(name='DNS avancé',category='osint',desc='Interrogez les enregistrements DNS ; le moteur dnspython est intégré.',presets=[dict(label='Enregistrements '+r,worker='dig',rrtype=r,needs_target=True,fields={'nameserver':('Serveur DNS (facultatif)','')}) for r in ['A','AAAA','MX','TXT','NS','SOA','CAA','ANY','AXFR']])
+
+def linux_presets(key):
+    result=[]
+    for original in TOOLS[key]['presets']:
+        p=normalized(original,'linux')
+        p['requires_root']=bool(original.get('requires_root',TOOLS[key].get('requires_root')))
+        p['interactive']=bool(TOOLS[key].get('interactive'))
+        if key=='rustscan': p['args']=['-b' if x=='--rate' else x for x in p['args']]
+        if key=='hashcat' and '-m' in p['args'] and '22000' in p['args']: p['fields']['hashfile']=('Capture de hachages au format 22000','')
+        if key=='amass':
+            p['args']=['enum','-d','{host}','-engine','{engine}']; p['fields']['engine']=('Moteur de collecte Amass 5','http://127.0.0.1:4000')
+        result.append(p)
+    return result
 
 
 def catalog():
-    entries = []
-    for key, definition in {**BUILTINS, **TOOLS}.items():
-        item = dict(definition, key=key, group=CATEGORIES.get(definition["category"], definition["category"]))
+    entries=[]
+    for key,definition in {**TOOLS,**BUILTINS}.items():
+        item=dict(definition,key=key,group=CATEGORIES.get(definition['category'],definition['category']))
+        item['linux_presets']=linux_presets(key) if key in TOOLS and key!='winpeas' else []
         if key in BUILTINS:
-            item.update(mode="builtin", note="Inclus dans l’application. Aucune installation supplémentaire.")
+            item.update(BUILTINS[key],mode='builtin',note='Inclus dans l’application. Aucune installation supplémentaire.')
+            item['presets']=[dict(p,backend='builtin',needs_target=p.get('needs_target',key!='desktop-diagnostic')) for p in item['presets']]
         elif key in ADAPTERS:
-            item.update(ADAPTERS[key], mode="native")
+            item.update(ADAPTERS[key],mode='native')
         else:
-            item.update(mode="unavailable", presets=[], note="Cet outil du catalogue Linux n’a pas encore d’intégration Desktop. Il reste disponible dans la version CLI Linux.")
+            item.update(mode='linux',presets=item['linux_presets'],note='Exécution Linux intégrée. Configurez et vérifiez Linux local, WSL ou SSH dans les paramètres.')
         entries.append(item)
     return entries
+
+
+def native_command(tool,configured=None,root=None):
+    if tool.get('package') and not configured and can_install(tool['package']):
+        try:
+            binary=tool['binary'] if tool['key'] in ('secretsdump.py','psexec.py','GetUserSPNs.py') else None
+            command=managed_command(tool['package'],binary,root)
+            if command: return command
+        except (KeyError,ValueError): pass
+    path=find_executable(tool,configured,root)
+    if not path: return None
+    if Path(path).suffix=='.py':
+        python=find_python()
+        return [python,path] if python else None
+    return [path]
 
 
 def find_executable(tool, configured=None, root=None):
@@ -104,8 +161,8 @@ def find_executable(tool, configured=None, root=None):
     if configured:
         candidates.append(str(Path(configured).expanduser()))
     else:
-        if tool.get('package') and (command := managed_command(tool['package'], root=root)):
-            return command[0]
+        if tool.get('package') and can_install(tool['package']) and (command := managed_command(tool['package'], binary=tool['binary'] if tool['key'].endswith('.py') else None, root=root)):
+            return command[-1]
         binary = tool["binary"]
         found = shutil.which(binary)
         if found:
@@ -116,58 +173,50 @@ def find_executable(tool, configured=None, root=None):
                     candidates.append(str(Path(base) / "Nmap" / "nmap.exe"))
     for value in candidates:
         path = Path(value)
-        if path.is_file() and (os.name != "nt" or path.suffix.lower() == ".exe"):
+        if path.is_file() and (os.name != "nt" or path.suffix.lower() in (".exe", ".py")):
             return str(path.resolve())
     return None
 
 
-def availability(tool, settings, root=None):
-    if tool["mode"] == "builtin":
-        return "Inclus", True
-    if tool["mode"] == "unavailable":
-        return "À porter", False
-    if tool['key'] == 'amass':
-        return 'Service requis', False
-    executable = find_executable(tool, settings.get(tool["key"]), root)
-    if executable:
-        return 'Prêt', True
-    if tool.get('package') and installation_error(tool['package'], root):
-        return 'Échec installation', False
-    return 'À installer', False
+def availability(tool,settings,root=None):
+    if tool['mode']=='builtin': return 'Inclus',True
+    if tool['mode']=='native' and native_command(tool,settings.get(tool['key']),root):
+        return ('Service requis',False) if tool['key']=='amass' else ('Prêt',True)
+    status=linux_status(root)
+    if tool['key'] in status.get('tools',{}): return ('Service requis',False) if tool['key']=='amass' else ('Prêt · Linux',True)
+    if tool.get('package') and installation_error(tool['package'],root): return 'Échec installation',False
+    if tool['mode']=='native': return 'À installer',False
+    return ('À installer · Linux',False) if status.get('tools') else ('Linux à configurer',False)
 
 
-def build_arguments(tool, preset_index, target, wordlist="", fields=None):
-    preset = tool["presets"][preset_index]
-    if not target:
-        raise ValueError('Choisissez une cible.')
-    if preset.get("domain_only"):
+def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None,backend='native'):
+    preset=preset or tool['presets'][preset_index]
+    fields=fields or {}
+    if preset.get('needs_target',True) and not target: raise ValueError('Choisissez une cible.')
+    target=target or {}
+    if preset.get('domain_only'):
         import ipaddress
-        try:
-            ipaddress.ip_address(target["host"])
-        except ValueError:
-            pass
-        else:
-            raise ValueError("Ce profil attend un nom de domaine, pas une adresse IP.")
-    if preset.get("wordlist") and not Path(wordlist).is_file():
-        raise ValueError("Sélectionnez un fichier de mots existant.")
-    from urllib.parse import urlsplit, urlunsplit
-    parsed = urlsplit(target["url"])
-    base_url = urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip("/") + "/", "", ""))
-    values = {**target, "wordlist": str(Path(wordlist).resolve()) if wordlist else "", "base_url": base_url}
-    import re
-    for name, (caption, default) in preset.get('fields', {}).items():
-        value = (fields or {}).get(name, default).strip()
-        if name == 'ports':
-            if not re.fullmatch(r'[0-9,-]+', value):
-                raise ValueError('Indiquez des ports séparés par des virgules, ou des plages comme 8000-8100.')
+        try: ipaddress.ip_address(target['host'])
+        except ValueError: pass
+        else: raise ValueError('Ce profil attend un nom de domaine, pas une adresse IP.')
+    from urllib.parse import urlsplit,urlunsplit
+    parsed=urlsplit(target.get('url',''))
+    base_url=urlunsplit((parsed.scheme,parsed.netloc,parsed.path.rstrip('/')+'/','',''))
+    values={**target,'base_url':base_url}
+    if preset.get('wordlist'): values['wordlist']=validate_field('wordlist',wordlist,backend)
+    for name,(caption,default) in preset.get('fields',{}).items():
+        value=fields.get(name,default)
+        if name=='ports':
+            if not re.fullmatch(r'[0-9,-]+',value): raise ValueError('Liste de ports invalide.')
             for part in value.split(','):
-                limits = part.split('-')
-                if len(limits) > 2 or any(not p or not 1 <= int(p) <= 65535 for p in limits) or int(limits[0]) > int(limits[-1]):
-                    raise ValueError('Les ports doivent être compris entre 1 et 65535, dans un ordre de plage valide.')
-        elif not value.isascii() or not value.isdigit() or not (1 if name == 'depth' else 0) <= int(value) <= (10 if name == 'depth' else 1_000_000_000):
-            raise ValueError(f'{caption} : valeur numérique invalide.')
-        values[name] = value
-    args = [arg.format_map(values) for arg in preset["args"]]
-    if tool["key"] == "nmap" and ":" in target["host"]:
-        args.insert(0, "-6")
+                limits=part.split('-')
+                if len(limits)>2 or any(not p or not 1<=int(p)<=65535 for p in limits) or int(limits[0])>int(limits[-1]): raise ValueError('Plage de ports invalide.')
+            values[name]=value
+        elif name=='engine':
+            from desktop.storage import parse_target
+            values[name]=parse_target(value)['url'].rstrip('/')
+        elif name=='nameserver' and not value: values[name]=''
+        else: values[name]=validate_field(name,value,backend)
+    args=[arg.format_map(values) for arg in preset.get('args',[])]
+    if tool['key']=='nmap' and ':' in target.get('host','') and '-6' not in args: args.insert(0,'-6')
     return args

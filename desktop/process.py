@@ -4,6 +4,7 @@ from __future__ import annotations
 import codecs
 import ctypes
 import os
+import json
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import psutil
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
 
 from desktop.storage import now, write_json
+from desktop.profiles import StreamRedactor,redact
 
 
 class WindowsJob:
@@ -99,17 +101,31 @@ class Runner(QObject):
     def active(self):
         return self.proc is not None
 
-    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000):
+    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False):
         if self.active:
             raise RuntimeError("Une opération est déjà en cours.")
-        directory, record = self.store.new_run(tool, preset, target, command or ["builtin", worker])
+        display=[redact(arg,redactions) for arg in (command or ['builtin',worker])]
+        directory, record = self.store.new_run(tool, preset, target, display)
         self.directory, self.record = directory, record
         self.cancelled, self.failure, self.builtin, self.offset = False, "", worker is not None, 0
         self.decoder.reset()
+        self.redactor=StreamRedactor(redactions)
+        self.bridge=bridge
+        self.initial_input=None
         self.log = directory / "output.txt"
         self.log.touch()
         if worker:
             command = worker_command(worker, directory / "run.json", self.log)
+        elif bridge:
+            try:
+                from desktop.backends import execution_plan
+                command,request=execution_plan(command,{'requires_root':elevate},self.store.root,directory,fields)
+                request['timeout']=max(1,timeout_ms//1000)
+                self.initial_input=(json.dumps(request)+'\n').encode('utf-8')
+            except Exception as exc:
+                record.update(status='failed',detail=str(exc),finished=now(),exit_code=-1)
+                write_json(directory/'run.json',record)
+                raise
         self.proc = QProcess(self)
         self.proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.proc.setWorkingDirectory(str(directory))
@@ -134,6 +150,23 @@ class Runner(QObject):
             except OSError as exc:
                 self.failure = f"Impossible d’encadrer le processus Windows : {exc}"
                 self.stop(cancelled=False)
+                return
+        if self.initial_input:
+            self.proc.write(self.initial_input)
+            self.initial_input=None
+
+    def send_input(self,text,secret=False):
+        if not self.active: return
+        if secret:
+            # No user input is recorded separately. Mask it if the tool echoes it.
+            self.redactor.secrets.append(text.rstrip('\r\n').encode('utf-8'))
+            self.redactor.keep=max(self.redactor.keep,len(text.encode('utf-8')))
+        data=(json.dumps({'op':'input','text':text})+'\n').encode('utf-8') if self.bridge else text.encode('utf-8')
+        self.proc.write(data)
+
+    def interrupt(self):
+        if self.active:
+            self.proc.write((json.dumps({'op':'interrupt'})+'\n').encode() if self.bridge else b'\x03')
 
     def _read(self):
         if self.proc is None:
@@ -141,7 +174,7 @@ class Runner(QObject):
         data = bytes(self.proc.readAllStandardOutput())
         if data and not self.builtin:
             with self.log.open("ab") as stream:
-                stream.write(data)
+                stream.write(self.redactor.feed(data))
 
     def _tail(self):
         if self.directory is None:
@@ -169,6 +202,16 @@ class Runner(QObject):
         if not self.active:
             return
         self.cancelled = cancelled
+        if self.bridge:
+            self.proc.write((json.dumps({'op':'stop'})+'\n').encode())
+            self.proc.closeWriteChannel()
+            current=self.proc
+            QTimer.singleShot(3000,lambda: self._force_stop() if self.proc is current else None)
+            return
+        self._force_stop()
+
+    def _force_stop(self):
+        if not self.active: return
         if self.job:
             self.job.close()
             self.job = None
@@ -190,6 +233,8 @@ class Runner(QObject):
         if not self.active:
             return
         self._read()
+        if not self.builtin:
+            with self.log.open('ab') as stream: stream.write(self.redactor.feed(b'',final=True))
         self.poll.stop()
         self.deadline.stop()
         # Keep final rendering bounded even when an external tool floods stdout.
@@ -221,4 +266,6 @@ class Runner(QObject):
         if self.active:
             self.stop()
             if self.proc:
-                self.proc.waitForFinished(5000)
+                if not self.proc.waitForFinished(5000):
+                    self._force_stop()
+                    if self.proc: self.proc.waitForFinished(3000)

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import re
+import os
+import platform
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, QSize
@@ -9,14 +12,17 @@ from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
-    QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QInputDialog, QScrollArea, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
 from desktop import VERSION
 from desktop.icons import icon as nav_icon
-from desktop.catalog import availability, build_arguments, catalog, find_executable
+from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
 from desktop.process import Runner
-from desktop.packages import PORTABLE_PACK, PYTHON_PACK, MANIFEST, find_python, installed, installation_error
+from desktop.backends import get_config,save_config,linux_status,install_plan
+from desktop.profiles import secrets_for,INPUT_FILES
+from desktop.backend_dialog import BackendDialog
+from desktop.packages import PORTABLE_PACK, PYTHON_PACK, MANIFEST, find_python, installed, installation_error, can_install
 
 STATUS = {"running": "En cours", "success": "Terminé", "failed": "Échec", "cancelled": "Arrêté", "interrupted": "Interrompu"}
 
@@ -139,92 +145,7 @@ class TargetDialog(QDialog):
         layout.addWidget(actions)
 
 
-class LaunchDialog(QDialog):
-    def __init__(self, tool, store, parent):
-        super().__init__(parent)
-        self.tool, self.store = tool, store
-        self.setWindowTitle(f"Lancer {tool['name']}")
-        self.setMinimumWidth(560)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(26, 26, 26, 26)
-        layout.setSpacing(17)
-        layout.addWidget(label(tool["name"], "sectionTitle"))
-        layout.addWidget(label(tool["desc"], "muted", True))
-        form = QFormLayout()
-        form.setSpacing(16)
-        self.targets = QComboBox()
-        for target in store.targets:
-            self.targets.addItem(f"{target['label']} — {target['host']}", target["id"])
-        if store.active_target:
-            self.targets.setCurrentIndex(self.targets.findData(store.active_target["id"]))
-        self.profiles = QComboBox()
-        self.profiles.addItems([p["label"] for p in tool["presets"]])
-        form.addRow("Profil", self.profiles)
-        if tool["key"] != "desktop-diagnostic":
-            form.addRow("Cible", self.targets)
-        self.wordlist = QLineEdit()
-        self.wordlist.setPlaceholderText("Choisissez une liste de mots…")
-        self.file_row = QWidget()
-        files = QHBoxLayout(self.file_row)
-        files.setContentsMargins(0, 0, 0, 0)
-        files.addWidget(self.wordlist)
-        files.addWidget(button("Parcourir", self.browse))
-        if any(p.get("wordlist") for p in tool["presets"]):
-            form.addRow("Liste de mots", self.file_row)
-        layout.addLayout(form)
-        self.extra_form = QFormLayout()
-        self.extra_fields = {}
-        layout.addLayout(self.extra_form)
-        self.preview = label("", "muted", True)
-        self.preview.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(self.preview)
-        self.targets.currentIndexChanged.connect(self.update_preview)
-        self.profiles.currentIndexChanged.connect(self.profile_changed)
-        self.wordlist.textChanged.connect(self.update_preview)
-        actions = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
-        actions.button(QDialogButtonBox.StandardButton.Ok).setText("Lancer l’opération")
-        actions.button(QDialogButtonBox.StandardButton.Ok).setObjectName("primary")
-        actions.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
-        actions.accepted.connect(self.accept)
-        actions.rejected.connect(self.reject)
-        layout.addWidget(actions)
-        self.profile_changed()
-
-    def profile_changed(self):
-        while self.extra_form.rowCount():
-            self.extra_form.removeRow(0)
-        self.extra_fields = {}
-        preset = self.tool['presets'][self.profiles.currentIndex()]
-        self.file_row.setVisible(bool(preset.get('wordlist')))
-        for name, (caption, default) in preset.get('fields', {}).items():
-            edit = QLineEdit(default)
-            self.extra_form.addRow(caption, edit)
-            self.extra_fields[name] = edit
-            edit.textChanged.connect(self.update_preview)
-        self.update_preview()
-
-    def field_values(self):
-        return {name: edit.text() for name, edit in self.extra_fields.items()}
-
-    def browse(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Choisir une liste de mots", "", "Textes (*.txt);;Tous les fichiers (*)")
-        if path:
-            self.wordlist.setText(path)
-
-    def target(self):
-        return next((t for t in self.store.targets if t["id"] == self.targets.currentData()), None)
-
-    def update_preview(self):
-        if self.tool["mode"] == "builtin":
-            text = "Diagnostic local, sans connexion réseau." if self.tool["key"] == "desktop-diagnostic" else "Connexion directe depuis cet ordinateur. Le VPN et Tor ne sont pas gérés par cette version."
-        else:
-            try:
-                args = build_arguments(self.tool, self.profiles.currentIndex(), self.target(), self.wordlist.text(), self.field_values())
-                import subprocess
-                text = subprocess.list2cmdline([self.tool["binary"], *args])
-            except (ValueError, TypeError):
-                text = "Choisissez une cible et les fichiers nécessaires au profil."
-        self.preview.setText(text)
+from desktop.launch_dialog import LaunchDialog
 
 
 class Window(QMainWindow):
@@ -274,7 +195,7 @@ class Window(QMainWindow):
             self.nav.append(item)
             side.addWidget(item)
         side.addStretch()
-        side.addWidget(label("WINDOWS DESKTOP", "eyebrow"))
+        side.addWidget(label(platform.system().upper()+" DESKTOP", "eyebrow"))
         side.addWidget(label(f"Version {VERSION} · Aperçu", "muted"))
         side.addSpacing(8)
         side.addWidget(button("Ouvrir mes fichiers", self.open_data))
@@ -291,7 +212,7 @@ class Window(QMainWindow):
         title_area.addWidget(self.page_title)
         heading.addLayout(title_area)
         heading.addStretch()
-        heading.addWidget(label("●  Windows natif", "badge"))
+        heading.addWidget(label("●  "+platform.system(), "badge"))
         heading.addSpacing(14)
         heading.addWidget(button("+  Ajouter une cible", self.add_target, "primary"))
         main.addLayout(heading)
@@ -394,10 +315,12 @@ class Window(QMainWindow):
         toolbar.addWidget(self.only_ready)
         layout.addLayout(toolbar)
         installs = QHBoxLayout()
-        self.pack_button = button("Installer le pack Windows", lambda: self.install_tools(PORTABLE_PACK), "primary")
+        self.pack_button = button("Installer le pack natif", lambda: self.install_tools([p for p in PORTABLE_PACK if can_install(p)]), "primary")
         self.python_pack_button = button("Installer les outils Python", lambda: self.install_tools(PYTHON_PACK))
         installs.addWidget(self.pack_button)
         installs.addWidget(self.python_pack_button)
+        self.linux_pack_button = button("Installer le pack Linux", lambda: self.install_linux(list(self.tool_by_key)))
+        installs.addWidget(self.linux_pack_button)
         installs.addStretch()
         installs.addWidget(button("Actualiser", self.refresh))
         layout.addLayout(installs)
@@ -422,6 +345,10 @@ class Window(QMainWindow):
         content.addWidget(self.tool_path)
         content.addStretch()
         self.launch_button = button("Configurer et lancer", self.launch_selected, "primary")
+        self.linux_install_button = button("Installer côté Linux", self.install_selected_linux)
+        self.linux_path_button = button("Chemin Linux personnalisé…", self.configure_linux_path)
+        content.addWidget(self.linux_install_button)
+        content.addWidget(self.linux_path_button)
         self.configure_button = button("Choisir l’exécutable…", self.configure_executable)
         self.download_button = button("Téléchargement officiel ↗", self.open_download)
         self.install_button = button("Installer cet outil", self.install_selected)
@@ -452,6 +379,17 @@ class Window(QMainWindow):
         self.console.document().setMaximumBlockCount(5000)
         self.console.setPlaceholderText("Aucune opération lancée.\n\nChoisissez un outil dans la boîte à outils pour commencer.")
         layout.addWidget(self.console, 1)
+        self.input_row=QWidget(); entry=QHBoxLayout(self.input_row); entry.setContentsMargins(0,0,0,0)
+        self.terminal_input=QLineEdit(); self.terminal_input.setPlaceholderText("Saisie pour la session interactive…")
+        self.secret_input=QCheckBox("Masquer"); self.secret_input.setChecked(True)
+        self.terminal_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.secret_input.toggled.connect(lambda yes:self.terminal_input.setEchoMode(QLineEdit.EchoMode.Password if yes else QLineEdit.EchoMode.Normal))
+        entry.addWidget(self.terminal_input,1); entry.addWidget(self.secret_input)
+        entry.addWidget(button("Envoyer",self.send_terminal_input)); entry.addWidget(button("Ctrl+C",self.runner.interrupt))
+        self.terminal_input.returnPressed.connect(self.send_terminal_input)
+        layout.addWidget(self.input_row); self.input_row.hide()
+        self.terminal_screen=None
+
         actions = QHBoxLayout()
         self.stop_button = button("■  Arrêter l’opération", self.runner.stop, "danger")
         # clicked(bool) must not replace Runner.stop's cancellation flag.
@@ -486,7 +424,19 @@ class Window(QMainWindow):
         layout.addLayout(actions)
 
     def build_settings(self):
-        layout = self.page()
+        outer=self.page()
+        scroll=QScrollArea(); scroll.setWidgetResizable(True)
+        panel=QWidget(); layout=QVBoxLayout(panel)
+        scroll.setWidget(panel); outer.addWidget(scroll)
+        frame,content=card()
+        content.addWidget(label("Environnement Linux", "sectionTitle"))
+        self.backend_status=label("Non vérifié", "muted", True)
+        content.addWidget(self.backend_status)
+        content.addWidget(button("Configurer Linux / WSL / SSH…",self.configure_backend))
+        content.addWidget(button("Vérifier la connexion et les outils",self.check_backend))
+        if os.name=='nt': content.addWidget(button("Installer WSL et Kali Linux…",self.setup_wsl))
+        content.addWidget(label("Linux local utilise ce PC. WSL utilise la distribution sélectionnée. SSH utilise votre propre machine ou VM ; aucun serveur n’est imposé. Les pilotes Wi-Fi et interfaces doivent exister dans cet environnement.","muted",True))
+        layout.addWidget(frame)
         frame, content = card()
         content.addWidget(label("Vos données restent sur cet ordinateur", "sectionTitle"))
         content.addWidget(label("Cibles, paramètres et journaux sont enregistrés séparément du programme. Une mise à niveau conserve ces données.", "muted", True))
@@ -497,7 +447,7 @@ class Window(QMainWindow):
         layout.addWidget(frame)
         frame, content = card()
         content.addWidget(label("Outils externes", "sectionTitle"))
-        content.addWidget(label("Installez le pack Windows depuis la boîte à outils, ou choisissez chaque outil séparément. Les versions sont conservées dans votre dossier de données. Les archives portables sont vérifiées par SHA-256. Les outils Python utilisent chacun un environnement isolé ; leur installation nécessite Python 3.10 ou ultérieur.", "muted", True))
+        content.addWidget(label("Installez le pack natif depuis la boîte à outils, ou choisissez chaque outil séparément. Les versions sont conservées dans votre dossier de données. Les archives portables sont vérifiées par SHA-256. Les outils Python utilisent chacun un environnement isolé. Si nécessaire, un Python compatible est téléchargé et vérifié automatiquement.", "muted", True))
         self.python_path = label("Python : " + (find_python(self.store.settings.get("python")) or "non détecté"), "muted", True)
         content.addWidget(self.python_path)
         content.addWidget(button("Choisir Python…", self.configure_python))
@@ -505,7 +455,7 @@ class Window(QMainWindow):
         layout.addWidget(frame)
         frame, content = card()
         content.addWidget(label("À propos de cette version", "sectionTitle"))
-        content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes fonctions CLI Linux restent dans le dépôt. Les consoles interactives, les workflows en chaîne, le Wi-Fi et le pilotage Tor/VPN ne sont pas encore intégrés à Desktop. Le routage des opérations est celui de Windows.", "muted", True))
+        content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les workflows en chaîne et le pilotage Tor/VPN restent séparés. Le routage est celui de l’environnement choisi.", "muted", True))
         content.addWidget(button("Ouvrir le dépôt GitHub ↗", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
         layout.addWidget(frame)
         layout.addStretch()
@@ -517,6 +467,9 @@ class Window(QMainWindow):
             item.setChecked(i == index)
 
     def refresh(self):
+        if hasattr(self,'backend_status'):
+            status=linux_status(self.store.root)
+            self.backend_status.setText(status.get('error') or (str(len(status.get('tools',{})))+' outils détectés · '+status.get('checked','Connexion non vérifiée')))
         self.history_rows = self.store.history()
         for value, count in zip(self.stats, (len(self.store.targets), sum(availability(t, self.store.settings["executables"], self.store.root)[1] for t in self.tools), len(self.history_rows))):
             value.setText(str(count))
@@ -568,7 +521,7 @@ class Window(QMainWindow):
         self.tool_table.blockSignals(True)
         fill_table(self.tool_table, [(t["name"], t["group"], availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools])
         self.tool_table.blockSignals(False)
-        self.tool_count.setText(f"{len(self.filtered_tools)} outil(s) affiché(s) · « À porter » : disponible uniquement dans la CLI Linux pour le moment")
+        self.tool_count.setText(f"{len(self.filtered_tools)} outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux")
         if self.filtered_tools:
             row = next((i for i, t in enumerate(self.filtered_tools) if t["key"] == selected_key), 0)
             self.tool_table.selectRow(row)
@@ -587,7 +540,7 @@ class Window(QMainWindow):
             self.tool_desc.clear()
             self.tool_note.clear()
             self.tool_path.clear()
-            for item in (self.launch_button, self.configure_button, self.download_button, self.install_button):
+            for item in (self.launch_button, self.configure_button, self.download_button, self.install_button, self.linux_install_button, self.linux_path_button):
                 item.setEnabled(False)
             return
         status, ready = availability(tool, self.store.settings["executables"], self.store.root)
@@ -597,7 +550,7 @@ class Window(QMainWindow):
         self.tool_note.setText(tool["note"])
         package = tool.get("package")
         record = installed(package, self.store.root) if package else None
-        self.install_button.setVisible(bool(package))
+        self.install_button.setVisible(bool(package) and can_install(package))
         self.install_button.setEnabled(bool(package) and not self.runner.active)
         self.install_button.setText("Vérifier l’installation" if record else "Installer cet outil")
         if record:
@@ -606,7 +559,10 @@ class Window(QMainWindow):
             self.tool_note.setText(tool['note'] + '\nDernier échec : ' + error[-600:])
 
         self.tool_path.setText(find_executable(tool, self.store.settings["executables"].get(tool["key"]), self.store.root) or "")
-        self.launch_button.setEnabled(ready and not self.runner.active)
+        self.launch_button.setEnabled(bool(tool['presets']) and not self.runner.active)
+        self.linux_install_button.setVisible(bool(tool.get('linux_presets')))
+        self.linux_install_button.setEnabled(not self.runner.active)
+        self.linux_path_button.setVisible(bool(tool.get('linux_presets')))
         self.configure_button.setVisible(tool["mode"] == "native")
         self.download_button.setVisible(tool["mode"] == "native")
         self.configure_button.setEnabled(True)
@@ -616,10 +572,10 @@ class Window(QMainWindow):
         tool = self.selected_tool()
         if not tool or tool["mode"] != "native":
             return
-        path, _ = QFileDialog.getOpenFileName(self, f"Sélectionner {tool['name']}", "", "Exécutables Windows (*.exe)")
+        path, _ = QFileDialog.getOpenFileName(self, f"Sélectionner {tool['name']}", "", "Programmes et scripts (*)")
         if path:
             if not find_executable(tool, path):
-                QMessageBox.warning(self, "Fichier invalide", "Choisissez un exécutable Windows existant.")
+                QMessageBox.warning(self, "Fichier invalide", "Choisissez un programme ou script Python existant pour cet ordinateur.")
                 return
             self.store.settings["executables"][tool["key"]] = path
             self.store.save()
@@ -647,12 +603,10 @@ class Window(QMainWindow):
             self.navigate(3)
             return
         python = find_python(self.store.settings.get("python"))
-        if any(MANIFEST[p]["kind"] == "pip" for p in packages) and not python:
-            QMessageBox.information(self, "Python requis", "Sélectionnez Python 3.10 ou ultérieur dans les paramètres, puis relancez l’installation.")
-            self.navigate(5)
-            return
         request = {"label": "Cet ordinateur", "packages": list(packages), "root": str(self.store.root), "python": python}
         self.console.clear()
+        self.terminal_screen=None
+        self.input_row.hide()
         self.run_title.setText("Installation des outils")
         self.run_info.setText("Téléchargement, vérification et installation · En cours")
         try:
@@ -666,39 +620,101 @@ class Window(QMainWindow):
         if tool := self.selected_tool():
             self.launch(tool["key"])
 
-    def launch(self, key, show_dialog=True):
+    def launch(self,key,show_dialog=True):
         if self.runner.active:
-            self.navigate(3)
-            self.statusBar().showMessage("Une opération est déjà en cours. Arrêtez-la avant d’en lancer une autre.")
-            return
-        tool = self.tool_by_key[key]
-        if not availability(tool, self.store.settings["executables"], self.store.root)[1]:
-            return
-        if key != "desktop-diagnostic" and not self.store.targets:
-            self.add_target()
-            if not self.store.targets:
+            self.navigate(3); return
+        tool=self.tool_by_key[key]
+        dialog=LaunchDialog(tool,self.store,self)
+        while True:
+            if show_dialog and dialog.exec()!=QDialog.DialogCode.Accepted: return
+            preset=dialog.preset(); backend=dialog.backend.currentData()
+            target=dialog.target() if preset.get('needs_target',True) else None
+            fields=dialog.field_values()
+            try:
+                args=build_arguments(tool,0,target,dialog.wordlist.text(),fields,preset=preset,backend=dialog.effective_backend())
+                secret_values=secrets_for(preset,fields)
+                if backend=='builtin':
+                    request={**(target or {}),'fields':fields,'rrtype':preset.get('rrtype','A')}
+                    kwargs={'worker':preset['worker'],'timeout_ms':30_000}
+                else:
+                    request=target
+                    if backend=='linux':
+                        executable=linux_status(self.store.root).get('tools',{}).get(key)
+                        if not executable: raise ValueError('Outil Linux non détecté. Configurez Linux et actualisez son inventaire dans les paramètres.')
+                        kwargs={'command':[executable,*args],'bridge':True,'fields':{**fields,'wordlist':dialog.wordlist.text()},'elevate':preset.get('requires_root',False)}
+                    else:
+                        command=native_command(tool,self.store.settings['executables'].get(key),self.store.root)
+                        if not command: raise ValueError('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.')
+                        kwargs={'command':[*command,*args]}
+                    kwargs['redactions']=secret_values
+                self.console.clear(); self.terminal_screen=None
+                interactive=preset.get('interactive',False) or kwargs.get('elevate',False)
+                if interactive:
+                    import pyte
+                    self.terminal_screen=pyte.Screen(120,30); self.terminal_stream=pyte.Stream(self.terminal_screen)
+                self.input_row.setVisible(interactive)
+                self.run_title.setText(tool['name']+' · '+preset['label'])
+                self.run_info.setText(('Cible : '+target['url'] if target else 'Environnement local sélectionné')+' · En cours')
+                self.runner.start(tool['name'],preset['label'],request,**kwargs)
+                self.run_folder.setEnabled(True); self.navigate(3)
                 return
-        dialog = LaunchDialog(tool, self.store, self)
-        if show_dialog and dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        target = dialog.target() if key != "desktop-diagnostic" else None
-        index = dialog.profiles.currentIndex()
-        preset = tool["presets"][index]
+            except (ValueError,RuntimeError,OSError) as exc:
+                if not show_dialog: raise
+                QMessageBox.warning(self,'Lancement impossible',str(exc))
+
+    def configure_backend(self):
+        dialog=BackendDialog(self.store.root,self)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            dialog.save(); self.check_backend()
+
+    def check_backend(self):
+        if self.runner.active: self.navigate(3); return
+        self.console.clear(); self.terminal_screen=None; self.input_row.hide()
+        self.run_title.setText('Vérification de l’environnement Linux')
+        self.runner.start('Linux','Inventaire',{'root':str(self.store.root),'label':'Environnement Linux'},worker='linux-check',timeout_ms=60_000)
+        self.navigate(3)
+
+    def setup_wsl(self):
+        if self.runner.active: self.navigate(3); return
+        self.console.clear(); self.terminal_screen=None; self.input_row.hide()
+        self.run_title.setText('Installation WSL / Kali Linux')
+        self.runner.start('Linux','Installation WSL',{'label':'Cet ordinateur'},worker='wsl-setup',timeout_ms=1_800_000)
+        self.navigate(3)
+
+    def configure_linux_path(self):
+        tool=self.selected_tool()
+        if not tool: return
+        value,ok=QInputDialog.getText(self,'Programme Linux','Chemin absolu du programme dans Linux :')
+        if ok and value:
+            if not value.startswith('/') or any(ord(c)<32 for c in value):
+                QMessageBox.warning(self,'Chemin invalide','Indiquez un chemin Linux absolu.'); return
+            config=get_config(self.store.root)
+            config.setdefault('paths',{})[tool['key']]=value
+            save_config(config,self.store.root); self.check_backend()
+
+    def install_selected_linux(self):
+        tool=self.selected_tool()
+        if tool: self.install_linux([tool['key']])
+
+    def install_linux(self,keys):
+        if self.runner.active: self.navigate(3); return
         try:
-            kwargs = {"worker": preset["worker"], "timeout_ms": 30_000} if tool["mode"] == "builtin" else {
-                "command": [find_executable(tool, self.store.settings["executables"].get(key), self.store.root), *build_arguments(tool, index, target, dialog.wordlist.text(), dialog.field_values())]}
-            if not kwargs.get("worker") and not kwargs["command"][0]:
-                raise ValueError("L’exécutable n’est plus disponible. Actualisez sa configuration.")
-            self.console.clear()
-            self.run_title.setText(f"{tool['name']} · {preset['label']}")
-            self.run_info.setText(f"Cible : {(target or {}).get('url', 'cet ordinateur')}   ·   En cours")
-            self.runner.start(tool["name"], preset["label"], target, **kwargs)
-            self.run_folder.setEnabled(True)
+            self.console.clear(); self.terminal_screen=None; self.input_row.show()
+            self.run_title.setText('Installation des paquets Linux')
+            self.runner.start('Dépendances Linux','Paquets Kali/Debian',{'label':'Environnement Linux'},command=install_plan(keys),bridge=True,elevate=True,timeout_ms=3_600_000)
             self.navigate(3)
-        except (OSError, ValueError, RuntimeError) as exc:
-            QMessageBox.warning(self, "Lancement impossible", str(exc))
+        except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,'Installation Linux',str(exc))
+
+    def send_terminal_input(self):
+        value=self.terminal_input.text()
+        self.runner.send_input(value+'\n',secret=self.secret_input.isChecked())
+        self.terminal_input.clear()
 
     def append_output(self, text):
+        if self.terminal_screen is not None:
+            self.terminal_stream.feed(text)
+            self.console.setPlainText('\n'.join(self.terminal_screen.display))
+            return
         # Strip ANSI terminal controls; cap even a single huge line in the GUI.
         text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", text).replace("\x00", "")
         cursor = self.console.textCursor()
@@ -709,6 +725,8 @@ class Window(QMainWindow):
         self.console.moveCursor(QTextCursor.MoveOperation.End)
 
     def active_changed(self, active):
+        self.linux_pack_button.setEnabled(not active)
+        self.terminal_input.setEnabled(active)
         self.pack_button.setEnabled(not active)
         self.python_pack_button.setEnabled(not active)
         self.stop_button.setEnabled(active)
@@ -724,6 +742,9 @@ class Window(QMainWindow):
             self.append_output("\n" + result["detail"] + "\n")
         self.statusBar().showMessage(f"{result['tool']} : {state.lower()}.")
         self.refresh()
+        if result['tool']=='Dépendances Linux':
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(0,self.check_backend)
 
     def selected_history(self):
         row = self.history_table.currentRow()

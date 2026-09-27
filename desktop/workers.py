@@ -63,6 +63,48 @@ def tls(target):
             print("\nChaîne de confiance et nom d’hôte validés par le système.")
 
 
+def whois(target):
+    host=target['host']
+    def query(server):
+        with socket.create_connection((server,43),timeout=10) as connection:
+            connection.settimeout(10)
+            connection.sendall((host+'\r\n').encode('idna'))
+            output=bytearray()
+            while len(output)<2_000_000:
+                data=connection.recv(65536)
+                if not data: break
+                output.extend(data)
+            return output.decode('utf-8',errors='replace')
+    text=query('whois.iana.org')
+    print(text,flush=True)
+    import re
+    match=re.search(r'(?im)^(?:refer|whois):\s*([a-z0-9.-]+)\s*$',text)
+    if match:
+        server=match.group(1)
+        print('\nServeur de référence : '+server+'\n',flush=True)
+        print(query(server))
+
+
+def dig(target):
+    import dns.resolver,dns.query,dns.zone
+    record=target.get('rrtype','A')
+    resolver=dns.resolver.Resolver()
+    resolver.lifetime=12
+    nameserver=target.get('fields',{}).get('nameserver','')
+    if nameserver:
+        import ipaddress
+        ipaddress.ip_address(nameserver)
+        resolver.nameservers=[nameserver]
+    print(f"DNS {target['host']} {record}",flush=True)
+    if record=='AXFR':
+        if not nameserver: raise ValueError('Indiquez l’adresse IP du serveur DNS autoritatif pour un transfert AXFR.')
+        zone=dns.zone.from_xfr(dns.query.xfr(nameserver,target['host'],lifetime=15))
+        print(zone.to_text())
+    else:
+        answer=resolver.resolve(target['host'],record)
+        for row in answer: print(row.to_text())
+
+
 def main(arguments):
     worker, request_path, output_path = arguments
     # A direct file stream also works in a frozen, windowless Windows executable.
@@ -73,8 +115,21 @@ def main(arguments):
                 if worker == 'install':
                     from desktop.packages import install_request
                     install_request(request['target'])
+                elif worker=='linux-check':
+                    from desktop.backends import inspect_backend
+                    inspect_backend(request['target'])
+                elif worker=='wsl-setup':
+                    if sys.platform!='win32': raise ValueError('WSL est disponible uniquement sous Windows.')
+                    import subprocess
+                    from desktop.backends import decode_wsl
+                    print('Installation de WSL et Kali Linux. Windows peut demander une élévation. Aucun redémarrage automatique.',flush=True)
+                    result=subprocess.run(['wsl.exe','--install','--distribution','kali-linux','--no-launch','--web-download'],capture_output=True,timeout=1700,creationflags=0x08000000)
+                    print(decode_wsl(result.stdout),flush=True)
+                    print(decode_wsl(result.stderr),flush=True)
+                    if result.returncode: raise RuntimeError('Installation WSL non terminée. Un administrateur doit activer la virtualisation et WSL sur ce PC.')
+                    print('Si Windows demande un redémarrage, redémarrez manuellement puis relancez ce bouton avant de vérifier la connexion. Configurez ensuite la distribution kali-linux.',flush=True)
                 else:
-                    {"diagnostic": diagnostic, "dns": dns, "http": http, "tls": tls}[worker](request.get("target"))
+                    {"diagnostic": diagnostic, "dns": dns, "http": http, "tls": tls,'whois':whois,'dig':dig}[worker](request.get("target"))
                 return 0
             except Exception as exc:
                 print(f"\nErreur : {exc}")

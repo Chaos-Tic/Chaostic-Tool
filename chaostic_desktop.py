@@ -3,6 +3,9 @@ import sys
 
 
 def main():
+    if len(sys.argv)>1 and sys.argv[1]=='--linux-bridge':
+        from desktop.linux_bridge import main as bridge_main
+        return bridge_main()
     if len(sys.argv) > 1 and sys.argv[1] == "--worker":
         from desktop.workers import main as worker_main
         return worker_main(sys.argv[2:])

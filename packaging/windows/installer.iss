@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.2.0"
+  #define AppVersion "0.3.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\dist\ChaosticTool"
@@ -9,6 +9,10 @@
 #endif
 #ifndef AppIdentity
   #define AppIdentity "{{1DBE58AE-AF15-4FBC-B610-E4D6AD047EB1}"
+#endif
+
+#ifndef AppArch
+  #define AppArch "x64"
 #endif
 
 [Setup]
@@ -21,11 +25,16 @@ DefaultDirName={localappdata}\Programs\ChaosticTool
 DefaultGroupName=ChaosticTool
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
+#if AppArch == "arm64"
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
+#else
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+#endif
 MinVersion=10.0.17763
 OutputDir={#ReleaseDir}
-OutputBaseFilename=ChaosticTool-Setup-{#AppVersion}-windows-x64
+OutputBaseFilename=ChaosticTool-Setup-{#AppVersion}-windows-{#AppArch}
 SetupIconFile=..\..\desktop\assets\icon.ico
 UninstallDisplayIcon={app}\ChaosticTool.exe
 UninstallDisplayName=ChaosticTool Desktop

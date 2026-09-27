@@ -3,10 +3,10 @@ from pathlib import Path
 import importlib.metadata
 import sys
 
-root = Path(SPECPATH).resolve().parents[1]
+root = Path(SPECPATH).resolve().parent
 license_files = []
-for name in ("PySide6", "PySide6_Essentials", "PySide6_Addons", "shiboken6", "psutil", "pyinstaller"):
-    distribution = importlib.metadata.distribution(name)
+for distribution in importlib.metadata.distributions():
+    name = distribution.metadata["Name"]
     for entry in distribution.files or []:
         if "licenses" in entry.parts or entry.name.upper().startswith(("LICENSE", "COPYING", "NOTICE")):
             path = distribution.locate_file(entry)
@@ -19,6 +19,9 @@ a = Analysis(
     [str(root / "chaostic_desktop.py")], pathex=[str(root)],
     binaries=[], datas=[(str(root / "desktop/assets"), "desktop/assets"),
                          (str(root / "desktop/packages.json"), "desktop"),
+                         (str(root / "desktop/runtimes.json"), "desktop"),
+                         (str(root / "desktop/linux_bridge.py"), "desktop"),
+                         (str(root / "desktop/linux_install.py"), "desktop"),
                          (str(root / "LICENSE"), "."),
                          (str(root / "docs/DESKTOP.md"), "docs"),
                          (str(root / "docs/THIRD_PARTY.md"), "docs"),
@@ -38,5 +41,11 @@ pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ChaosticTool",
           debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
           console=False, disable_windowed_traceback=False,
-          icon=str(root / "desktop/assets/icon.ico"))
+          icon=str(root / ("desktop/assets/icon.icns" if sys.platform == "darwin" else "desktop/assets/icon.ico")))
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="ChaosticTool")
+
+if sys.platform == 'darwin':
+    app = BUNDLE(coll, name='ChaosticTool.app', icon=str(root/'desktop/assets/icon.icns'),
+                 bundle_identifier='io.github.chaos-tic.chaostictool',
+                 info_plist={'CFBundleShortVersionString':'0.3.0', 'CFBundleVersion':'0.3.0',
+                             'NSHighResolutionCapable':True, 'LSMinimumSystemVersion':'13.0'})

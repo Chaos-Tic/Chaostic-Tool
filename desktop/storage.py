@@ -5,6 +5,7 @@ import ipaddress
 import json
 import os
 import re
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +21,8 @@ def data_root() -> Path:
         return Path(custom).expanduser().resolve()
     if os.name == "nt":
         base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local"))
+    elif sys.platform == 'darwin':
+        base = Path.home() / 'Library/Application Support'
     else:
         base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
     return base / "ChaosticTool" / "Desktop"

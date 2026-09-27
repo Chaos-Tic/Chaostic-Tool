@@ -29,3 +29,20 @@ for size, data in images:
     content += data
     offset += len(data)
 (assets / "icon.ico").write_bytes(directory + content)
+
+(assets / 'icon.png').write_bytes(images[-1][1])
+if sys.platform == 'darwin':
+    import subprocess
+    iconset = assets / 'icon.iconset'
+    iconset.mkdir(exist_ok=True)
+    for size in (16, 32, 128, 256, 512):
+        for scale in (1, 2):
+            side = size * scale
+            image = QImage(side, side, QImage.Format.Format_ARGB32)
+            image.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(image)
+            renderer.render(painter)
+            painter.end()
+            suffix = '@2x' if scale == 2 else ''
+            image.save(str(iconset / f'icon_{size}x{size}{suffix}.png'))
+    subprocess.run(['iconutil', '-c', 'icns', str(iconset), '-o', str(assets/'icon.icns')], check=True)

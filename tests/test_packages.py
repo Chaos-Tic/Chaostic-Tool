@@ -7,7 +7,7 @@ from unittest.mock import patch
 import zipfile
 import tarfile
 
-from desktop.packages import extract_archive, download, installed, managed_command, install_package, MANIFEST
+from desktop.packages import extract_archive, download, installed, managed_command, install_package, MANIFEST, package_spec
 from desktop.catalog import catalog, availability, build_arguments
 from desktop.storage import parse_target
 
@@ -43,7 +43,7 @@ class PackageTests(unittest.TestCase):
 
     def test_successful_install_and_broken_binary_detection(self):
         def fake_download(url,path,*_):
-            with zipfile.ZipFile(path,'w') as z: z.writestr('nested/ffuf.exe', b'fixture')
+            with zipfile.ZipFile(path,'w') as z: z.writestr('nested/'+package_spec('ffuf')['binary'], b'fixture')
             return 'a'*64
         with patch('desktop.packages.download',side_effect=fake_download), patch('desktop.packages.probe',return_value='ffuf test'):
             record = install_package('ffuf',self.root,log=lambda *_:None)
@@ -54,7 +54,9 @@ class PackageTests(unittest.TestCase):
 
     def test_no_service_is_counted_ready_for_amass(self):
         tool = next(t for t in catalog() if t['key']=='amass')
-        self.assertEqual(availability(tool,{},self.root), ('Service requis',False))
+        self.assertFalse(availability(tool,{},self.root)[1])
+        with patch('desktop.catalog.native_command',return_value=['amass']):
+            self.assertEqual(availability(tool,{},self.root), ('Service requis',False))
 
     def test_all_portable_archives_have_pinned_hashes(self):
         for spec in MANIFEST.values():

@@ -1,5 +1,7 @@
 # ChaosticTool Desktop 0.3
 
+**Sous Windows : [présentation, téléchargement et captures de l’interface](../README_WINDOWS.md).**
+
 Application graphique pour Windows, Linux et macOS. Le catalogue contient les
 48 outils du registre CLI et 4 diagnostics supplémentaires. Tous ont des profils
 exécutables avec formulaires ; leur disponibilité dépend des outils installés,

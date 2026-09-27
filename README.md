@@ -4,6 +4,8 @@
 
 # ChaosticTool
 
+**[Windows Desktop — installation and GUI screenshots](README_WINDOWS.md)** · **[Linux CLI](#linux-cli-screenshots)**
+
 > **Desktop 0.3 — Windows, Linux and macOS:** a graphical application with the complete
 > 48-tool catalogue, four additional diagnostics, guided forms and integrated output.
 > Download an installer from [Desktop releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases)
@@ -26,7 +28,9 @@ ChaosticTool is a Rich-powered terminal framework for authorized security testin
 
 ---
 
-## Screenshots
+## Linux CLI screenshots
+
+These screenshots show the Linux terminal application. For the Windows graphical app, see the [dedicated Windows README](README_WINDOWS.md).
 
 <p align="center">
   <img width="1896" height="782" alt="image" src="https://github.com/user-attachments/assets/cd667ae3-bab3-4b77-a441-a01f1888d85a" />

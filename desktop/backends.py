@@ -79,7 +79,8 @@ def inspect_backend(request):
     choices={key:[*([config.get('paths',{}).get(key)] if config.get('paths',{}).get(key) else []),t['binary'],*t.get('binary_alternatives',[])] for key,t in TOOLS.items() if key!='winpeas'}
     choices['linpeas.sh']+=['/usr/share/peass/linpeas/linpeas.sh','/usr/share/peass/linpeas.sh']
     try:
-        result=subprocess.run(bridge_command(config),input=(json.dumps({'op':'inventory','tools':choices})+'\n').encode(),capture_output=True,timeout=30,creationflags=NO_WINDOW)
+        markers={key:t['help_contains_any'] for key,t in TOOLS.items() if t.get('help_contains_any')}
+        result=subprocess.run(bridge_command(config),input=(json.dumps({'op':'inventory','tools':choices,'markers':markers})+'\n').encode(),capture_output=True,timeout=45,creationflags=NO_WINDOW)
         if result.returncode: raise RuntimeError(result.stderr.decode('utf-8',errors='replace') or result.stdout.decode('utf-8',errors='replace'))
         status=json.loads(result.stdout)
         if not isinstance(status.get('tools'),dict): raise ValueError('Inventaire Linux invalide.')

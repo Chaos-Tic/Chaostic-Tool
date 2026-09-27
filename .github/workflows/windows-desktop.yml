@@ -46,7 +46,7 @@ jobs:
       - name: Prepare verified Inno Setup compiler
         run: |
           $setupPath = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
-          Invoke-WebRequest 'https://files.jrsoftware.org/is/6/innosetup-6.7.3.exe' -OutFile $setupPath
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setupPath
           $expected = '9C73C3BAE7ED48D44112A0F48E66742C00090BDB5BEF71D9D3C056C66E97B732'
           if ((Get-FileHash $setupPath -Algorithm SHA256).Hash -ne $expected) { throw 'Inno Setup checksum mismatch' }
           $compilerRoot = Join-Path $env:RUNNER_TEMP 'inno-compiler'

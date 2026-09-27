@@ -1,8 +1,10 @@
-# ADR-001 : exécution Windows et Linux dans Desktop
+# ADR-001 : exécution multi-systèmes dans Desktop
 
 **Statut :** accepté pour implémentation, validation des prérequis par poste.
 **Date :** 2026-09-27.
-**Décision :** garder les adaptateurs natifs et ajouter un backend WSL explicite.
+
+Distribution : six builds séparés x64/ARM64, Python embarqué pour l’application et runtime isolé téléchargeable pour les outils Python.
+**Décision :** garder les adaptateurs natifs et ajouter des backends Linux local, WSL et SSH explicites.
 
 ## Contexte
 
@@ -14,7 +16,7 @@ Ajouter des lignes au catalogue ne constitue pas un portage fonctionnel.
 
 - Les outils natifs restent prioritaires. Le catalogue importe les profils
   d’origine, avec formulaires typés, validation et masquage des secrets.
-- L’utilisateur choisit Windows ou une distribution WSL détectée. Un inventaire
+- L’utilisateur choisit le système natif, Linux local, WSL ou sa propre machine SSH. Un inventaire
   explicite vérifie les binaires Linux ; le compteur ne suppose pas leur présence.
 - Un pont Python Linux crée un pseudo-terminal, reçoit les commandes sous forme
   de JSON sur stdin, et redirige les sorties dans l’interface. Aucun champ utilisateur
@@ -31,8 +33,7 @@ Ajouter des lignes au catalogue ne constitue pas un portage fonctionnel.
 Une application uniquement Windows laisse une partie des outils inutilisable.
 Une machine SSH imposée rendrait l’application dépendante du serveur personnel.
 Un conteneur Linux nécessite aussi une couche de virtualisation et complique
-l’accès aux interfaces. WSL est le backend local retenu ; SSH pourra être ajouté
-sans changer les formulaires et le registre de profils.
+l’accès aux interfaces. WSL est le backend local Windows retenu ; SSH couvre macOS et les Linux distants sans imposer une machine personnelle.
 
 ## Conséquences
 

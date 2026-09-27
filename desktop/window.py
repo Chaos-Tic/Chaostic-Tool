@@ -587,7 +587,7 @@ class Window(QMainWindow):
             QDesktopServices.openUrl(QUrl(tool["url"]))
 
     def configure_python(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Sélectionner Python 3.10 ou ultérieur", "", "Python (python.exe)")
+        path, _ = QFileDialog.getOpenFileName(self, "Sélectionner Python 3.14 ou ultérieur", "", "Programmes Python (*)")
         if path:
             self.store.settings["python"] = path
             self.store.save()
@@ -610,7 +610,7 @@ class Window(QMainWindow):
         self.run_title.setText("Installation des outils")
         self.run_info.setText("Téléchargement, vérification et installation · En cours")
         try:
-            self.runner.start("Dépendances Windows", ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
+            self.runner.start("Dépendances natives", ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
             self.run_folder.setEnabled(True)
             self.navigate(3)
         except (OSError, RuntimeError, ValueError) as exc:

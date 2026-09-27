@@ -22,3 +22,15 @@ Their original archive contents and license files are retained in the user tools
 directory. Release archive SHA-256 values are checked before extraction; Python
 packages use their published PyPI versions. Waybackurls has no upstream checksum
 file; its pinned digest was computed from the official HTTPS release artifact.
+
+Additional bundled libraries: dnspython (ISC), pyte (LGPL-3.0), py7zr (LGPL-2.1),
+and their installed dependencies. Their distribution license files are collected
+automatically by the PyInstaller spec. Qt uses dynamic linking and separate files.
+
+The optional Python runtime comes from Astral python-build-standalone, with release
+URLs and hashes pinned in desktop/runtimes.json. Its license contents remain in the
+runtime directory. The optional 7-Zip extraction helper comes from ip7z/7zip official
+releases; 7-Zip is licensed under LGPL with the unRAR restriction and BSD portions:
+https://www.7-zip.org/license.txt. These optional helpers are not embedded in the
+application installer. PyPI dependency versions below the top-level packages may
+be resolved at installation time; the external tool environment is not fully locked.

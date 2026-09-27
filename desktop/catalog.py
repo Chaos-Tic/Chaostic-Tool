@@ -6,7 +6,7 @@ import re
 import shutil
 from pathlib import Path
 from core.tools import TOOLS
-from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python
+from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python, installed
 from desktop.profiles import normalized, validate_field, placeholders
 from desktop.backends import linux_status, get_config
 
@@ -25,15 +25,15 @@ BUILTINS = {
 }
 
 ADAPTERS = {
-    "nmap": dict(desc="Identifiez les ports TCP ouverts sur une cible.", url="https://nmap.org/download.html", note="Installez Nmap pour Windows. Les profils utilisent une connexion TCP, sans scan SYN.", presets=[
+    "nmap": dict(desc="Identifiez les ports TCP ouverts sur une cible.", url="https://nmap.org/download.html", note="Installez Nmap pour votre système. Les profils utilisent une connexion TCP, sans scan SYN.", presets=[
         dict(label="100 ports TCP courants", args=["-sT", "-Pn", "-n", "--top-ports", "100", "{host}"]),
         dict(label="Port de la cible", args=["-sT", "-Pn", "-n", "-p", "{port}", "{host}"]),
         dict(label="Ports personnalisés", args=["-sT", "-Pn", "-n", "-p", "{ports}", "{host}"], fields={'ports': ('Ports TCP', '22,80,443,8000-8100')}),
     ]),
-    "subfinder": dict(desc="Recherchez des sous-domaines à partir de sources publiques.", url="https://github.com/projectdiscovery/subfinder/releases", note="Sélectionnez la version Windows de Subfinder.", presets=[dict(label="Sous-domaines publics", args=["-d", "{host}", "-silent"], domain_only=True)]),
+    "subfinder": dict(desc="Recherchez des sous-domaines à partir de sources publiques.", url="https://github.com/projectdiscovery/subfinder/releases", note="Sélectionnez la version de Subfinder adaptée à votre système.", presets=[dict(label="Sous-domaines publics", args=["-d", "{host}", "-silent"], domain_only=True)]),
     "httpx": dict(desc="Relevez le statut HTTP, le titre et les technologies d’un site.", url="https://github.com/projectdiscovery/httpx/releases", note="Utilisez httpx de ProjectDiscovery, pas la bibliothèque Python du même nom.", presets=[dict(label="Statut, titre et technologies", args=["-u", "{url}", "-status-code", "-title", "-tech-detect", "-no-color"])]),
-    "ffuf": dict(desc="Explorez les chemins d’un site à partir d’une liste de mots.", url="https://github.com/ffuf/ffuf/releases", note="Sélectionnez ffuf.exe et une liste de mots pour ce profil.", presets=[dict(label="Répertoires web", args=["-u", "{base_url}FUZZ", "-w", "{wordlist}", "-noninteractive", "-maxtime", "300"], wordlist=True)]),
-    "gobuster": dict(desc="Recherchez des répertoires et des ressources web.", url="https://github.com/OJ/gobuster/releases", note="Sélectionnez gobuster.exe et une liste de mots pour ce profil.", presets=[dict(label="Répertoires web", args=["dir", "-u", "{url}", "-w", "{wordlist}", "--no-progress"], wordlist=True)]),
+    "ffuf": dict(desc="Explorez les chemins d’un site à partir d’une liste de mots.", url="https://github.com/ffuf/ffuf/releases", note="Sélectionnez ffuf et une liste de mots pour ce profil.", presets=[dict(label="Répertoires web", args=["-u", "{base_url}FUZZ", "-w", "{wordlist}", "-noninteractive", "-maxtime", "300"], wordlist=True)]),
+    "gobuster": dict(desc="Recherchez des répertoires et des ressources web.", url="https://github.com/OJ/gobuster/releases", note="Sélectionnez gobuster et une liste de mots pour ce profil.", presets=[dict(label="Répertoires web", args=["dir", "-u", "{url}", "-w", "{wordlist}", "--no-progress"], wordlist=True)]),
 }
 
 # Profiles are explicit argument vectors: no shell and no terminal interaction.
@@ -150,6 +150,9 @@ def native_command(tool,configured=None,root=None):
     if not path: return None
     if Path(path).suffix=='.py':
         python=find_python()
+        if not python and (runtime := installed('python-runtime',root)):
+            candidate=runtime['path']/runtime['executable']
+            if candidate.is_file(): python=str(candidate)
         return [python,path] if python else None
     return [path]
 

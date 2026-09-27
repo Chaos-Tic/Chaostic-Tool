@@ -8,6 +8,27 @@ from desktop.backends import bridge_command,save_config,linux_status,install_pla
 from desktop.storage import Store,parse_target,write_json
 
 class AllProfilesTests(unittest.TestCase):
+    def test_every_graphical_profile_can_be_selected(self):
+        from test_desktop import APP
+        from desktop.launch_dialog import LaunchDialog
+        from desktop.backend_dialog import BackendDialog
+        with tempfile.TemporaryDirectory() as temp:
+            store=Store(Path(temp)); store.add_target('https://example.test')
+            for tool in catalog():
+                with self.subTest(tool=tool['key']):
+                    dialog=LaunchDialog(tool,store)
+                    for backend in range(dialog.backend.count()):
+                        dialog.backend.setCurrentIndex(backend)
+                        for index in range(dialog.profiles.count()):
+                            dialog.profiles.setCurrentIndex(index)
+                            self.assertTrue(dialog.preset()['label'])
+                    dialog.close(); dialog.deleteLater()
+            dialog=BackendDialog(store.root)
+            for index in range(dialog.backend.count()):
+                dialog.backend.setCurrentIndex(index)
+                self.assertTrue(dialog.backend.currentData())
+            dialog.close(); dialog.deleteLater()
+
     def test_every_original_tool_has_an_executable_profile(self):
         items={t['key']:t for t in catalog()}
         self.assertTrue(set(TOOLS)<=set(items))

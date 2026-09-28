@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.5.0"
+  #define AppVersion "0.6.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\dist\ChaosticTool"
@@ -51,6 +51,7 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
+Name: "preparewsl"; Description: "Préparer WSL et Kali Linux après installation (Internet, plusieurs Go, droits administrateur possibles)"; Flags: checkedonce
 Name: "desktopicon"; Description: "Créer un raccourci sur le bureau"; Flags: unchecked
 
 [Files]
@@ -61,7 +62,8 @@ Name: "{group}\ChaosticTool Desktop"; Filename: "{app}\ChaosticTool.exe"
 Name: "{autodesktop}\ChaosticTool Desktop"; Filename: "{app}\ChaosticTool.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\ChaosticTool.exe"; Description: "Ouvrir ChaosticTool Desktop"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\ChaosticTool.exe"; Parameters: "--setup-wsl"; Description: "Préparer automatiquement Linux"; Tasks: preparewsl; Flags: nowait postinstall skipifsilent
+Filename: "{app}\ChaosticTool.exe"; Description: "Ouvrir ChaosticTool Desktop"; Tasks: not preparewsl; Flags: nowait postinstall skipifsilent
 
 ; No UninstallDelete entry: personal data and third-party tools are deliberately preserved.
 [Code]

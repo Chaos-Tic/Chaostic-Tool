@@ -28,7 +28,7 @@ def get_config(root=None):
 
 def save_config(config,root=None):
     # No password or API key belongs in backend settings.
-    allowed={'backend','distro','host','user','port','identity','known_hosts','paths'}
+    allowed={'backend','distro','host','user','port','identity','known_hosts','paths','wsl_user'}
     write_json(Path(root or data_root())/'linux.json',{k:v for k,v in config.items() if k in allowed})
 
 def linux_status(root=None):
@@ -57,7 +57,7 @@ def bridge_command(config):
     if backend=='wsl':
         distro=config.get('distro','')
         if not distro or any(ord(c)<32 for c in distro): raise ValueError('Sélectionnez une distribution WSL.')
-        return ['wsl.exe','--distribution',distro,'--exec','python3','-u','-c',BRIDGE.read_text(encoding='utf-8')]
+        return ['wsl.exe','--distribution',distro,*(['--user',config['wsl_user']] if config.get('wsl_user') else []),'--exec','python3','-u','-c',BRIDGE.read_text(encoding='utf-8')]
     if backend=='ssh':
         host=config.get('host',''); user=config.get('user','')
         if not re.fullmatch(r'[A-Za-z0-9_.:-]+',host) or host.startswith('-') or not re.fullmatch(r'[A-Za-z0-9_.-]+',user) or user.startswith('-'): raise ValueError('Hôte ou utilisateur SSH invalide.')
@@ -95,6 +95,10 @@ def inspect_backend(request):
 def execution_plan(argv,preset,root,directory,fields=None):
     config=get_config(root)
     backend=config.get('backend','local' if sys.platform.startswith('linux') else '')
+    # Managed WSL has no shared sudo password. Elevate only explicitly privileged
+    # profiles using the Windows account's existing WSL root authority.
+    if backend=='wsl' and config.get('wsl_user')=='chaostic-tool' and preset.get('requires_root'):
+        config={**config,'wsl_user':'root'}
     command=bridge_command(config)
     cwd=None if backend=='ssh' else linux_path(str(directory),config)
     mapped=[]

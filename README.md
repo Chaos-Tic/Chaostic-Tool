@@ -20,6 +20,17 @@ Préparez vos cibles, choisissez vos outils par phase, configurez vos opération
 
 La branche historique `main` s’appelle maintenant **`linux-cli`**. Le renommage ne fusionne pas les éditions. Les captures de ce README concernent Desktop.
 
+## Interface jeu Godot — prototype séparé
+
+Une [prévisualisation avec un véritable moteur Godot](game_ui/README.md) est en
+développement : scène 3D, plein écran, caméra, transitions, sons et réglages audio.
+Le catalogue des 52 outils est consultable. **Les opérations ne sont pas encore
+raccordées à cette interface** : Desktop 0.8 reste l'application opérationnelle.
+Le prototype ne remplace pas son installateur et ne crée pas de release publique
+supplémentaire. [Architecture et migration restante](docs/GAME_ENGINE_ADR.md).
+
+![Prévisualisation Godot réelle](docs/images/game-preview/accueil.png)
+
 ## Télécharger et installer
 
 | Votre ordinateur | Installateur | Systèmes visés |

@@ -1,9 +1,9 @@
 """Bounded interaction animations and readable status badges."""
-from PySide6.QtCore import Qt,QVariantAnimation,QPropertyAnimation,QEasingCurve,QRectF,QPointF
+from PySide6.QtCore import Qt,QVariantAnimation,QPropertyAnimation,QEasingCurve,QRectF,QPointF,QObject,QEvent
 from PySide6.QtGui import QColor,QPainter,QPen
-from PySide6.QtWidgets import QLabel,QPushButton,QGraphicsOpacityEffect,QSizePolicy
+from PySide6.QtWidgets import QLabel,QPushButton,QGraphicsOpacityEffect,QGraphicsDropShadowEffect,QSizePolicy
 
-READY='#63e6b5';LINUX='#56d9ee';PENDING='#f2bf78';FAIL='#ff7c97';RUNNING='#e5ee36';MUTED='#99a8c7'
+READY='#16a34a';LINUX='#0891b2';PENDING='#b45309';FAIL='#dc2626';RUNNING='#ea580c';MUTED='#5b6472'
 
 def status_color(text):
     value=text.casefold()
@@ -23,6 +23,36 @@ def status_pill(text,parent=None):
 
 def glow(*args,**kwargs):return None
 def pulse(*args,**kwargs):return None
+
+
+class _CardHover(QObject):
+    """Ombre douce + légère élévation animée au survol : donne du relief aux cartes
+    sur fond clair et un retour tactile discret."""
+    def __init__(self,widget,base,up):
+        super().__init__(widget)
+        self.eff=QGraphicsDropShadowEffect(widget)
+        self.eff.setColor(QColor(23,29,46,34));self.eff.setBlurRadius(base);self.eff.setOffset(0,3)
+        widget.setGraphicsEffect(self.eff)
+        self.anim=QVariantAnimation(self);self.anim.setDuration(160)
+        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.anim.valueChanged.connect(lambda v:self.eff.setBlurRadius(float(v)))
+        self.base=base;self.up=up
+        widget.setAttribute(Qt.WidgetAttribute.WA_Hover,True)
+        widget.installEventFilter(self)
+    def _to(self,target,offset):
+        from desktop.hud import clock
+        self.eff.setOffset(0,offset)
+        if not clock().enabled:self.eff.setBlurRadius(target);return
+        self.anim.stop();self.anim.setStartValue(self.eff.blurRadius());self.anim.setEndValue(target);self.anim.start()
+    def eventFilter(self,obj,event):
+        if event.type()==QEvent.Type.Enter:self._to(self.up,8)
+        elif event.type()==QEvent.Type.Leave:self._to(self.base,3)
+        return False
+
+
+def card_shadow(widget,base=16,up=30):
+    """Attache une ombre portée + survol animé à une carte."""
+    return _CardHover(widget,base,up)
 
 class GamingButton(QPushButton):
     def __init__(self,text,parent=None):
@@ -54,13 +84,15 @@ class GamingButton(QPushButton):
         if not self.isEnabled():return
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         from PySide6.QtGui import QPainterPath
-        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),2,2);p.setClipPath(path)
+        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),10,10);p.setClipPath(path)
+        primary=self.objectName() in ('primary','mission')
         if self.ripple<1:
-            p.setPen(Qt.PenStyle.NoPen);p.setBrush(QColor(126,231,255,int(65*(1-self.ripple))))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(255,255,255,int(60*(1-self.ripple))) if primary else QColor(234,88,12,int(40*(1-self.ripple))))
             radius=self.width()*self.ripple;p.drawEllipse(self.ripple_center,radius,radius)
         if self.hover<=0:return
-        c=QColor('#eff78d' if self.objectName() in ('primary','mission') else '#6eddeb');c.setAlpha(int(170*self.hover))
-        p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),2,2)
+        c=QColor('#ffffff' if primary else '#ea580c');c.setAlpha(int(130*self.hover))
+        p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),10,10)
 
 def cancel(widget,name):
     animation=getattr(widget,name,None)

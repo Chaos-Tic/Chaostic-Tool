@@ -86,6 +86,7 @@ class HistoryPrivacyTests(unittest.TestCase):
         a=self.store.add_target('localhost','Alpha');b=self.store.add_target('127.0.0.1','Beta')
         for target,status,tool,date in [(a,'success','DNS','2020-01-01T00:00:00+00:00'),(b,'failed','Nmap',None),(a,'success','Nmap',None)]:
             path,record=self.store.new_run(tool,'Profile',target,[]);record['status']=status
+            if tool=='DNS':record['flow_target']=target;record['target']=None
             if date:record['started']=date
             write_json(path/'run.json',record);(path/'output.txt').write_text('log')
         w=Window(self.store)

@@ -4,19 +4,19 @@
 
 ### Vos outils. Vos cibles. Vos résultats, dans une interface graphique.
 
-**Windows 10 / 11 · x64 et ARM64 · Préversion 0.7.0**
+**Windows 10 / 11 · x64 et ARM64 · Préversion 0.8.0**
 
-**[Télécharger pour Intel / AMD](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.7.0/ChaosticTool-Setup-0.7.0-windows-x64.exe)** · **[Télécharger pour Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.7.0/ChaosticTool-Setup-0.7.0-windows-arm64.exe)**
+**[Télécharger pour Intel / AMD](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.8.0/ChaosticTool-Setup-0.8.0-windows-x64.exe)** · **[Télécharger pour Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.8.0/ChaosticTool-Setup-0.8.0-windows-arm64.exe)**
 
-[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.7.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.8.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
 ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lancement, une vue d'exécution et un historique local. Vous choisissez une cible lorsque le profil en demande une, configurez l'opération et retrouvez son journal dans l'application.
 
-![Accueil réel de Desktop 0.7](docs/images/windows/desktop-0.7-accueil.png)
+![Accueil réel de Desktop 0.8](docs/images/windows/desktop-0.8-accueil.png)
 
-*L'accueil provient de Desktop 0.7 avec un profil de démonstration isolé. Les autres
+*L'accueil provient de Desktop 0.8 avec un profil de démonstration isolé. Les autres
 captures marquées 0.6 ou 0.3 illustrent les versions précédentes des formulaires.
 Les nombres d'outils disponibles dépendent du poste de capture ; aucun profil
 de démonstration ni historique personnel n'est fourni dans l'installateur.*
@@ -38,29 +38,34 @@ de démonstration ni historique personnel n'est fourni dans l'installateur.*
 - [9. Compatibilité, tests et limites](#validation)
 - [10. Développement et références](#references)
 
-## Identité NEXUS : interface et animations
+## OPERATION DECK : interface et animations
 
-Desktop 0.7 approfondit une interface inspirée des HUD de jeux vidéo : violet électrique, accents cyan, fond spatial quadrillé, noyau orbital animé, typographie Orbitron et console Share Tech Mono. Les compteurs reflètent vos vraies cibles, disponibilités et opérations ; les éléments orbitaux sont décoratifs.
+Desktop 0.8 adopte une direction Cyberpunk : jaune acide, cyan et rouge signal sur
+fonds sombres, panneaux anguleux et grandes entrées de navigation sur l'accueil.
+Les barres animées en boucle des versions précédentes sont supprimées. La lumière
+du décor d'accueil évolue lentement ; les boutons et transitions réagissent aux
+actions. L'arsenal, l'historique et les paramètres restent calmes au repos.
 
-- **Centre de contrôle** : accès direct à l’arsenal et aux attack flows, cible active et derniers journaux.
-- **Arsenal d’outils** : les dix phases CLI sont conservées. Les badges différencient disponibilité, installation requise et état d’exécution.
-- **Ctrl+K** ouvre l’arsenal et place le curseur dans la recherche ; **F6** ouvre Exécution.
-- **Paramètres → NEXUS / Apparence → Animations immersives** active ou désactive les effets. Le choix est conservé après redémarrage.
-- Les animations d’arrière-plan utilisent une horloge commune, proposent une cadence cible de 60 ou 30 images par seconde et s’arrêtent lorsque l’application est minimisée. Un panneau masqué ne reçoit plus de mises à jour animées. Il ne s’agit pas d’une garantie de fréquence sur toutes les machines.
-- La console garde un fond stable : une lumière sur le bord indique une opération active, sans balayage par-dessus le texte. L’animation s’arrête avec l’opération.
-- Le bouton **Copier** du formulaire copie l’aperçu de commande ; les secrets restent masqués dans cet aperçu.
+- **Ctrl+K** ouvre la recherche de l'arsenal ; **F6** ouvre Exécution.
+- **Paramètres → OPERATION DECK / Apparence** conserve le choix d'animations et la
+  cadence cible 30/60. Désactiver les effets ne change pas les opérations.
+- Les panneaux masqués et la fenêtre réduite ne sont pas animés.
+- Le journal conserve un fond stable. Une pulsation fixe sur son bord indique une
+  opération active, sans balayage horizontal ou vertical.
+- Les compteurs décrivent les données réelles ; le décor urbain est illustratif.
 
-Les icônes ont été corrigées pour le rendu haute densité. Les titres techniques, noms d’outils, contrôles d’arrêt, profils et résultats conservent leur sens et leur fonctionnement.
+[Architecture et captures actuelles](docs/NEXUS_VISUALS.md). Les anciennes sections
+de nouveautés ci-dessous décrivent l'historique des versions, pas toutes le rendu actuel.
 
 <a id="installation"></a>
 ## 1. Choisir son installation
 
 ### Quel fichier télécharger ?
 
-| Votre ordinateur | Fichier de la version 0.7.0 | Périmètre Windows |
+| Votre ordinateur | Fichier de la version 0.8.0 | Périmètre Windows |
 |---|---|---|
-| Intel ou AMD 64 bits | `ChaosticTool-Setup-0.7.0-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
-| ARM64, par exemple un PC Snapdragon | `ChaosticTool-Setup-0.7.0-windows-arm64.exe` | Windows 11 ARM64 |
+| Intel ou AMD 64 bits | `ChaosticTool-Setup-0.8.0-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
+| ARM64, par exemple un PC Snapdragon | `ChaosticTool-Setup-0.8.0-windows-arm64.exe` | Windows 11 ARM64 |
 | Windows 32 bits, Windows 7 ou Windows 8/8.1 | Aucun paquet compatible | Non pris en charge |
 
 Dans **Paramètres Windows → Système → Informations système**, consultez **Type du système**. Pour connaître la version de Windows 10, ouvrez `winver` depuis le menu Démarrer. La disponibilité d'une archive ARM64 pour l'application ne garantit pas que chaque outil tiers dispose lui aussi d'un binaire ARM64.
@@ -82,7 +87,7 @@ La taille exacte de chaque installateur figure sur la Release. Prévoyez davanta
 
 ### Installation pas à pas
 
-1. Sur la [Release Desktop 0.7.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.7.0), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
+1. Sur la [Release Desktop 0.8.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.8.0), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
 2. Ouvrez le fichier `.exe`, choisissez la langue de l'assistant et suivez ses étapes.
 3. Conservez le dossier proposé, sauf besoin particulier : `%LOCALAPPDATA%\Programs\ChaosticTool`.
 4. Cochez le raccourci sur le bureau si vous le souhaitez. Le menu Démarrer propose aussi **ChaosticTool Desktop**.
@@ -96,7 +101,7 @@ La préversion n'a pas de signature d'éditeur Windows. SmartScreen ou une polit
 Téléchargez le fichier `.sha256` correspondant depuis la même Release. Dans PowerShell, adaptez le chemin de votre téléchargement :
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-0.7.0-windows-x64.exe"
+Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-0.8.0-windows-x64.exe"
 ```
 
 Comparez les 64 caractères hexadécimaux obtenus au contenu du fichier `.sha256`. La comparaison vérifie que le téléchargement correspond au fichier publié ; elle ne remplace pas une signature d'éditeur. Vous n'avez pas besoin de cette commande pour utiliser l'interface.
@@ -175,7 +180,7 @@ Desktop exécute une opération à la fois. Pour les sessions interactives, util
 | **Arrêté** | Arrêt demandé depuis l'application |
 | **Interrompu** | Une opération enregistrée était encore en cours lors d'une fermeture précédente |
 
-La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 0.7.0.
+La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 0.8.0.
 
 <a id="outils"></a>
 ## 4. Installer et configurer les outils
@@ -359,7 +364,7 @@ Dans une [issue GitHub](https://github.com/Chaos-Tic/Chaostic-Tool/issues), indi
 <a id="validation"></a>
 ## 9. Compatibilité, tests et limites
 
-Les sources de cette version sont identifiées par le tag `desktop-v0.7.0`. Les résultats de compilation et de tests sont consultables dans le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
+Les sources de cette version sont identifiées par le tag `desktop-v0.8.0`. Les résultats de compilation et de tests sont consultables dans le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
 
 | Vérification | Portée réelle |
 |---|---|
@@ -405,7 +410,7 @@ Remplacez le chemin du compilateur par son emplacement réel. Le script de build
 | [Kali : préparation WSL](https://www.kali.org/docs/wsl/wsl-preparations/) | Installation de la distribution et premier lancement |
 | [Règles du dépôt](docs/REPOSITORY_RULES.md) | Contributions et protection de `linux-cli` |
 
-**Guide revu le 28 septembre 2026 pour Desktop 0.7.0.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.
+**Guide revu le 28 septembre 2026 pour Desktop 0.8.0.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.
 
 
 ## Nouveautés 0.6 : préparation Linux et animations
@@ -474,3 +479,14 @@ Le [README principal](README.md) couvre désormais le parcours complet de décou
 les moteurs, l'historique, les flows, les données et la maintenance, avec de nouvelles
 captures et un GIF du vrai widget. La branche `main` est renommée `linux-cli` ;
 les règles et workflows utilisent ce nom. Desktop reste sur `desktop/windows-app`.
+
+
+## Nouveautés 0.8 — OPERATION DECK
+
+Refonte Cyberpunk de la palette, panneaux anguleux, accueil avec trois grandes
+entrées et décor urbain original. Suppression des rails, bordures et grilles en
+mouvement continu ; ambiance lumineuse lente limitée à l'accueil. Les autres
+écrans n'entretiennent plus d'horloge d'animation au repos. Transitions de pages
+plus marquées (240 ms), survols et clics réactifs, retour d'activité fixe.
+
+Les captures du README principal et son GIF proviennent de cette version.

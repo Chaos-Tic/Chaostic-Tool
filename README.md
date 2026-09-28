@@ -4,7 +4,7 @@
 
 **[Télécharger Desktop 0.6.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.0)** · **[Guide Windows](README_WINDOWS.md)** · [Version Linux en terminal](README_LINUX.md)
 
-![ChaosticTool Desktop 0.5 sous Windows : centre de contrôle violet et cyan, noyau orbital et activité récente](docs/images/windows/desktop-0.6-accueil.png)
+![ChaosticTool Desktop 0.6 sous Windows : centre de contrôle violet et cyan, noyau orbital et activité récente](docs/images/windows/desktop-0.6-accueil.png)
 
 *Capture réelle de Desktop 0.6.0 avec la nouvelle interface NEXUS. Les états affichés dépendent de votre configuration.*
 
@@ -40,6 +40,6 @@ Desktop 0.6.0 est une préversion. Les builds actuels sont sans signature d'édi
 
 [Code sous licence MIT](LICENSE) · [Builds Windows, Linux et macOS](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)
 
-### NEXUS · Desktop 0.5
+### NEXUS · Desktop 0.6
 
 Identité violet/cyan, noyau orbital et particules animés, survols réactifs, transitions de pages, badges lisibles et icônes haute densité corrigées. Ctrl+K pour chercher un outil, F6 pour suivre l’exécution. Les animations sont désactivables dans les paramètres et suspendues sur les panneaux masqués. [Guide visuel et fonctionnement](README_WINDOWS.md#identité-nexus--interface-et-animations).

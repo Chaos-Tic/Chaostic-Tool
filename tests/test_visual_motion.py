@@ -39,6 +39,14 @@ class VisualMotionTests(unittest.TestCase):
         self.window.motion_toggle.setChecked(False);QTest.qWait(250)
         frozen=reactor.grab().toImage();QTest.qWait(100)
         self.assertEqual(frozen,reactor.grab().toImage())
+    def test_resting_arsenal_has_no_ambient_timer_and_home_tiles_navigate(self):
+        self.window.navigate(2);QTest.qWait(400)
+        self.assertFalse(clock().timer.isActive())
+        entries=[b for b in self.window.findChildren(QPushButton) if b.objectName()=='mission']
+        self.assertEqual(len(entries),3)
+        for entry,index in zip(entries,(1,2,4)):
+            self.window.navigate(0);entry.click()
+            self.assertEqual(self.window.stack.currentIndex(),index)
     def test_finished_transitions_are_released(self):
         page=self.window.stack.widget(0)
         for _ in range(8):

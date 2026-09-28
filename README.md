@@ -1,12 +1,12 @@
-# ChaosticTool Desktop · NEXUS
+# ChaosticTool Desktop · OPERATION DECK
 
 **Votre centre d’opérations graphique pour Windows 10 et Windows 11.**
 
-Préparez vos cibles, choisissez vos outils par phase, configurez vos opérations et retrouvez leurs résultats dans une interface en français inspirée des cockpits de jeux vidéo. L’application possède son installateur et se désinstalle depuis Windows.
+Préparez vos cibles, choisissez vos outils par phase, configurez vos opérations et retrouvez leurs résultats dans une interface en français inspirée des menus de jeux vidéo. L’application possède son installateur et se désinstalle depuis Windows.
 
-**[Télécharger Desktop 0.7.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.7.0)** · **[Guide Windows détaillé](README_WINDOWS.md)** · **[Version Linux en terminal](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Télécharger Desktop 0.8.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.8.0)** · **[Guide Windows détaillé](README_WINDOWS.md)** · **[Version Linux en terminal](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
-![Centre de contrôle NEXUS 0.7 : cible de démonstration locale et hologramme](docs/images/windows/desktop-0.7-accueil.png)
+![Centre de contrôle OPERATION DECK 0.8 : cible de démonstration locale et décor urbain](docs/images/windows/desktop-0.8-accueil.png)
 
 *Application réelle, avec un profil de démonstration isolé. Les outils disponibles dépendent du poste de capture. Les releases ne contiennent ni ce profil ni l’historique du développeur.*
 
@@ -24,15 +24,15 @@ La branche historique `main` s’appelle maintenant **`linux-cli`**. Le renommag
 
 | Votre ordinateur | Installateur | Systèmes visés |
 |---|---|---|
-| Intel ou AMD 64 bits | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.7.0/ChaosticTool-Setup-0.7.0-windows-x64.exe) | Windows 10 **1809 ou ultérieur**, Windows 11 |
-| ARM64, par exemple Snapdragon | [Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.7.0/ChaosticTool-Setup-0.7.0-windows-arm64.exe) | Windows 11 ARM64 |
+| Intel ou AMD 64 bits | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.8.0/ChaosticTool-Setup-0.8.0-windows-x64.exe) | Windows 10 **1809 ou ultérieur**, Windows 11 |
+| ARM64, par exemple Snapdragon | [Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.8.0/ChaosticTool-Setup-0.8.0-windows-arm64.exe) | Windows 11 ARM64 |
 
 1. Vérifiez l’architecture dans **Paramètres Windows → Système → Informations système**, puis téléchargez le `.exe` correspondant. Les archives GitHub « Source code » ne sont pas l’installateur.
 2. Lancez l’installation. **Python et Git ne sont pas nécessaires** pour démarrer l’application distribuée.
 3. Ouvrez **ChaosticTool Desktop** depuis le menu Démarrer. **Ouvrir mes fichiers** donne accès à votre espace de données.
 4. Essayez le diagnostic local, puis ajoutez une cible et installez les outils nécessaires à votre usage.
 
-Les installateurs et leurs empreintes SHA-256 figurent dans la [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.7.0). Desktop reste une **préversion**, sans signature d’éditeur Windows ; Windows peut afficher un avertissement de réputation. La distribution macOS n’est pas notarisée.
+Les installateurs et leurs empreintes SHA-256 figurent dans la [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.8.0). Desktop reste une **préversion**, sans signature d’éditeur Windows ; Windows peut afficher un avertissement de réputation. La distribution macOS n’est pas notarisée.
 
 ### Compatibilité de l’application et des outils
 
@@ -66,7 +66,7 @@ Pour découvrir l’interface sans scan distant, utilisez **Diagnostic local** o
 
 ## Catalogue : 48 outils CLI et 4 diagnostics supplémentaires
 
-![Arsenal classé par phases](docs/images/windows/desktop-0.7-arsenal.png)
+![Arsenal classé par phases](docs/images/windows/desktop-0.8-arsenal.png)
 
 Desktop reprend les **48 outils d’origine**, avec leurs profils graphiques, et ajoute **4 diagnostics**. Le classement par phases reprend celui de la CLI. Les options sont présentées dans des formulaires.
 
@@ -93,7 +93,7 @@ WSL n’est pas nécessaire pour ouvrir Desktop ou utiliser les fonctions native
 
 ## Attack flows : une cible et des étapes explicites
 
-![Sélecteur de cible des attack flows](docs/images/windows/desktop-0.7-flows.png)
+![Sélecteur de cible des attack flows](docs/images/windows/desktop-0.8-flows.png)
 
 Les trois flows d’origine sont disponibles, avec création, édition, import et export de flows personnalisés. Choisissez d’abord **Cible du flow** : la session conserve cette cible même si vous sélectionnez ensuite une autre cible globale.
 
@@ -111,17 +111,29 @@ Combinez les filtres **cible, outil, état, période** (24 heures, 7 jours, 30 j
 
 Les dossiers portent des noms descriptifs pour reconnaître l’outil et le contexte. Une sortie limitée à l’écran ne remplace pas le journal complet enregistré. [Stockage et historique](README_WINDOWS.md).
 
-## NEXUS 0.7 : une interface vivante
+## OPERATION DECK 0.8 : une direction Cyberpunk, plus calme au repos
 
-![Animation réelle du cockpit NEXUS](docs/images/windows/desktop-0.7-animation.gif)
+![Navigation réelle dans OPERATION DECK](docs/images/windows/desktop-0.8-animation.gif)
 
-Le cockpit associe une **sphère holographique en rotation**, une géométrie 3D projetée avec tri en profondeur, des orbites et particules, une grille en perspective et des rubans lumineux. Les panneaux possèdent des repères lumineux animés ; les boutons réagissent au survol et au clic, et les pages utilisent des transitions courtes.
+L'accueil adopte une composition de menu de jeu : **grands panneaux d'accès**, angles
+coupés, titres affirmés, jaune acide pour les actions et touches cyan/rouge sur des
+fonds presque noirs. Trois entrées donnent accès aux cibles, à l'arsenal et à
+l'historique. Le décor urbain est original et dessiné dans l'application.
 
-Les compteurs décrivent vos données réelles. L’hologramme et les particules sont décoratifs ; les effets d’activité dans Exécution suivent l’état de l’opération.
+**Les multiples barres qui balayaient les panneaux ont été supprimées.** La grille,
+les repères et les bordures sont fixes. Sur l'accueil, seule la lumière du décor
+évolue lentement. Les survols, clics et changements d'écran déclenchent des réactions
+courtes ; le journal affiche une pulsation fixe uniquement pendant une opération.
 
-Dans **Paramètres → NEXUS / Apparence**, choisissez une cadence cible de **60** ou **30 images/s**, ou désactivez les animations. Ce sont des cadences demandées, pas une garantie de FPS. L’horloge partagée suspend les panneaux masqués et les effets lorsque la fenêtre est réduite. Sur une petite fenêtre, l’hologramme s’efface pour réserver la place aux commandes.
+Dans **Paramètres → OPERATION DECK / Apparence**, désactivez les animations ou
+choisissez une cadence cible 60/30 pour l'ambiance. Cette cadence n'est pas une
+garantie de FPS. L'horloge s'arrête sur les écrans sans ambiance active et lorsque
+la fenêtre est réduite. Le décor est masqué en fenêtre étroite pour préserver les
+commandes. Les tableaux et journaux restent stables.
 
-Cette version utilise **Qt/PySide6 et un rendu procédural logiciel**, sans moteur de jeu supplémentaire. Un prototype OpenGL a été écarté après détection d’artefacts sur le poste Windows de validation. [Choix de rendu et composants visuels](docs/NEXUS_VISUALS.md).
+Le rendu utilise Qt/PySide6, sans moteur de jeu supplémentaire. La direction est
+inspirée de l'esthétique Cyberpunk, avec des éléments graphiques propres au projet.
+[Composants, animations et validation](docs/NEXUS_VISUALS.md).
 
 ## Données personnelles, mise à jour et désinstallation
 
@@ -163,6 +175,7 @@ Pour signaler un problème, indiquez les versions de Desktop et Windows, l’arc
 | [Règles du dépôt](docs/REPOSITORY_RULES.md) | Branches, protection de `linux-cli` et contributions |
 | [Licences tierces](docs/THIRD_PARTY.md) | Dépendances et redistribution |
 
-Le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) construit Windows, Linux et macOS en x64/ARM64 et teste les applications empaquetées. Les sources de cette version correspondent au tag `desktop-v0.7.0`. Le [guide Desktop](docs/DESKTOP.md) décrit l’exécution depuis les sources et la construction des paquets.
+Le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) construit Windows, Linux et macOS en x64/ARM64 et teste les applications empaquetées. Les sources de cette version correspondent au tag `desktop-v0.8.0`. Le [guide Desktop](docs/DESKTOP.md) décrit l’exécution depuis les sources et la construction des paquets.
 
-[Licence MIT](LICENSE) · Interface française · **Documentation révisée pour Desktop 0.7.0**
+[Licence MIT](LICENSE) · Interface française · **Documentation révisée pour Desktop 0.8.0**
+

@@ -477,6 +477,8 @@ class Window(QMainWindow):
         actions.addWidget(button("Ouvrir le dossier", self.open_history_folder))
         actions.addWidget(button("Exporter le journal…", self.export_history))
         actions.addStretch()
+        self.clear_history_button=button("Vider l’historique…",self.clear_history,"danger")
+        actions.addWidget(self.clear_history_button)
         layout.addLayout(actions)
 
     def build_settings(self):
@@ -807,6 +809,7 @@ class Window(QMainWindow):
 
     def active_changed(self, active):
         self.scan.set_active(active)
+        self.clear_history_button.setEnabled(not active)
         self.linux_pack_button.setEnabled(not active)
         self.terminal_input.setEnabled(active)
         self.pack_button.setEnabled(not active)
@@ -881,6 +884,25 @@ class Window(QMainWindow):
     def selected_history(self):
         row = self.history_table.currentRow()
         return self.visible_history[row] if 0 <= row < len(self.visible_history) else None
+
+    def clear_history(self):
+        if self.runner.active:return
+        answer=QMessageBox.warning(self,'Vider tout l’historique',
+            'Supprimer définitivement TOUT l’historique local, même les opérations masquées par la recherche, ainsi que leurs journaux et fichiers de résultats ?\n\nLes cibles, paramètres, outils installés et WSL sont conservés. Les exports copiés ailleurs et les résultats stockés sur Linux/SSH ne sont pas supprimés. Cette action est irréversible.',
+            QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)
+        if answer!=QMessageBox.StandardButton.Yes:return
+        try:
+            self.store.clear_history()
+        except (OSError,ValueError) as exc:
+            self.refresh()
+            QMessageBox.warning(self,'Historique non vidé',str(exc))
+            return
+        self.history_search.clear();self.history_log.clear();self.console.clear()
+        self.terminal_screen=None;self.terminal_input.clear();self.input_row.hide()
+        self.runner.directory=None;self.runner.record={};self.run_folder.setEnabled(False)
+        self.run_title.setText('Aucune opération');self.run_info.setText('Historique vidé')
+        self.refresh();self.flow_panel.refresh()
+        self.statusBar().showMessage('Historique local et résultats supprimés. Cibles et paramètres conservés.')
 
     def show_history(self):
         run = self.selected_history()

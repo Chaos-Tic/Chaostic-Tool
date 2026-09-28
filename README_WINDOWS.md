@@ -4,11 +4,11 @@
 
 ### Vos outils. Vos cibles. Vos résultats, dans une interface graphique.
 
-**Windows 10 / 11 · x64 et ARM64 · Préversion 0.6.1**
+**Windows 10 / 11 · x64 et ARM64 · Préversion 0.6.2**
 
-**[Télécharger pour Intel / AMD](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.1/ChaosticTool-Setup-0.6.1-windows-x64.exe)** · **[Télécharger pour Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.1/ChaosticTool-Setup-0.6.1-windows-arm64.exe)**
+**[Télécharger pour Intel / AMD](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.2/ChaosticTool-Setup-0.6.2-windows-x64.exe)** · **[Télécharger pour Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.2/ChaosticTool-Setup-0.6.2-windows-arm64.exe)**
 
-[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.1) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.2) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
@@ -16,7 +16,7 @@ ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lanceme
 
 ![Accueil réel de Desktop 0.6 : une cible locale, six fonctions intégrées et une résolution DNS terminée](docs/images/windows/desktop-0.6-accueil.png)
 
-*Cette capture montre un profil de démonstration après une résolution de `localhost`. Les six fonctions intégrées sont disponibles dans ce profil ; les autres outils n'y ont pas été installés. Les captures principales proviennent de Desktop 0.6.1, sans maquette ni résultats simulés. Nmap est également détecté sur le poste de capture, ce qui explique le compteur supérieur aux six fonctions intégrées. La capture de configuration Linux reste celle de 0.3, son formulaire étant inchangé.*
+*Cette capture montre un profil de démonstration après une résolution de `localhost`. Les six fonctions intégrées sont disponibles dans ce profil ; les autres outils n'y ont pas été installés. Les captures principales proviennent de Desktop 0.6.2, sans maquette ni résultats simulés. Nmap est également détecté sur le poste de capture, ce qui explique le compteur supérieur aux six fonctions intégrées. La capture de configuration Linux reste celle de 0.3, son formulaire étant inchangé.*
 
 > **À savoir avant de commencer**
 >
@@ -54,10 +54,10 @@ Les icônes ont été corrigées pour le rendu haute densité. Les titres techni
 
 ### Quel fichier télécharger ?
 
-| Votre ordinateur | Fichier de la version 0.6.1 | Périmètre Windows |
+| Votre ordinateur | Fichier de la version 0.6.2 | Périmètre Windows |
 |---|---|---|
-| Intel ou AMD 64 bits | `ChaosticTool-Setup-0.6.1-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
-| ARM64, par exemple un PC Snapdragon | `ChaosticTool-Setup-0.6.1-windows-arm64.exe` | Windows 11 ARM64 |
+| Intel ou AMD 64 bits | `ChaosticTool-Setup-0.6.2-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
+| ARM64, par exemple un PC Snapdragon | `ChaosticTool-Setup-0.6.2-windows-arm64.exe` | Windows 11 ARM64 |
 | Windows 32 bits, Windows 7 ou Windows 8/8.1 | Aucun paquet compatible | Non pris en charge |
 
 Dans **Paramètres Windows → Système → Informations système**, consultez **Type du système**. Pour connaître la version de Windows 10, ouvrez `winver` depuis le menu Démarrer. La disponibilité d'une archive ARM64 pour l'application ne garantit pas que chaque outil tiers dispose lui aussi d'un binaire ARM64.
@@ -79,7 +79,7 @@ La taille exacte de chaque installateur figure sur la Release. Prévoyez davanta
 
 ### Installation pas à pas
 
-1. Sur la [Release Desktop 0.6.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.1), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
+1. Sur la [Release Desktop 0.6.2](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.2), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
 2. Ouvrez le fichier `.exe`, choisissez la langue de l'assistant et suivez ses étapes.
 3. Conservez le dossier proposé, sauf besoin particulier : `%LOCALAPPDATA%\Programs\ChaosticTool`.
 4. Cochez le raccourci sur le bureau si vous le souhaitez. Le menu Démarrer propose aussi **ChaosticTool Desktop**.
@@ -93,7 +93,7 @@ La préversion n'a pas de signature d'éditeur Windows. SmartScreen ou une polit
 Téléchargez le fichier `.sha256` correspondant depuis la même Release. Dans PowerShell, adaptez le chemin de votre téléchargement :
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-0.6.1-windows-x64.exe"
+Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-0.6.2-windows-x64.exe"
 ```
 
 Comparez les 64 caractères hexadécimaux obtenus au contenu du fichier `.sha256`. La comparaison vérifie que le téléchargement correspond au fichier publié ; elle ne remplace pas une signature d'éditeur. Vous n'avez pas besoin de cette commande pour utiliser l'interface.
@@ -172,7 +172,7 @@ Desktop exécute une opération à la fois. Pour les sessions interactives, util
 | **Arrêté** | Arrêt demandé depuis l'application |
 | **Interrompu** | Une opération enregistrée était encore en cours lors d'une fermeture précédente |
 
-La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 0.6.1.
+La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 0.6.2.
 
 <a id="outils"></a>
 ## 4. Installer et configurer les outils
@@ -356,7 +356,7 @@ Dans une [issue GitHub](https://github.com/Chaos-Tic/Chaostic-Tool/issues), indi
 <a id="validation"></a>
 ## 9. Compatibilité, tests et limites
 
-Les sources de cette version sont identifiées par le tag `desktop-v0.6.1`. Les résultats de compilation et de tests sont consultables dans le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
+Les sources de cette version sont identifiées par le tag `desktop-v0.6.2`. Les résultats de compilation et de tests sont consultables dans le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
 
 | Vérification | Portée réelle |
 |---|---|
@@ -402,7 +402,7 @@ Remplacez le chemin du compilateur par son emplacement réel. Le script de build
 | [Kali : préparation WSL](https://www.kali.org/docs/wsl/wsl-preparations/) | Installation de la distribution et premier lancement |
 | [Règles du dépôt](docs/REPOSITORY_RULES.md) | Contributions et protection de `main` |
 
-**Guide revu le 28 septembre 2026 pour Desktop 0.6.1.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.
+**Guide revu le 28 septembre 2026 pour Desktop 0.6.2.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.
 
 
 ## Nouveautés 0.6 : préparation Linux et animations
@@ -435,3 +435,14 @@ Certaines versions de WSL renvoient un code de sortie réussi tout en demandant 
 La présence de Kali est systématiquement vérifiée après la commande d'installation : une réussite sans distribution enregistrée ne déclenche plus Python/apt et ne produit plus l'erreur secondaire WSL_E_DISTRO_NOT_FOUND.
 
 54 tests : neuf tests ciblent la préparation WSL, dont le message français observé sur un PC réel, les codes de redémarrage, l'absence de distribution après succès et le blocage de la reprise avant redémarrage. La validation complète sur Windows vierge avec redémarrage réel reste à effectuer.
+
+
+## Historique et confidentialité — 0.6.2
+
+Dans **Historique → Vider l’historique…**, confirmer la suppression de toutes les opérations locales, y compris celles masquées par un filtre. Leurs journaux et fichiers de résultats locaux sont supprimés définitivement. Les cibles, réglages, outils, WSL et Kali sont conservés. Les exports copiés ailleurs et les résultats sur Linux/SSH ne sont pas supprimés par cette action. La suppression est désactivée pendant une opération et refuse les liens symboliques/jonctions dans les résultats.
+
+Chaque utilisateur possède son espace de données Windows dans `%LOCALAPPDATA%\ChaosticTool\Desktop`. Une mise à jour sur le même compte retrouve donc son propre historique ; une installation sur un nouveau compte commence avec zéro cible et zéro opération. Aucun historique du développeur n’est fourni dans l’application. Les captures du guide sont des exemples de démonstration, pas des données préchargées.
+
+Avant de créer un installateur ou une archive, le build refuse les fichiers d’état utilisateur dans le bundle (paramètres, environnements Linux, journaux, dossiers de résultats). Les tests du binaire vérifient dans un profil temporaire que le premier démarrage contient zéro historique, zéro cible et aucune configuration Linux ; seul le diagnostic de test ajoute ensuite une opération.
+
+Validation : 60 tests, dont cinq réservés à POSIX et un test de liens qui dépend des permissions de la plateforme. Le bouton est testé avec annulation, confirmation, filtre actif, rafraîchissement et conservation des réglages.

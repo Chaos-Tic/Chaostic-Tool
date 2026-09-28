@@ -8,6 +8,9 @@ else: executable = root/'dist/ChaosticTool/ChaosticTool'
 with tempfile.TemporaryDirectory() as directory:
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen', CHAOSTIC_DESKTOP_HOME=directory)
     subprocess.run([str(executable), '--smoke-test'], env=env, timeout=90, check=True)
+    initial=json.loads((Path(directory)/'smoke-initial-state.json').read_text(encoding='utf-8'))
+    assert initial=={'history':0,'targets':0,'configured_linux':False},initial
+    assert len(list((Path(directory)/'runs').glob('*/run.json')))==1, 'Unexpected seeded run history'
     result = json.loads((Path(directory)/'smoke-result.json').read_text(encoding='utf-8'))
     assert result['status'] == 'success', result
     print(result)

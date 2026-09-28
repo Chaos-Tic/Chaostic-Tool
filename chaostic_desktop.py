@@ -28,6 +28,12 @@ def main():
         return 0
     apply_theme(app)
     store = Store(root)
+    if '--smoke-test' in sys.argv:
+        from desktop.storage import write_json
+        from desktop.backends import get_config
+        write_json(root/'smoke-initial-state.json',{
+            'history':len(store.history()),'targets':len(store.targets),
+            'configured_linux':bool(get_config(root))})
     window = Window(store)
 
     def exception_handler(kind, value, traceback):

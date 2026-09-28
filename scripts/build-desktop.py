@@ -27,6 +27,9 @@ def main():
         run(sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v')
     run(sys.executable, 'scripts/make-icon.py')
     run(sys.executable, '-m', 'PyInstaller', '--noconfirm', 'packaging/ChaosticTool.spec')
+    from desktop.release_audit import assert_clean_bundle
+    assert_clean_bundle(ROOT/'dist/ChaosticTool')
+    if sys.platform=='darwin':assert_clean_bundle(ROOT/'dist/ChaosticTool.app')
     release = ROOT / 'release'
     release.mkdir(exist_ok=True)
     arch = {'amd64':'x64', 'x86_64':'x64', 'aarch64':'arm64', 'arm64':'arm64'}[platform.machine().lower()]

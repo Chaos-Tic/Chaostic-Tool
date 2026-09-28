@@ -484,6 +484,7 @@ class Window(QMainWindow):
 
     def navigate(self, index):
         self.stack.setCurrentIndex(index)
+        if index==6: self.flow_panel.refresh()
         self.page_title.setText(["Vue d’ensemble", "Vos cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres", "Attack flows"][index])
         for i, item in enumerate(self.nav):
             item.setChecked(i == index)
@@ -651,8 +652,10 @@ class Window(QMainWindow):
         tool=tool_override or self.tool_by_key[key]
         dialog=LaunchDialog(tool,self.store,self)
         if target_override:
+            dialog.target_override=target_override
             dialog.targets.setCurrentIndex(dialog.targets.findData(target_override['id']))
             dialog.targets.setEnabled(False)
+            dialog.update_preview()
         while True:
             if show_dialog and dialog.exec()!=QDialog.DialogCode.Accepted: return False
             preset=dialog.preset(); backend=dialog.backend.currentData()

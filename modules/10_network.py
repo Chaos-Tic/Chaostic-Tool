@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["bettercap", "ettercap", "tcpdump", "responder"]
+from core.phases import PHASES
+
+TOOLS = PHASES[9]["tools"]
 
 
 def run():

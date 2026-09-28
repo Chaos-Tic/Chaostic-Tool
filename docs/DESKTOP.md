@@ -1,4 +1,4 @@
-# ChaosticTool Desktop 0.3
+# ChaosticTool Desktop 0.4
 
 **Sous Windows : [présentation, téléchargement et captures de l’interface](../README_WINDOWS.md).**
 
@@ -90,7 +90,7 @@ disponibles dans Desktop. Le transfert automatique de fichiers SSH n'est pas fou
 Les opérations Wi-Fi exigent une interface compatible et des pilotes adaptés,
 réellement visibles dans Linux. Le routage et les interfaces utilisés sont ceux
 de l'environnement d'exécution, pas nécessairement ceux de l'ordinateur graphique.
-Desktop ne reprend pas encore les flows, Tor/proxychains et VPN guard de la CLI.
+Desktop reprend les trois attack flows CLI et permet de créer, modifier, importer et exporter des flows personnalisés. Tor/proxychains et VPN guard restent propres à la CLI.
 
 ## Données et mises à jour
 
@@ -112,3 +112,7 @@ Lancer `python scripts/build-desktop.py` sur le système cible ; sous Windows aj
 Le workflow GitHub compile et teste séparément les six couples OS/architecture.
 Un tag `desktop-v*` prépare une Release brouillon avec tous les paquets vérifiés ;
 sa publication rend les fichiers accessibles sans installation d'outils de développement.
+
+## Nouveautés 0.4
+
+Exécuter et arrêter depuis la même page ; classement selon les dix phases CLI ; noms de dossiers avec cible, outil et profil ; historique recherchable ; trois attack flows, éditeur et import/export JSON. RustScan dispose d’une installation native sur les plateformes publiées en amont, et Nmap de son assistant officiel sous Windows x64. Les 48 outils et tous leurs profils CLI sont contrôlés par les tests de correspondance. Voir le guide Windows pour le fonctionnement des flows et les limites de chaque moteur.

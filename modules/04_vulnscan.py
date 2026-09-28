@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["nikto", "nuclei", "wpscan", "testssl.sh", "sslscan"]
+from core.phases import PHASES
+
+TOOLS = PHASES[3]["tools"]
 
 
 def run():

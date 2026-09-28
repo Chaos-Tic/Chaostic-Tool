@@ -6,6 +6,7 @@ import re
 import shutil
 from pathlib import Path
 from core.tools import TOOLS
+from core.phases import PHASES
 from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python, installed
 from desktop.profiles import normalized, validate_field, placeholders
 from desktop.backends import linux_status, get_config
@@ -35,6 +36,11 @@ ADAPTERS = {
     "ffuf": dict(desc="Explorez les chemins d’un site à partir d’une liste de mots.", url="https://github.com/ffuf/ffuf/releases", note="Sélectionnez ffuf et une liste de mots pour ce profil.", presets=[dict(label="Répertoires web", args=["-u", "{base_url}FUZZ", "-w", "{wordlist}", "-noninteractive", "-maxtime", "300"], wordlist=True)]),
     "gobuster": dict(desc="Recherchez des répertoires et des ressources web.", url="https://github.com/OJ/gobuster/releases", note="Sélectionnez gobuster et une liste de mots pour ce profil.", presets=[dict(label="Répertoires web", args=["dir", "-u", "{url}", "-w", "{wordlist}", "--no-progress"], wordlist=True)]),
 }
+
+ADAPTERS['rustscan']=dict(desc='Repérez les ports TCP puis transmettez les résultats à Nmap.',
+    presets=[dict(label='Port de la cible, sans Nmap',args=['-a','{host}','-p','{port}','--scripts','none','--no-config'])],
+    note='Scanner natif. Les profils CLI avec détection de services nécessitent aussi Nmap. Le profil autonome fonctionne sans Nmap.')
+ADAPTERS['nmap']['note']='Installez Nmap avec son assistant officiel. Npcap et les droits administrateur sont requis pour certains profils SYN, UDP et système. Les profils TCP connect fonctionnent sans capture brute.'
 
 # Profiles are explicit argument vectors: no shell and no terminal interaction.
 ADAPTERS.update({
@@ -115,12 +121,40 @@ def linux_presets(key):
         p=normalized(original,'linux')
         p['requires_root']=bool(original.get('requires_root',TOOLS[key].get('requires_root')))
         p['interactive']=bool(TOOLS[key].get('interactive'))
-        if key=='rustscan': p['args']=['-b' if x=='--rate' else x for x in p['args']]
+        if key=='rustscan': p['args']=rustscan_arguments(p['args'])
         if key=='hashcat' and '-m' in p['args'] and '22000' in p['args']: p['fields']['hashfile']=('Capture de hachages au format 22000','')
         if key=='amass':
             p['args']=['enum','-d','{host}','-engine','{engine}']; p['fields']['engine']=('Moteur de collecte Amass 5','http://127.0.0.1:4000')
+        p['cli_index']=len(result)
         result.append(p)
     return result
+
+
+def rustscan_arguments(args):
+    args=['-b' if x=='--rate' else x for x in args]
+    # RustScan expects ranges via -r; -p accepts comma-separated individual ports.
+    for i,arg in enumerate(args[:-1]):
+        if arg=='-p' and '-' in args[i+1]: args[i]='-r'
+    return args
+
+
+def cli_native_profile(key,index):
+    original=TOOLS[key]['presets'][index]
+    p=normalized(original)
+    p['cli_index']=index
+    p['interactive']=bool(TOOLS[key].get('interactive'))
+    p['requires_root']=bool(original.get('requires_root',TOOLS[key].get('requires_root')))
+    if key=='amass': p=dict(ADAPTERS[key]['presets'][0],cli_index=index)
+    if key=='theharvester':
+        p['args']=['-d','{host}','-b','{sources}']
+        p['fields']['sources']=('Sources OSINT disponibles','crtsh')
+        p['label']=original['label']+' · sources configurables'
+    if key=='rustscan': p['args']=rustscan_arguments(p['args'])
+    if key=='dalfox': p['args']=['scan' if a=='url' else a for a in p['args']]
+    if key=='nuclei' and '-t' in p['args']:
+        at=p['args'].index('-t'); p['args'][at]='-tags'
+        p['args'][at+1]={'exposures':'exposure'}.get(p['args'][at+1],p['args'][at+1])
+    return p
 
 
 def catalog():
@@ -133,10 +167,19 @@ def catalog():
             item['presets']=[dict(p,backend='builtin',needs_target=p.get('needs_target',key!='desktop-diagnostic')) for p in item['presets']]
         elif key in ADAPTERS:
             item.update(ADAPTERS[key],mode='native')
+            item['presets']=[dict(p) for p in item['presets']]
+            for index,original in enumerate(TOOLS[key]['presets']):
+                existing=next((p for p in item['presets'] if p['label']==original['label']),None)
+                if existing is not None: existing['cli_index']=index
+                else: item['presets'].append(cli_native_profile(key,index))
         else:
             item.update(mode='linux',presets=item['linux_presets'],note='Exécution Linux intégrée. Configurez et vérifiez Linux local, WSL ou SSH dans les paramètres.')
+        phases=[p for p in PHASES if key in p['tools']]
+        item['phases']=[p['id'] for p in phases]
+        if phases: item['group']=phases[0]['id'][:2]+' · '+phases[0]['name']
         entries.append(item)
-    return entries
+    order={key:i for i,key in enumerate(dict.fromkeys(key for phase in PHASES for key in phase['tools']))}
+    return sorted(entries,key=lambda t:order.get(t['key'],100))
 
 
 def native_command(tool,configured=None,root=None):

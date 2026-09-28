@@ -8,53 +8,7 @@ from core.tools import get_tool
 CUSTOM_FLOWS_PATH = Path(__file__).parent.parent / "custom_flows.json"
 CUSTOM_FLOWS: dict = {}
 
-FLOWS = {
-    "1": {
-        "name": "Basic attack flow",
-        "desc": "low-noise first pass: DNS, quick ports, web fingerprint, default nuclei",
-        "steps": [
-            ("dig", 0),
-            ("subfinder", 0),
-            ("nmap", 0),
-            ("httpx", 1),
-            ("whatweb", 0),
-            ("nuclei", 0),
-        ],
-    },
-    "2": {
-        "name": "Intermediate attack flow",
-        "desc": "broader recon with crawling and URL history",
-        "steps": [
-            ("dig", 0),
-            ("subfinder", 1),
-            ("nmap", 1),
-            ("naabu", 0),
-            ("httpx", 1),
-            ("katana", 1),
-            ("gau", 1),
-            ("waybackurls", 0),
-            ("nuclei", 2),
-            ("sslscan", 0),
-        ],
-    },
-    "3": {
-        "name": "Advanced attack flow",
-        "desc": "deeper scans; louder and slower, confirm each step",
-        "steps": [
-            ("amass", 0),
-            ("subfinder", 1),
-            ("nmap", 1),
-            ("rustscan", 2),
-            ("ffuf", 0),
-            ("gobuster", 0),
-            ("katana", 2),
-            ("nuclei", 1),
-            ("nuclei", 2),
-            ("testssl.sh", 0),
-            ("nikto", 0),
-        ],
-    },
-}
+from core.flow_definitions import FLOWS
 
 
 def _next_custom_key() -> str:

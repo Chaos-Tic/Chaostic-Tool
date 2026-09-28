@@ -60,10 +60,11 @@ class PackageTests(unittest.TestCase):
 
     def test_all_portable_archives_have_pinned_hashes(self):
         for spec in MANIFEST.values():
-            if spec['kind']=='release':
-                self.assertRegex(spec['sha256'],r'^[0-9a-f]{64}$')
-                self.assertTrue(spec['url'].startswith('https://github.com/'))
-                self.assertNotIn('/latest/',spec['url'])
+            if spec['kind'] in ('release','file','installer'):
+                for artifact in spec.get('artifacts',{'default':spec}).values():
+                    self.assertRegex(artifact['sha256'],r'^[0-9a-f]{64}$')
+                    self.assertTrue(artifact['url'].startswith('https://'))
+                    self.assertNotIn('/latest/',artifact['url'])
 
     def test_custom_fields_reject_options_and_invalid_ranges(self):
         tools = {t['key']:t for t in catalog()}

@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["hashcat", "john", "hydra"]
+from core.phases import PHASES
+
+TOOLS = PHASES[6]["tools"]
 
 
 def run():

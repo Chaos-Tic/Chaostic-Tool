@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["airmon-ng", "airodump-ng", "aircrack-ng", "reaver", "wifite"]
+from core.phases import PHASES
+
+TOOLS = PHASES[8]["tools"]
 
 
 def run():

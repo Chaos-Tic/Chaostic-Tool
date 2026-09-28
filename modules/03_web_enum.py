@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["gobuster", "ffuf", "httpx", "wafw00f", "whatweb", "katana", "gau", "waybackurls"]
+from core.phases import PHASES
+
+TOOLS = PHASES[2]["tools"]
 
 
 def run():

@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["nmap", "rustscan", "masscan", "naabu"]
+from core.phases import PHASES
+
+TOOLS = PHASES[1]["tools"]
 
 
 def run():

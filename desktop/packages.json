@@ -579,5 +579,52 @@
         "kind": "release"
       }
     }
+  },
+  "rustscan": {
+    "kind": "release",
+    "version": "2.4.1",
+    "binary": "rustscan.exe",
+    "probe": [
+      "--version"
+    ],
+    "url": "https://github.com/bee-san/RustScan/releases/tag/2.4.1",
+    "artifacts": {
+      "windows-x86_64": {
+        "url": "https://github.com/bee-san/RustScan/releases/download/2.4.1/x86_64-windows-rustscan.exe.zip",
+        "sha256": "e26c16f3adccb3c9dd737068941d1de850939b80193c5156218079582f5a7685"
+      },
+      "linux-x86_64": {
+        "url": "https://github.com/bee-san/RustScan/releases/download/2.4.1/x86_64-linux-rustscan.tar.gz.zip",
+        "sha256": "f3a4365d939e3b81f25ba8c37852ce9ac9e938c3cc882c5b3e6fff6152c740be",
+        "inner_archive": "x86_64-linux-rustscan.tar.gz"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/bee-san/RustScan/releases/download/2.4.1/aarch64-linux-rustscan.zip",
+        "sha256": "4f49103e2dfc9e9709a36da2cd61f1f81613f8d0a203307f750439fc3ce39eae"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/bee-san/RustScan/releases/download/2.4.1/x86_64-macos-rustscan.tar.gz.zip",
+        "sha256": "fe31399b51c052279ac30038fb825947ed43dd81960ea3c97d4f201129e8553a",
+        "inner_archive": "x86_64-macos-rustscan.tar.gz"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/bee-san/RustScan/releases/download/2.4.1/aarch64-macos-rustscan.tar.gz.zip",
+        "sha256": "0709b9120090101969434f79eb4913c335f08b13febaf405b863ebe0ce81aeec",
+        "inner_archive": "aarch64-macos-rustscan.tar.gz"
+      }
+    }
+  },
+  "nmap": {
+    "kind": "installer",
+    "version": "7.991",
+    "binary": "nmap.exe",
+    "probe": [
+      "--version"
+    ],
+    "platforms": [
+      "windows-x86_64"
+    ],
+    "url": "https://nmap.org/dist/nmap-7.991-setup.exe",
+    "sha256": "93bfd37bdb31a7adfd932beb5dbce06025da691d01a0939e806ea704f7367657"
   }
 }

@@ -12,9 +12,11 @@ from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
-    QInputDialog, QScrollArea, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QInputDialog, QScrollArea, QMenu, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
+from core.phases import PHASES
+from desktop.flow_panel import FlowPanel
 from desktop import VERSION
 from desktop.icons import icon as nav_icon
 from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
@@ -160,8 +162,9 @@ class Window(QMainWindow):
         self.runner.activeChanged.connect(self.active_changed)
         self.setWindowTitle("ChaosticTool Desktop")
         self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/icon.svg")))
-        self.resize(1440, 920)
-        self.setMinimumSize(1120, 740)
+        self.setMinimumSize(900, 600)
+        screen=QApplication.primaryScreen().availableGeometry()
+        self.resize(min(1440,screen.width()),min(920,screen.height()))
         root = QWidget()
         outer = QHBoxLayout(root)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -169,9 +172,9 @@ class Window(QMainWindow):
         self.setCentralWidget(root)
         sidebar = QWidget()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(222)
+        sidebar.setFixedWidth(196)
         side = QVBoxLayout(sidebar)
-        side.setContentsMargins(18, 28, 18, 22)
+        side.setContentsMargins(12, 18, 12, 16)
         brand = QHBoxLayout()
         icon = QLabel()
         icon.setPixmap(self.windowIcon().pixmap(36, 36))
@@ -185,8 +188,8 @@ class Window(QMainWindow):
         side.addWidget(label("WORKSPACE", "eyebrow"))
         side.addSpacing(8)
         self.nav = []
-        names = ["Vue d’ensemble", "Cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres"]
-        symbols = ["overview", "target", "tools", "run", "history", "settings"]
+        names = ["Vue d’ensemble", "Cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres", "Attack flows"]
+        symbols = ["overview", "target", "tools", "run", "history", "settings", "run"]
         for index, name in enumerate(names):
             item = button(f"  {name}", lambda checked=False, n=index: self.navigate(n), "nav")
             item.setIcon(nav_icon(symbols[index]))
@@ -202,8 +205,8 @@ class Window(QMainWindow):
         outer.addWidget(sidebar)
         body = QWidget()
         main = QVBoxLayout(body)
-        main.setContentsMargins(30, 26, 30, 20)
-        main.setSpacing(23)
+        main.setContentsMargins(20, 18, 20, 16)
+        main.setSpacing(14)
         heading = QHBoxLayout()
         title_area = QVBoxLayout()
         title_area.setSpacing(6)
@@ -225,6 +228,8 @@ class Window(QMainWindow):
         self.build_execution()
         self.build_history()
         self.build_settings()
+        self.flow_panel=FlowPanel(self)
+        self.stack.addWidget(self.flow_panel)
         self.statusBar().showMessage("Prêt · Les résultats sont enregistrés sur cet ordinateur")
         self.refresh()
         self.navigate(0)
@@ -236,7 +241,8 @@ class Window(QMainWindow):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(20)
-        self.stack.addWidget(widget)
+        scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(widget); self.stack.addWidget(scroll)
         return layout
 
     def build_home(self):
@@ -251,7 +257,7 @@ class Window(QMainWindow):
             value = label("0", "number")
             self.stats.append(value)
             content.addWidget(value)
-            content.addWidget(label(detail, "muted"))
+            content.addWidget(label(detail, "muted", True))
             stats.addWidget(frame)
         layout.addLayout(stats)
         quick = QHBoxLayout()
@@ -306,8 +312,12 @@ class Window(QMainWindow):
         self.search.textChanged.connect(self.filter_tools)
         toolbar.addWidget(self.search, 1)
         self.category = QComboBox()
-        self.category.addItem("Toutes les catégories")
-        self.category.addItems(sorted({t["group"] for t in self.tools}))
+        self.category.addItem("Toutes les phases",None)
+        for i,phase in enumerate(PHASES): self.category.addItem(f"{i+1:02d} · {phase['name']}",phase['id'])
+        self.category.addItem("Utilitaires intégrés","builtin")
+        self.category.setMaximumWidth(285)
+        self.category.setMinimumWidth(240)
+        self.category.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.category.currentIndexChanged.connect(self.filter_tools)
         toolbar.addWidget(self.category)
         self.only_ready = QCheckBox("Prêts uniquement")
@@ -315,22 +325,22 @@ class Window(QMainWindow):
         toolbar.addWidget(self.only_ready)
         layout.addLayout(toolbar)
         installs = QHBoxLayout()
-        self.pack_button = button("Installer le pack natif", lambda: self.install_tools([p for p in PORTABLE_PACK if can_install(p)]), "primary")
-        self.python_pack_button = button("Installer les outils Python", lambda: self.install_tools(PYTHON_PACK))
-        installs.addWidget(self.pack_button)
-        installs.addWidget(self.python_pack_button)
-        self.linux_pack_button = button("Installer le pack Linux", lambda: self.install_linux(list(self.tool_by_key)))
-        installs.addWidget(self.linux_pack_button)
-        installs.addStretch()
-        installs.addWidget(button("Actualiser", self.refresh))
+        menu=QMenu(self)
+        self.pack_button=menu.addAction("Installer le pack natif",lambda:self.install_tools([p for p in PORTABLE_PACK if can_install(p)]))
+        self.python_pack_button=menu.addAction("Installer les outils Python",lambda:self.install_tools(PYTHON_PACK))
+        self.linux_pack_button=menu.addAction("Installer le pack Linux",lambda:self.install_linux(list(self.tool_by_key)))
+        install_menu=button("Installer des outils ▾",kind="primary"); install_menu.setMenu(menu)
+        installs.addWidget(install_menu)
+        installs.addWidget(button("Attack flows →",lambda:self.navigate(6)))
+        installs.addStretch(); installs.addWidget(button("Actualiser",self.refresh))
         layout.addLayout(installs)
-        split = QSplitter()
+        split = QSplitter(); self.tools_split=split
         self.tool_table = table(["OUTIL", "CATÉGORIE", "DISPONIBILITÉ"])
         self.tool_table.itemSelectionChanged.connect(self.show_tool)
         self.tool_table.cellDoubleClicked.connect(lambda *_: self.launch_selected())
         split.addWidget(self.tool_table)
         detail, content = card()
-        detail.setMinimumWidth(290)
+        detail.setMinimumWidth(250)
         self.tool_name = label("Choisissez un outil", "sectionTitle", True)
         self.tool_status = label("", "eyebrow")
         self.tool_desc = label("", "muted", True)
@@ -356,7 +366,8 @@ class Window(QMainWindow):
         content.addWidget(self.launch_button)
         content.addWidget(self.configure_button)
         content.addWidget(self.download_button)
-        split.addWidget(detail)
+        detail_scroll=QScrollArea(); detail_scroll.setWidgetResizable(True); detail_scroll.setWidget(detail)
+        detail_scroll.setMinimumWidth(265); split.addWidget(detail_scroll)
         split.setSizes([640, 330])
         layout.addWidget(split, 1)
         self.tool_count = label("", "muted")
@@ -364,7 +375,14 @@ class Window(QMainWindow):
 
     def build_execution(self):
         layout = self.page()
-        self.run_title = label("Prêt pour votre prochaine opération", "sectionTitle")
+        pick=QHBoxLayout(); self.execution_tool=QComboBox()
+        for tool in self.tools: self.execution_tool.addItem(tool['name'],tool['key'])
+        self.execution_tool.setAccessibleName("Outil à exécuter")
+        self.execution_tool.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.execute_button=button("Configurer et exécuter",lambda:self.launch(self.execution_tool.currentData()),"primary")
+        pick.addWidget(self.execution_tool,1); pick.addWidget(self.execute_button); layout.addLayout(pick)
+        self.flow_return=button("Retour au flow →",lambda:self.navigate(6)); self.flow_return.hide(); layout.addWidget(self.flow_return)
+        self.run_title = label("Prêt pour votre prochaine opération", "sectionTitle", True)
         self.run_info = label("Les sorties des outils apparaîtront ici en temps réel.", "muted", True)
         layout.addWidget(self.run_title)
         layout.addWidget(self.run_info)
@@ -373,6 +391,7 @@ class Window(QMainWindow):
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
+        self.progress.hide()
         self.console = QPlainTextEdit()
         self.console.setReadOnly(True)
         self.console.setAccessibleName("Journal de l’opération")
@@ -394,21 +413,24 @@ class Window(QMainWindow):
         self.stop_button = button("■  Arrêter l’opération", self.runner.stop, "danger")
         # clicked(bool) must not replace Runner.stop's cancellation flag.
         self.stop_button.clicked.disconnect()
-        self.stop_button.clicked.connect(lambda: self.runner.stop())
+        self.stop_button.clicked.connect(self.stop_current)
         self.stop_button.setEnabled(False)
+        self.stop_button.hide()
         actions.addWidget(self.stop_button)
         self.run_folder = button("Ouvrir les résultats", self.open_run_folder)
         self.run_folder.setEnabled(False)
         actions.addWidget(self.run_folder)
         actions.addStretch()
-        actions.addWidget(label("Journal complet enregistré automatiquement", "muted"))
+        actions.addWidget(label("Journal enregistré automatiquement", "muted", True))
         layout.addLayout(actions)
 
     def build_history(self):
         layout = self.page()
         layout.addWidget(label("Chaque opération conserve sa cible, son état et son journal complet.", "muted"))
         splitter = QSplitter(Qt.Orientation.Vertical)
-        self.history_table = table(["OUTIL", "CIBLE", "ÉTAT", "DATE"])
+        self.history_search=QLineEdit(); self.history_search.setPlaceholderText("Rechercher un outil, un profil, une cible ou un flow…")
+        self.history_search.textChanged.connect(self.filter_history); layout.addWidget(self.history_search)
+        self.history_table = table(["OUTIL / FLOW", "PROFIL", "CIBLE", "ÉTAT", "DATE"])
         self.history_table.itemSelectionChanged.connect(self.show_history)
         splitter.addWidget(self.history_table)
         self.history_log = QPlainTextEdit()
@@ -455,16 +477,17 @@ class Window(QMainWindow):
         layout.addWidget(frame)
         frame, content = card()
         content.addWidget(label("À propos de cette version", "sectionTitle"))
-        content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les workflows en chaîne et le pilotage Tor/VPN restent séparés. Le routage est celui de l’environnement choisi.", "muted", True))
+        content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les attack flows proposent des étapes guidées et configurables. Le pilotage Tor/VPN reste séparé. Le routage est celui de l’environnement choisi.", "muted", True))
         content.addWidget(button("Ouvrir le dépôt GitHub ↗", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
         layout.addWidget(frame)
         layout.addStretch()
 
     def navigate(self, index):
         self.stack.setCurrentIndex(index)
-        self.page_title.setText(["Vue d’ensemble", "Vos cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres"][index])
+        self.page_title.setText(["Vue d’ensemble", "Vos cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres", "Attack flows"][index])
         for i, item in enumerate(self.nav):
             item.setChecked(i == index)
+        self.nav[index].setFocus(Qt.FocusReason.OtherFocusReason)
 
     def refresh(self):
         if hasattr(self,'backend_status'):
@@ -480,7 +503,7 @@ class Window(QMainWindow):
         rows = [(r["tool"], (r.get("target") or {}).get("label", "Cet ordinateur"), STATUS.get(r["status"], r["status"]), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
         fill_table(self.recent, rows[:3])
         self.recent_empty.setVisible(not rows)
-        fill_table(self.history_table, rows)
+        self.filter_history()
         self.filter_tools()
 
     def add_target(self):
@@ -514,9 +537,10 @@ class Window(QMainWindow):
         selected = self.selected_tool()
         selected_key = selected["key"] if selected else ""
         query = self.search.text().casefold()
-        category = self.category.currentText()
+        category = self.category.currentData()
+        members=next((p["tools"] for p in PHASES if p["id"]==category),[])
         self.filtered_tools = [t for t in self.tools if (not query or query in (t["name"] + " " + t["desc"]).casefold())
-                               and (self.category.currentIndex() == 0 or t["group"] == category)
+                               and (category is None or t["key"] in members or (category=="builtin" and t["key"].startswith("desktop-")))
                                and (not self.only_ready.isChecked() or availability(t, self.store.settings["executables"], self.store.root)[1])]
         self.tool_table.blockSignals(True)
         fill_table(self.tool_table, [(t["name"], t["group"], availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools])
@@ -604,6 +628,7 @@ class Window(QMainWindow):
             return
         python = find_python(self.store.settings.get("python"))
         request = {"label": "Cet ordinateur", "packages": list(packages), "root": str(self.store.root), "python": python}
+        self.pending_installers=[p for p in packages if MANIFEST[p]['kind']=='installer']
         self.console.clear()
         self.terminal_screen=None
         self.input_row.hide()
@@ -620,15 +645,18 @@ class Window(QMainWindow):
         if tool := self.selected_tool():
             self.launch(tool["key"])
 
-    def launch(self,key,show_dialog=True):
+    def launch(self,key,show_dialog=True,tool_override=None,metadata=None,target_override=None):
         if self.runner.active:
-            self.navigate(3); return
-        tool=self.tool_by_key[key]
+            self.navigate(3); return False
+        tool=tool_override or self.tool_by_key[key]
         dialog=LaunchDialog(tool,self.store,self)
+        if target_override:
+            dialog.targets.setCurrentIndex(dialog.targets.findData(target_override['id']))
+            dialog.targets.setEnabled(False)
         while True:
-            if show_dialog and dialog.exec()!=QDialog.DialogCode.Accepted: return
+            if show_dialog and dialog.exec()!=QDialog.DialogCode.Accepted: return False
             preset=dialog.preset(); backend=dialog.backend.currentData()
-            target=dialog.target() if preset.get('needs_target',True) else None
+            target=(target_override or dialog.target()) if preset.get('needs_target',True) else None
             fields=dialog.field_values()
             try:
                 args=build_arguments(tool,0,target,dialog.wordlist.text(),fields,preset=preset,backend=dialog.effective_backend())
@@ -646,6 +674,10 @@ class Window(QMainWindow):
                         command=native_command(tool,self.store.settings['executables'].get(key),self.store.root)
                         if not command: raise ValueError('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.')
                         kwargs={'command':[*command,*args]}
+                        if key=='rustscan' and preset.get('cli_index') is not None:
+                            nmap=native_command(self.tool_by_key['nmap'],self.store.settings['executables'].get('nmap'),self.store.root)
+                            if not nmap: raise ValueError('Ce profil RustScan appelle Nmap. Installez Nmap depuis la boîte à outils, ou choisissez le profil « Port de la cible, sans Nmap ».')
+                            kwargs['environment_extra']={'PATH':str(Path(nmap[0]).parent)+os.pathsep+os.environ.get('PATH','')}
                     kwargs['redactions']=secret_values
                 self.console.clear(); self.terminal_screen=None
                 interactive=preset.get('interactive',False) or kwargs.get('elevate',False)
@@ -655,9 +687,11 @@ class Window(QMainWindow):
                 self.input_row.setVisible(interactive)
                 self.run_title.setText(tool['name']+' · '+preset['label'])
                 self.run_info.setText(('Cible : '+target['url'] if target else 'Environnement local sélectionné')+' · En cours')
-                self.runner.start(tool['name'],preset['label'],request,**kwargs)
+                self.flow_return.setVisible(bool(metadata))
+                self.execution_tool.setCurrentIndex(self.execution_tool.findData(key))
+                self.runner.start(tool['name'],preset['label'],request,metadata=metadata,**kwargs)
                 self.run_folder.setEnabled(True); self.navigate(3)
-                return
+                return True
             except (ValueError,RuntimeError,OSError) as exc:
                 if not show_dialog: raise
                 QMessageBox.warning(self,'Lancement impossible',str(exc))
@@ -730,10 +764,36 @@ class Window(QMainWindow):
         self.pack_button.setEnabled(not active)
         self.python_pack_button.setEnabled(not active)
         self.stop_button.setEnabled(active)
+        self.stop_button.setVisible(active)
+        self.stop_button.setText("Arrêter")
+        self.execute_button.setEnabled(not active)
+        self.execution_tool.setEnabled(not active)
+        self.progress.setVisible(active)
         self.progress.setRange(0, 0 if active else 1)
         self.progress.setValue(0 if active else 1)
         self.nav[3].setText("  Exécution · en cours" if active else "  Exécution")
         self.show_tool()
+
+    def stop_current(self):
+        if not self.runner.active: return
+        self.stop_button.setEnabled(False)
+        self.stop_button.setText("Arrêt en cours…")
+        self.runner.stop()
+
+    def filter_history(self):
+        query=self.history_search.text().casefold()
+        self.visible_history=[r for r in self.history_rows if not query or query in
+            (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('target') or {})).casefold()]
+        fill_table(self.history_table,[(r['tool']+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
+            (r.get('target') or {}).get('label','Cet ordinateur'),STATUS.get(r['status'],r['status']),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history])
+
+    def resizeEvent(self,event):
+        super().resizeEvent(event)
+        if hasattr(self,'tools_split'):
+            orientation=Qt.Orientation.Vertical if self.width()<1100 else Qt.Orientation.Horizontal
+            if self.tools_split.orientation()!=orientation:
+                self.tools_split.setOrientation(orientation)
+                self.tools_split.setSizes([300,260] if self.width()<1100 else [640,330])
 
     def run_completed(self, result):
         state = STATUS[result["status"]]
@@ -742,13 +802,25 @@ class Window(QMainWindow):
             self.append_output("\n" + result["detail"] + "\n")
         self.statusBar().showMessage(f"{result['tool']} : {state.lower()}.")
         self.refresh()
+        if result['tool']=='Dépendances natives':
+            pending=getattr(self,'pending_installers',[]); self.pending_installers=[]
+            if result['status']=='success' and os.name=='nt':
+                for package in pending:
+                    spec=MANIFEST[package]
+                    path=self.store.root/'tools/installers'/f"{package}-{spec['version']}-setup.exe"
+                    try:
+                        import hashlib
+                        if hashlib.sha256(path.read_bytes()).hexdigest()!=spec['sha256']: raise ValueError('Empreinte de l’installateur invalide.')
+                        os.startfile(str(path))
+                        self.run_info.setText('Assistant officiel ouvert. Terminez l’installation puis cliquez sur Actualiser dans la boîte à outils.')
+                    except (OSError,ValueError) as exc: QMessageBox.warning(self,'Installateur',str(exc))
         if result['tool']=='Dépendances Linux':
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0,self.check_backend)
 
     def selected_history(self):
         row = self.history_table.currentRow()
-        return self.history_rows[row] if 0 <= row < len(self.history_rows) else None
+        return self.visible_history[row] if 0 <= row < len(self.visible_history) else None
 
     def show_history(self):
         run = self.selected_history()

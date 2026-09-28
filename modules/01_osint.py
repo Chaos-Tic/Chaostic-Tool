@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["whois", "dig", "subfinder", "amass", "dnsrecon", "theharvester", "shodan"]
+from core.phases import PHASES
+
+TOOLS = PHASES[0]["tools"]
 
 
 def run():

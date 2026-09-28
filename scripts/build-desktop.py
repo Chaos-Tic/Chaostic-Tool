@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -45,7 +46,13 @@ def main():
         link = staging / 'Applications'
         if not link.exists(): link.symlink_to('/Applications', target_is_directory=True)
         artifact = release / f'ChaosticTool-{VERSION}-macos-{arch}.dmg'
-        run('hdiutil', 'create', '-volname', 'ChaosticTool', '-srcfolder', staging, '-ov', '-format', 'UDZO', artifact)
+        for attempt in range(3):
+            try:
+                run('hdiutil', 'create', '-volname', 'ChaosticTool', '-srcfolder', staging, '-ov', '-format', 'UDZO', artifact)
+                break
+            except subprocess.CalledProcessError:
+                if attempt==2: raise
+                time.sleep(5)
     elif system == 'linux':
         bundle = ROOT / 'dist/ChaosticTool'
         for name in ('install.sh', 'uninstall.sh'):

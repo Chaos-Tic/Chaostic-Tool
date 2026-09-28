@@ -47,18 +47,10 @@ def tint(color,alpha):
     c=QColor(color);c.setAlpha(alpha);return c
 
 class GridBackground(QWidget):
-    """Static architecture. Motion belongs to interactions and the hero light."""
+    """Fond clair et calme : une grille très discrète, sans accents néon."""
     def paintEvent(self,event):
-        p=QPainter(self);p.fillRect(self.rect(),QColor('#080d10'))
-        g=QLinearGradient(0,0,self.width(),self.height())
-        g.setColorAt(0,QColor('#101b20'));g.setColorAt(.65,QColor('#080d10'));g.setColorAt(1,QColor('#172023'))
-        p.fillRect(self.rect(),g)
-        p.setPen(QPen(QColor(70,123,135,14),1))
-        for x in range(0,self.width(),80):p.drawLine(x,0,x,self.height())
-        for y in range(0,self.height(),80):p.drawLine(0,y,self.width(),y)
-        p.setPen(QPen(tint('#e5ee36',35),1))
-        p.drawLine(self.width()-80,0,self.width(),80)
-        p.drawLine(0,self.height()-80,80,self.height())
+        # Fond clair uni, sans grille : plus net, aucun artefact de lignes.
+        p=QPainter(self);p.fillRect(self.rect(),QColor(theme.COLORS['background']))
 
 class Hero(MotionPanel):
     def __init__(self,parent=None,on_tools=None,on_flows=None):
@@ -66,11 +58,11 @@ class Hero(MotionPanel):
         from desktop.reactor import create_reactor
         self.reactor=create_reactor(self)
         box=QVBoxLayout(self);box.setContentsMargins(28,25,28,25);box.setSpacing(12)
-        tag=QLabel('CHAOSTICTOOL  /  OPERATION DECK');tag.setObjectName('heroTag');box.addWidget(tag)
-        self.title=QLabel('PRÉPAREZ VOTRE\nPROCHAINE OPÉRATION.');self.title.setObjectName('heroTitle');box.addWidget(self.title)
-        desc=QLabel('Votre cible. Votre arsenal. Vos décisions.\nToutes vos opérations, au même endroit.');desc.setObjectName('heroDesc');desc.setWordWrap(True);box.addWidget(desc)
+        tag=QLabel('ChaosticTool');tag.setObjectName('heroTag');box.addWidget(tag)
+        self.title=QLabel('Préparez votre\nprochaine opération.');self.title.setObjectName('heroTitle');box.addWidget(self.title)
+        desc=QLabel('Votre cible, votre arsenal, vos décisions —\ntoutes vos opérations au même endroit.');desc.setObjectName('heroDesc');desc.setWordWrap(True);box.addWidget(desc)
         row=QHBoxLayout()
-        for text,fn,kind in [('OUVRIR L’ARSENAL',on_tools,'primary'),('ATTACK FLOWS',on_flows,'ghost')]:
+        for text,fn,kind in [('Ouvrir l’arsenal',on_tools,'primary'),('Attack flows',on_flows,'ghost')]:
             from desktop.effects import GamingButton
             b=GamingButton(text);b.setObjectName(kind);b.setCursor(Qt.CursorShape.PointingHandCursor)
             if fn:b.clicked.connect(fn)
@@ -78,19 +70,17 @@ class Hero(MotionPanel):
         row.addStretch();box.addLayout(row)
     def resizeEvent(self,event):
         super().resizeEvent(event)
-        self.reactor.setGeometry(self.width()-390, 12, 370, self.height()-40)
-        self.reactor.setVisible(self.width()>1020)
+        # Le réacteur néon appartient à l'ancien thème sombre : on le masque.
+        self.reactor.setVisible(False)
         clock().sync()
 
     def paintEvent(self,event):
+        # Panneau blanc net, coins arrondis, bordure discrète. Aucun néon.
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        w,h=self.width()-1,self.height()-1
-        path=QPainterPath();path.moveTo(1,1);path.lineTo(w-28,1);path.lineTo(w,29)
-        path.lineTo(w,h);path.lineTo(29,h);path.lineTo(1,h-28);path.closeSubpath()
-        g=QLinearGradient(0,0,w,h);g.setColorAt(0,QColor('#19272c'));g.setColorAt(1,QColor('#0c1519'))
-        p.fillPath(path,g);p.setPen(QPen(tint('#b5c84a',100),1));p.drawPath(path)
-        p.setPen(QPen(QColor('#e5ee36'),3));p.drawLine(1,24,1,95)
-        p.setPen(QPen(QColor('#f06465'),2));p.drawLine(w-90,h,w-28,h)
+        r=QRectF(1,1,self.width()-2,self.height()-2)
+        path=QPainterPath();path.addRoundedRect(r,18,18)
+        p.fillPath(path,QColor(theme.COLORS['surface']))
+        p.setPen(QPen(QColor(theme.COLORS['border']),1));p.drawPath(path)
 
 class ScanOverlay(MotionPanel):
     def __init__(self,parent=None):
@@ -101,7 +91,7 @@ class ScanOverlay(MotionPanel):
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         # A stationary pulse indicates work, without a moving scanner.
         alpha=100+int(70*(.5+.5*math.sin(self.phase*2)))
-        p.setPen(QPen(tint('#59dfda',alpha),2))
+        p.setPen(QPen(tint(theme.COLORS['accent'],alpha),2))
         p.drawLine(2,14,2,54)
 
 
@@ -109,7 +99,7 @@ class CircuitCard(QFrame):
     """Static panel corners; no perpetual animation or shared-clock registration."""
     def paintEvent(self,event):
         super().paintEvent(event)
-        p=QPainter(self);p.setPen(QPen(tint('#65c9cc',80),1))
+        p=QPainter(self);p.setPen(QPen(QColor(theme.COLORS['accent_line']),1))
         for x,sign in ((10,1),(self.width()-10,-1)):
             p.drawLine(x,5,x+sign*16,5);p.drawLine(x,5,x,11)
 
@@ -119,7 +109,6 @@ class HUDRail(QWidget):
         super().__init__(parent);self.setFixedHeight(6)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
     def paintEvent(self,event):
-        p=QPainter(self);p.setPen(QPen(tint('#709196',55),1))
+        p=QPainter(self);p.setPen(QPen(QColor(theme.COLORS['border']),1))
         p.drawLine(0,2,self.width(),2)
-        p.setPen(QPen(QColor('#e5ee36'),2));p.drawLine(0,2,70,2)
-        p.setPen(QPen(QColor('#f06465'),2));p.drawLine(74,2,96,2)
+        p.setPen(QPen(QColor(theme.COLORS['accent']),2));p.drawLine(0,2,54,2)

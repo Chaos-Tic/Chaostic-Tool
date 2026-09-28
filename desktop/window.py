@@ -65,7 +65,7 @@ def status_badge(text, color):
     dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
     effects.glow(dot, color, blur=10, alpha=210)
     caption = QLabel(text)
-    caption.setStyleSheet(f"color: {color}; font-family: '{theme.DISPLAY}'; font-size: 10px; font-weight: 700; letter-spacing: 1px; background: transparent;")
+    caption.setStyleSheet(f"color: {color}; font-family: '{theme.BODY}'; font-size: 10px; font-weight: 700; letter-spacing: 1px; background: transparent;")
     box.addWidget(dot)
     box.addWidget(caption)
     tint = QColor(color)
@@ -76,6 +76,7 @@ def status_badge(text, color):
 def card():
     frame = CircuitCard()
     frame.setObjectName("card")
+    effects.card_shadow(frame)
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(22, 20, 22, 20)
     layout.setSpacing(12)
@@ -164,6 +165,8 @@ class Window(QMainWindow):
     def __init__(self, store):
         super().__init__()
         self.store = store
+        # Applique le thème enregistré (clair par défaut) avant de construire l'UI.
+        theme.set_mode(QApplication.instance(), store.settings.get("theme", "light"))
         self.tools = catalog()
         self.tool_by_key = {t["key"]: t for t in self.tools}
         self.runner = Runner(store, self)
@@ -188,15 +191,17 @@ class Window(QMainWindow):
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(12, 18, 12, 16)
         brand = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(self.windowIcon().pixmap(36, 36))
-        brand.addWidget(icon)
-        text = label("CHAOSTIC\nTOOL")
-        brand_font = QFont(theme.DISPLAY, 12)
-        brand_font.setWeight(QFont.Weight.Black)
-        brand_font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 104)
+        mark = QLabel("C")
+        mark.setFixedSize(34, 34)
+        mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mark.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #ea580c,stop:1 #fb8c3c);"
+                           "border-radius:9px; color:#ffffff; font-weight:800; font-size:15px;")
+        brand.addWidget(mark)
+        text = label("ChaosticTool")
+        brand_font = QFont(theme.BODY, 14)
+        brand_font.setWeight(QFont.Weight.Bold)
         text.setFont(brand_font)
-        text.setStyleSheet("color: #e5ee36;")
+        # Pas de couleur en dur : suit le texte du thème (clair ou sombre).
         brand.addWidget(text)
         brand.addStretch()
         side.addLayout(brand)
@@ -229,12 +234,16 @@ class Window(QMainWindow):
         heading = QHBoxLayout()
         title_area = QVBoxLayout()
         title_area.setSpacing(6)
-        title_area.addWidget(label("CHAOSTICTOOL  /  OPERATION DECK", "eyebrow"))
+        title_area.addWidget(label("CHAOSTICTOOL  ·  DESKTOP", "eyebrow"))
         self.page_title = label("", "pageTitle")
         title_area.addWidget(self.page_title)
         heading.addLayout(title_area)
         heading.addStretch()
-        heading.addWidget(status_badge(platform.system(), "#73deb0"))
+        self.theme_button = button("", self.toggle_theme, "ghost")
+        self._sync_theme_button()
+        heading.addWidget(self.theme_button)
+        heading.addSpacing(10)
+        heading.addWidget(status_badge(platform.system(), "#16a34a"))
         heading.addSpacing(14)
         heading.addWidget(button("+  Ajouter une cible", self.add_target, "primary"))
         main.addLayout(heading)
@@ -366,6 +375,13 @@ class Window(QMainWindow):
         layout.addLayout(installs)
         split = QSplitter(); self.tools_split=split
         self.tool_table = table(["OUTIL", "CATÉGORIE", "DISPONIBILITÉ"])
+        # La colonne disponibilité tient sa pastille complète (sinon le texte long
+        # comme « Linux à configurer » est coupé à 125/150 % d'échelle Windows).
+        _hdr = self.tool_table.horizontalHeader()
+        _hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        _hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        _hdr.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        self.tool_table.setColumnWidth(2, 200)
         self.tool_table.itemSelectionChanged.connect(self.show_tool)
         self.tool_table.cellDoubleClicked.connect(lambda *_: self.launch_selected())
         split.addWidget(self.tool_table)
@@ -390,7 +406,7 @@ class Window(QMainWindow):
         # Secondary block: install / configure, visually separated.
         divider = QFrame()
         divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setStyleSheet("color: #26314a; margin-top: 8px; margin-bottom: 2px;")
+        divider.setStyleSheet("color: #e7eaf0; margin-top: 8px; margin-bottom: 2px;")
         content.addWidget(divider)
         content.addWidget(label("INSTALLATION & CONFIGURATION", "eyebrow"))
         self.install_button = button("Installer cet outil", self.install_selected)
@@ -511,7 +527,7 @@ class Window(QMainWindow):
         panel=QWidget(); layout=QVBoxLayout(panel)
         scroll.setWidget(panel); outer.addWidget(scroll)
         appearance,appearance_box=card()
-        appearance_box.addWidget(label("OPERATION DECK / Apparence", "sectionTitle"))
+        appearance_box.addWidget(label("Apparence", "sectionTitle"))
         self.motion_toggle=QCheckBox("Animations immersives")
         self.motion_toggle.setChecked(self.store.settings.get('animations',True))
         self.motion_toggle.toggled.connect(self.set_motion)
@@ -557,6 +573,17 @@ class Window(QMainWindow):
         content.addWidget(button("Ouvrir le dépôt GitHub  »", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
         layout.addWidget(frame)
         layout.addStretch()
+
+    def _sync_theme_button(self):
+        self.theme_button.setText("  Mode sombre" if theme.MODE == "light" else "  Mode clair")
+
+    def toggle_theme(self):
+        new_mode = "dark" if theme.MODE == "light" else "light"
+        theme.set_mode(QApplication.instance(), new_mode)
+        self.store.settings["theme"] = new_mode
+        self.store.save()
+        self._sync_theme_button()
+        self.update()
 
     def set_motion_rate(self):
         fps=self.motion_rate.currentData();self.store.settings['animation_fps']=fps;self.store.save();clock().set_rate(fps)

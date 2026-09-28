@@ -59,7 +59,7 @@ def apply_theme(app: QApplication):
         QWidget { color: #edf2ff; }
         QMainWindow, QDialog { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #080b19, stop:0.6 #0c1024, stop:1 #16102e); }
         QWidget#sidebar { background: #0b1022; border-right: 1px solid #20293a; }
-        QFrame#card { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #17213b, stop:1 #11182c); border: 1px solid #2b3550; border-radius: 14px; }
+        QFrame#card { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #192442, stop:1 #10192e); border: 1px solid #2b3550; border-radius: 14px; }
         QFrame#cmdcard { background: #080e20; border: 1px solid #2b3550; border-radius: 10px; }
         QLabel { background: transparent; border: none; }
         QLabel#muted { color: #a7b6d2; }
@@ -122,7 +122,7 @@ def apply_theme(app: QApplication):
         QSplitter::handle { background: transparent; width: 12px; height: 12px; }
 
         QLabel#heroTag { color:#88d9ec; font-family:'__DISPLAY__'; font-size:10px; letter-spacing:2px; }
-        QLabel#heroTitle { color:#f1f3ff; font-family:'__DISPLAY__'; font-size:27px; font-weight:800; }
+        QLabel#heroTitle { color:#f1f3ff; font-family:'__DISPLAY__'; font-size:29px; font-weight:800; }
         QLabel#heroDesc { color:#b2c0e1; font-size:13px; }
         QPushButton#primary { min-height:22px; padding:10px 16px; }
         QLabel#eyebrow { color:#a1b1d1; }

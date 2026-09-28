@@ -74,7 +74,7 @@ def status_badge(text, color):
 
 
 def card():
-    frame = QFrame()
+    frame = CircuitCard()
     frame.setObjectName("card")
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(22, 20, 22, 20)
@@ -125,7 +125,7 @@ def fill_table(widget, rows, pill_cols=()):
             widget.setItem(r, c, item)
 
 
-from desktop.hud import Hero,GridBackground,ScanOverlay,clock
+from desktop.hud import Hero,GridBackground,ScanOverlay,CircuitCard,HUDRail,clock
 
 
 class TargetDialog(QDialog):
@@ -168,6 +168,7 @@ class Window(QMainWindow):
         self.tool_by_key = {t["key"]: t for t in self.tools}
         self.runner = Runner(store, self)
         clock().set_enabled(store.settings.get("animations",True))
+        clock().set_rate(store.settings.get('animation_fps',60))
         self.runner.output.connect(self.append_output)
         self.runner.completed.connect(self.run_completed)
         self.runner.activeChanged.connect(self.active_changed)
@@ -237,6 +238,7 @@ class Window(QMainWindow):
         heading.addSpacing(14)
         heading.addWidget(button("+  Ajouter une cible", self.add_target, "primary"))
         main.addLayout(heading)
+        main.addWidget(HUDRail())
         self.stack = QStackedWidget()
         main.addWidget(self.stack, 1)
         outer.addWidget(body, 1)
@@ -509,6 +511,14 @@ class Window(QMainWindow):
         self.motion_toggle.setChecked(self.store.settings.get('animations',True))
         self.motion_toggle.toggled.connect(self.set_motion)
         appearance_box.addWidget(self.motion_toggle)
+        self.motion_rate=QComboBox()
+        self.motion_rate.addItem('Fluide · cible 60 images/s',60)
+        self.motion_rate.addItem('Économe · cible 30 images/s',30)
+        self.motion_rate.setCurrentIndex(1 if self.store.settings.get('animation_fps',60)==30 else 0)
+        self.motion_rate.setAccessibleName('Cadence des animations')
+        self.motion_rate.currentIndexChanged.connect(self.set_motion_rate)
+        appearance_box.addWidget(self.motion_rate)
+        appearance_box.addWidget(label('Hologramme : '+self.hero.reactor.renderer+' · Aucun moteur de jeu ni pilote graphique supplémentaire à installer.', 'muted', True))
         appearance_box.addWidget(label("Orbite, particules, transitions et survols. Désactivez les effets pour une interface statique ; les opérations continuent normalement.","muted",True))
         layout.addWidget(appearance)
         frame,content=card()
@@ -542,6 +552,9 @@ class Window(QMainWindow):
         content.addWidget(button("Ouvrir le dépôt GitHub  »", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
         layout.addWidget(frame)
         layout.addStretch()
+
+    def set_motion_rate(self):
+        fps=self.motion_rate.currentData();self.store.settings['animation_fps']=fps;self.store.save();clock().set_rate(fps)
 
     def set_motion(self,enabled):
         self.store.settings['animations']=bool(enabled);self.store.save();clock().set_enabled(enabled)

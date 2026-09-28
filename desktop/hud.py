@@ -3,7 +3,7 @@ import math,weakref,time
 from shiboken6 import isValid
 from PySide6.QtCore import Qt,QTimer,QObject,QEvent,QPointF,QRectF
 from PySide6.QtGui import QColor,QPainter,QPen,QLinearGradient,QRadialGradient,QFont,QPainterPath,QCursor
-from PySide6.QtWidgets import QWidget,QApplication,QVBoxLayout,QHBoxLayout,QLabel,QPushButton
+from PySide6.QtWidgets import QWidget,QApplication,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QFrame
 from desktop import theme
 
 class MotionClock(QObject):
@@ -25,6 +25,9 @@ class MotionClock(QObject):
     def tick(self):
         stamp=time.monotonic();dt=min(.1,stamp-self.last);self.last=stamp
         for w in self.visible():w.phase+=dt;w.update()
+    def set_rate(self, fps):
+        self.timer.setInterval(33 if fps == 30 else 16)
+
     def set_enabled(self,enabled):
         self.enabled=bool(enabled);self.sync()
         for w in self.widgets:
@@ -53,7 +56,18 @@ class GridBackground(MotionPanel):
         for y in range(0,self.height(),48):p.drawLine(0,y,self.width(),y)
         # Deterministic, slow particles: no random state and no changing data labels.
         # Perspective flight grid, confined to the background.
-        horizon=self.height()*.38;center=self.width()*.65
+        horizon=self.height()*.30;center=self.width()*.65
+        # Aurora ribbons and traveling lights give every page an ambient scene.
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        for ribbon in range(4):
+            path=QPainterPath();path.moveTo(0,70+ribbon*30)
+            path.cubicTo(self.width()*.3,150+math.sin(self.phase*.2+ribbon)*60,
+                         self.width()*.65,-80+ribbon*30,self.width(),120+ribbon*20)
+            p.setPen(QPen(tint('#7a60e8' if ribbon%2 else '#59cadc',17),18-ribbon*3));p.drawPath(path)
+        for side in (0,self.width()-1):
+            p.setPen(QPen(tint('#9d78ff',35),2));p.drawLine(side,0,side,self.height())
+            y=(self.phase*44)%max(1,self.height()+100)-100
+            p.setPen(QPen(tint('#77e6f6',145),2));p.drawLine(QPointF(side,y),QPointF(side,y+70))
         p.setPen(QPen(QColor(135,100,245,25),1))
         for i in range(-10,11):
             p.drawLine(QPointF(center+i*16,horizon),QPointF(center+i*180,self.height()))
@@ -71,7 +85,9 @@ class GridBackground(MotionPanel):
 
 class Hero(MotionPanel):
     def __init__(self,parent=None,on_tools=None,on_flows=None):
-        super().__init__(parent);self.setMinimumHeight(300);self.parallax=QPointF()
+        super().__init__(parent);self.setMinimumHeight(320);self.parallax=QPointF()
+        from desktop.reactor import create_reactor
+        self.reactor=create_reactor(self)
         box=QVBoxLayout(self);box.setContentsMargins(28,25,28,25);box.setSpacing(12)
         tag=QLabel('CHAOSTICTOOL  /  NEXUS');tag.setObjectName('heroTag');box.addWidget(tag)
         self.title=QLabel('VOTRE CENTRE\nD’OPÉRATIONS.');self.title.setObjectName('heroTitle');box.addWidget(self.title)
@@ -83,53 +99,22 @@ class Hero(MotionPanel):
             if fn:b.clicked.connect(fn)
             row.addWidget(b)
         row.addStretch();box.addLayout(row)
+    def resizeEvent(self,event):
+        super().resizeEvent(event)
+        self.reactor.setGeometry(self.width()-350, 12, 330, self.height()-40)
+        self.reactor.setVisible(self.width()>790)
+        clock().sync()
+
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect=QRectF(self.rect()).adjusted(1,1,-1,-1)
         path=QPainterPath();path.addRoundedRect(rect,18,18);p.setClipPath(path)
         g=QLinearGradient(0,0,self.width(),self.height());g.setColorAt(0,QColor('#151d38'));g.setColorAt(.55,QColor('#1b1940'));g.setColorAt(1,QColor('#291855'))
         p.fillPath(path,g)
-        if self.width()>790:
-            pointer=self.mapFromGlobal(QCursor.pos())
-            goal=QPointF((pointer.x()/max(1,self.width())-.5)*20,(pointer.y()/max(1,self.height())-.5)*14) if self.underMouse() and clock().enabled else QPointF()
-            self.parallax+=(goal-self.parallax)*.12
-            cx,cy=self.width()-175+self.parallax.x(),self.height()/2+self.parallax.y()
-            haze=QRadialGradient(cx,cy,190);haze.setColorAt(0,QColor(133,84,255,65));haze.setColorAt(1,QColor(85,70,210,0));p.fillRect(self.rect(),haze)
-            p.save();p.translate(cx,cy)
-            # Orbiting data sparks and expanding energy pulses.
-            for i in range(3):
-                progress=(self.phase*.24+i/3)%1
-                radius=48+progress*100
-                p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(tint('#73eaff',int((1-progress)*65)),1))
-                p.drawEllipse(QPointF(),radius,radius)
-            for i in range(18):
-                a=self.phase*(.35+i%3*.1)+i*math.tau/18
-                radius=140+8*math.sin(self.phase+i)
-                point=QPointF(math.cos(a)*radius,math.sin(a)*radius*.75)
-                p.setPen(Qt.PenStyle.NoPen);p.setBrush(tint('#9ceeff',150));p.drawEllipse(point,2,2)
-            for radius,direction,color in [(112,1,'#9974ff'),(94,-1,'#52e2ef'),(73,.65,'#635593')]:
-                p.save();p.rotate(self.phase*direction*18)
-                p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(tint(color,100),1));p.drawEllipse(QPointF(0,0),radius,radius)
-                p.setPen(QPen(QColor(color),3))
-                for start in [0,130,240]:p.drawArc(QRectF(-radius,-radius,2*radius,2*radius),start*16,48*16)
-                p.restore()
-            for i in range(48):
-                a=i*math.tau/48;p.setPen(QPen(tint('#b4c8ff',100 if i%4==0 else 40),1))
-                p.drawLine(QPointF(math.cos(a)*125,math.sin(a)*125),QPointF(math.cos(a)*(133 if i%4==0 else 129),math.sin(a)*(133 if i%4==0 else 129)))
-            p.rotate(-self.phase*6);poly=QPainterPath()
-            for i in range(7):
-                a=i*math.tau/6-math.pi/2;pt=QPointF(math.cos(a)*48,math.sin(a)*48)
-                if i==0:poly.moveTo(pt)
-                else:poly.lineTo(pt)
-            p.fillPath(poly,QColor(118,79,223,45));p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(QColor('#b69bff'),2));p.drawPath(poly);p.restore()
-            # Rotating wireframe sphere behind the central monogram.
-            p.save();p.translate(cx,cy);p.setPen(QPen(tint('#ac91ff',80),1));p.setBrush(Qt.BrushStyle.NoBrush)
-            for i in range(6):
-                longitude=self.phase*.6+i*math.pi/6
-                p.drawEllipse(QRectF(-abs(math.cos(longitude))*58,-58,abs(math.cos(longitude))*116,116))
-            p.restore()
-            p.setFont(QFont(theme.DISPLAY,16,QFont.Weight.Bold));p.setPen(QColor('#ecf2ff'));p.drawText(QRectF(cx-45,cy-22,90,44),Qt.AlignmentFlag.AlignCenter,'CT')
-            p.setFont(QFont(theme.MONO,8));p.setPen(QColor('#80cadb'));p.drawText(QRectF(cx-100,self.height()-24,200,18),Qt.AlignmentFlag.AlignCenter,'LOCAL / OPERATOR CONSOLE')
+        if self.width() > 790:
+            p.setPen(QPen(tint('#8d78d8', 35), 1))
+            for y in range(22, self.height()-20, 18):
+                p.drawLine(self.width()-370, y, self.width()-350, y)
         # HUD rails and corner identifiers.
         p.setClipping(False);p.setPen(QPen(QColor('#493b77'),1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(rect,18,18)
         p.setPen(QPen(QColor('#8b5cf6'),3));p.drawLine(28,self.height()-2,140,self.height()-2)
@@ -145,3 +130,32 @@ class ScanOverlay(MotionPanel):
         # Activity stays on the edge; it never sweeps over the output text.
         y=12+(math.sin(self.phase*1.4)+1)*.5*max(1,self.height()-70)
         p.setPen(QPen(QColor('#53dcec'),2));p.drawLine(QPointF(self.width()-3,y),QPointF(self.width()-3,y+42))
+
+
+class CircuitCard(QFrame):
+    """Edge-only animated ornament; contents retain their normal Qt semantics."""
+    def __init__(self,parent=None):
+        super().__init__(parent);self.phase=0.;self.motion_active=True;clock().widgets.add(self)
+    def paintEvent(self,event):
+        super().paintEvent(event)
+        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(QPen(tint('#70e2ee',125 if self.underMouse() else 65),1))
+        for x,sign in ((12,1),(self.width()-12,-1)):
+            p.drawLine(x,7,x+sign*20,7);p.drawLine(x,7,x,13)
+        x=20+(math.sin(self.phase*.65)+1)*.5*max(0,self.width()-95)
+        glow=QLinearGradient(x,0,x+55,0)
+        glow.setColorAt(0,tint('#8b70ef',0));glow.setColorAt(.5,tint('#9adfea',150));glow.setColorAt(1,tint('#8b70ef',0))
+        p.setPen(QPen(glow,2));p.drawLine(QPointF(x,self.height()-2),QPointF(x+55,self.height()-2))
+
+class HUDRail(MotionPanel):
+    def __init__(self,parent=None):
+        super().__init__(parent);self.setFixedHeight(12)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+    def paintEvent(self,event):
+        p=QPainter(self);w=self.width()
+        p.setPen(QPen(tint('#89a6d5',45),1));p.drawLine(0,6,w,6)
+        for i in range(18):
+            a=int(35+65*(.5+.5*math.sin(self.phase*1.6-i*.5)))
+            p.fillRect(i*7,3,3,6,tint('#89c7f0',a))
+        x=140+(self.phase*65)%max(1,w-210)
+        p.setPen(QPen(tint('#b595ff',180),2));p.drawLine(QPointF(x,6),QPointF(min(w,x+36),6))

@@ -1,10 +1,10 @@
 name: Desktop Windows Linux macOS
 on:
   push:
-    branches: [main, desktop/windows-app]
+    branches: [linux-cli, desktop/windows-app]
     tags: ['desktop-v*']
   pull_request:
-    branches: [main]
+    branches: [linux-cli]
   workflow_dispatch:
 permissions:
   contents: read

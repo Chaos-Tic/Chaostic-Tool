@@ -8,7 +8,14 @@ de Godot, de Python ou de Git n'est nécessaire pour essayer ce paquet Windows x
 
 ## Ce qui fonctionne
 
-- Scène 3D avec caméra, géométrie, éclairage, profondeur, brouillard et anticrénelage.
+- Poste d'opérateur Cyberpunk resserré : console et **table holographique** comme
+  unique point d'intérêt, sol en grille tenue, éclairage, profondeur et brouillard.
+- Caméra calme au repos ; chaque section est accompagnée d'un court déplacement.
+  L'interface s'anime surtout à l'interaction (survol, ouverture de fiche) ; pas de
+  barres qui balayent les panneaux en permanence.
+- Parcours travaillé **accueil → arsenal → fiche outil** : la fiche présente la
+  description, la note, les comptes de profils natifs/Linux et la liste des profils,
+  sur des panneaux opaques et lisibles.
 - Plein écran sans bordure au premier lancement, fenêtre alternative avec F11.
 - Navigation souris et clavier, transitions de panneaux et déplacements de caméra.
 - Sons de survol/confirmation/retour et ambiance originale en boucle.
@@ -25,10 +32,11 @@ installations et préparation WSL doivent encore être raccordés à l'interface
 Il ne remplace pas l'application Desktop installée et ne modifie pas son historique.
 Le bouton Desktop ouvre l'application existante pour les opérations.
 
-Le décor est une première scène procédurale destinée à valider l'expérience d'un
-vrai moteur, pas une direction artistique AAA achevée. Le paquet utilise le binaire
-officiel Godot pour exécuter le projet ; la distribution finale devra utiliser les
-templates d'export et son propre installateur après migration des fonctions.
+Le décor est une scène procédurale : la direction artistique du parcours
+accueil → arsenal → fiche est désormais un poste d'opérateur travaillé, mais les
+autres écrans et le raccordement métier restent à faire. Le paquet utilise le
+binaire officiel Godot pour exécuter le projet ; la distribution finale devra
+utiliser les templates d'export et son propre installateur après migration.
 
 Windows 10/11 x64 est la cible de cette prévisualisation. Le rendu Compatibility
 demande un pilote OpenGL 3.3 adapté. Test effectué sur Windows avec une NVIDIA RTX

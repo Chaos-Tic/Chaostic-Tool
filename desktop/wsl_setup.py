@@ -2,6 +2,9 @@
 import os
 import subprocess
 import sys
+import json
+import unicodedata
+import psutil
 from pathlib import Path
 from desktop.backends import NO_WINDOW, decode_wsl, distributions, save_config, get_config, inspect_backend
 from desktop.storage import write_json, now
@@ -9,13 +12,34 @@ from desktop.storage import write_json, now
 DISTRO = 'kali-linux'
 USER = 'chaostic-tool'
 
+class SetupPending(RuntimeError):
+    def __init__(self, message, stage='restart_required'):
+        super().__init__(message)
+        self.stage=stage
+
+RESTART_MESSAGE='Redémarrage Windows requis. Enregistrez votre travail, redémarrez manuellement le PC, puis relancez ChaosticTool et reprenez la préparation. Kali sera installée avant sa configuration.'
+
+def needs_restart(output):
+    text=' '.join(unicodedata.normalize('NFKD',output).encode('ascii','ignore').decode().casefold().split())
+    return any(phrase in text for phrase in (
+        'ait ete redemarre', 'ait ete reamorce', 'redemarrage est necessaire',
+        'redemarrage est requis', 'restart is required', 'reboot is required',
+        'until the system is rebooted', 'until the system is restarted'))
+
+def waiting_for_restart(root):
+    try:
+        saved=json.loads((Path(root)/'wsl-setup.json').read_text(encoding='utf-8'))
+        return saved.get('stage')=='restart_required' and abs(float(saved['boot_time'])-psutil.boot_time())<60
+    except (OSError,ValueError,KeyError,TypeError):
+        return False
+
 def command(args, timeout=1800):
     result = subprocess.run(args, capture_output=True, timeout=timeout, creationflags=NO_WINDOW)
     output = decode_wsl(result.stdout + result.stderr)
     if output:
         print(output, flush=True)
-    if result.returncode in (3010,1641):
-        raise RuntimeError('Windows demande un redémarrage. Redémarrez manuellement, puis relancez ChaosticTool pour reprendre.')
+    if result.returncode in (3010,1641) or ('--install' in args and needs_restart(output)):
+        raise SetupPending(RESTART_MESSAGE)
     if result.returncode:
         raise RuntimeError(f'Commande interrompue (code {result.returncode}). Consultez le journal, puis reprenez la préparation.')
     return output
@@ -29,9 +53,11 @@ def prepare(request):
     if sys.getwindowsversion().build < 19041:
         raise ValueError('La préparation automatique nécessite Windows 10 version 2004 (build 19041) ou Windows 11.')
     root = Path(request['root'])
+    if waiting_for_restart(root):
+        raise SetupPending(RESTART_MESSAGE)
     state_path = root / 'wsl-setup.json'
     def state(stage, error=None):
-        write_json(state_path, {'stage': stage, 'checked': now(), 'error': error})
+        write_json(state_path, {'stage': stage, 'checked': now(), 'error': error, 'boot_time':psutil.boot_time()})
         print(stage, flush=True)
     try:
         state('Détection de WSL')
@@ -52,6 +78,14 @@ def prepare(request):
         if DISTRO.casefold() not in [name.casefold() for name in installed]:
             state('Téléchargement de Kali Linux')
             command(['wsl.exe', '--install', '--distribution', DISTRO, '--no-launch', '--web-download'])
+            # WSL can exit successfully after enabling Windows features without
+            # registering a distribution. Verify postconditions in every locale.
+            try:
+                available=distributions()
+            except (OSError,RuntimeError,subprocess.TimeoutExpired) as exc:
+                raise SetupPending('WSL ne permet pas encore de vérifier Kali. Si Windows demande un redémarrage, redémarrez puis reprenez la préparation. Aucun paquet Linux n’a été lancé.','distribution_pending') from exc
+            if DISTRO.casefold() not in [name.casefold() for name in available]:
+                raise SetupPending('Kali n’est pas encore enregistrée dans WSL. Si Windows a demandé un redémarrage, redémarrez puis reprenez la préparation ; sinon consultez le journal d’installation. Aucun paquet Linux n’a été lancé.','distribution_pending')
         state('Préparation de Python et du compte Linux')
         command(linux(['true'], root=True), timeout=60)
         command(linux(['env', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'update'], root=True))
@@ -74,6 +108,9 @@ def prepare(request):
             raise
         state('ready')
         print('Environnement prêt. Le catalogue indique les outils réellement disponibles.', flush=True)
+    except SetupPending as exc:
+        state(exc.stage,str(exc))
+        raise
     except Exception as exc:
         state('À reprendre', str(exc))
         raise
@@ -81,6 +118,10 @@ def prepare(request):
 def offer(window):
     """One consent covering downloads, OS activation and distro provisioning."""
     from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QCheckBox, QDialogButtonBox
+    if waiting_for_restart(window.store.root):
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(window,'Redémarrage Windows requis',RESTART_MESSAGE)
+        return
     dialog = QDialog(window)
     dialog.setWindowTitle('Préparer mon environnement Linux')
     dialog.setMinimumWidth(540)

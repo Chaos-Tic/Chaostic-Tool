@@ -1,7 +1,7 @@
 import platform,subprocess
 from pathlib import Path
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog,QVBoxLayout,QFormLayout,QComboBox,QLineEdit,QLabel,QWidget,QHBoxLayout,QPushButton,QFileDialog,QScrollArea,QDialogButtonBox
+from PySide6.QtCore import Qt,QTimer
+from PySide6.QtWidgets import QApplication,QDialog,QVBoxLayout,QFormLayout,QComboBox,QLineEdit,QLabel,QFrame,QWidget,QHBoxLayout,QPushButton,QFileDialog,QScrollArea,QDialogButtonBox
 from desktop.catalog import build_arguments,native_command
 from desktop.backends import get_config,linux_status
 from desktop.profiles import SECRETS,INPUT_FILES,OUTPUT_FILES,secrets_for,redact
@@ -33,9 +33,16 @@ class LaunchDialog(QDialog):
         self.field_widget=QWidget(); self.extra_form=QFormLayout(self.field_widget); self.extra_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.scroll.setWidget(self.field_widget); layout.addWidget(self.scroll,1)
         self.extra_fields={}; self.wordlist=QLineEdit()
-        self.preview=QLabel(); self.preview.setWordWrap(True); self.preview.setTextFormat(Qt.TextFormat.PlainText)
-        self.preview.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse); layout.addWidget(self.preview)
-        self.context=QLabel(); self.context.setWordWrap(True); layout.addWidget(self.context)
+        cmd=QFrame(); cmd.setObjectName('cmdcard'); cmdbox=QVBoxLayout(cmd); cmdbox.setContentsMargins(14,10,14,12); cmdbox.setSpacing(8)
+        head=QHBoxLayout(); tag=QLabel('COMMANDE'); tag.setObjectName('eyebrow'); head.addWidget(tag); head.addStretch()
+        self.copy_button=QPushButton('Copier'); self.copy_button.setObjectName('ghost'); self.copy_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.copy_button.clicked.connect(self.copy_command); head.addWidget(self.copy_button); cmdbox.addLayout(head)
+        self.copy_reset=QTimer(self);self.copy_reset.setSingleShot(True)
+        self.copy_reset.timeout.connect(lambda:self.copy_button.setText('Copier'))
+        self.preview=QLabel(); self.preview.setObjectName('cmdlabel'); self.preview.setWordWrap(True); self.preview.setTextFormat(Qt.TextFormat.PlainText)
+        self.preview.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse); cmdbox.addWidget(self.preview)
+        layout.addWidget(cmd)
+        self.context=QLabel(); self.context.setObjectName('muted'); self.context.setWordWrap(True); layout.addWidget(self.context)
         actions=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         actions.button(QDialogButtonBox.StandardButton.Ok).setText('Lancer')
         actions.accepted.connect(self.accept); actions.rejected.connect(self.reject); layout.addWidget(actions)
@@ -86,6 +93,11 @@ class LaunchDialog(QDialog):
         if self.effective_backend()=='ssh': context.append('Fichiers d’entrée et fichiers de résultats sur la machine SSH.')
         if self.tool['category']=='wireless': context.append('Interface Wi-Fi Linux et pilotes compatibles requis pour la capture et le mode moniteur.')
         self.context.setText('\n'.join(context)); self.update_preview()
+
+    def copy_command(self):
+        QApplication.clipboard().setText(self.preview.text())
+        self.copy_button.setText('Copié')
+        self.copy_reset.start(1200)
 
     def update_preview(self):
         if not getattr(self,'current_presets',None): return

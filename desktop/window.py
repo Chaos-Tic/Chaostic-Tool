@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import re
 import os
+import math
 import platform
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, QSize
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradient, QPainter, QPen, QTextCursor
+from PySide6.QtCore import Qt, QUrl, QSize, QTimer
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradient, QConicalGradient, QRadialGradient, QPainter, QPen, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-    QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
     QInputDialog, QScrollArea, QMenu, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
@@ -19,6 +20,8 @@ from core.phases import PHASES
 from desktop.flow_panel import FlowPanel
 from desktop import VERSION
 from desktop.icons import icon as nav_icon
+from desktop import effects
+from desktop import theme
 from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
@@ -39,13 +42,35 @@ def label(text, kind="", wrap=False):
 
 
 def button(text, callback=None, kind=""):
-    result = QPushButton(text)
+    result = effects.GamingButton(text)
     result.setCursor(Qt.CursorShape.PointingHandCursor)
     if callback:
         result.clicked.connect(callback)
     if kind:
         result.setObjectName(kind)
+    if kind == "primary":
+        effects.glow(result, "#9b75ff", blur=20, alpha=120)
     return result
+
+
+def status_badge(text, color):
+    """Small header pill with a drawn glowing dot (no Unicode bullet)."""
+    holder = QWidget()
+    holder.setObjectName("hbadge")
+    box = QHBoxLayout(holder)
+    box.setContentsMargins(13, 6, 14, 6)
+    box.setSpacing(9)
+    dot = QLabel()
+    dot.setFixedSize(8, 8)
+    dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
+    effects.glow(dot, color, blur=10, alpha=210)
+    caption = QLabel(text)
+    caption.setStyleSheet(f"color: {color}; font-family: '{theme.DISPLAY}'; font-size: 10px; font-weight: 700; letter-spacing: 1px; background: transparent;")
+    box.addWidget(dot)
+    box.addWidget(caption)
+    tint = QColor(color)
+    holder.setStyleSheet(f"QWidget#hbadge {{ background: rgba({tint.red()},{tint.green()},{tint.blue()},0.10); border: 1px solid rgba({tint.red()},{tint.green()},{tint.blue()},0.40); border-radius: 12px; }}")
+    return holder
 
 
 def card():
@@ -71,51 +96,36 @@ def table(headers):
     return result
 
 
-def fill_table(widget, rows):
+def _pill_cell(text):
+    holder = QWidget()
+    box = QHBoxLayout(holder)
+    box.setContentsMargins(10, 6, 10, 6)
+    box.setSpacing(0)
+    box.addWidget(effects.status_pill(str(text)),0,Qt.AlignmentFlag.AlignVCenter)
+    box.addStretch()
+    holder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+    return holder
+
+
+def fill_table(widget, rows, pill_cols=()):
     widget.setRowCount(len(rows))
     for r, values in enumerate(rows):
         for c, value in enumerate(values):
+            if c in pill_cols:
+                accessible_item=QTableWidgetItem('');accessible_item.setData(Qt.ItemDataRole.AccessibleTextRole,str(value));accessible_item.setToolTip(str(value))
+                widget.setItem(r,c,accessible_item)
+                if str(value) not in ("", "—"):
+                    widget.setCellWidget(r, c, _pill_cell(value))
+                else:
+                    widget.setCellWidget(r, c, None)
+                continue
+            widget.setCellWidget(r, c, None)
             item = QTableWidgetItem(str(value))
             item.setToolTip(str(value))
-            if value in ("Inclus", "Détecté", "Prêt", "Terminé", "Active"):
-                item.setForeground(QColor("#73deb0"))
-            elif value in ("Échec", "Arrêté", "Interrompu"):
-                item.setForeground(QColor("#ff9aa8"))
             widget.setItem(r, c, item)
 
 
-class Hero(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMinimumHeight(192)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.addWidget(label("CHAOSTICTOOL  /  DESKTOP", "eyebrow"))
-        title = label("Vos outils. Vos cibles.\nUn seul espace de travail.")
-        title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
-        layout.addWidget(title)
-        layout.addWidget(label("Configurez une cible, lancez une opération, retrouvez ses résultats.", "muted"))
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        gradient = QLinearGradient(0, 0, self.width(), self.height())
-        gradient.setColorAt(0, QColor("#202332"))
-        gradient.setColorAt(0.65, QColor("#231b2a"))
-        gradient.setColorAt(1, QColor("#331b29"))
-        painter.setBrush(gradient)
-        painter.setPen(QPen(QColor("#493041"), 1))
-        painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 13, 13)
-        center_x, center_y = self.width() - 82, self.height() // 2
-        painter.setPen(QPen(QColor("#653143"), 1))
-        for radius in (38, 72, 106, 140):
-            painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
-        painter.drawLine(center_x - 170, center_y, self.width() - 8, center_y)
-        painter.drawLine(center_x, 10, center_x, self.height() - 10)
-        painter.setBrush(QColor("#ff4d64"))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(center_x - 5, center_y - 5, 10, 10)
-        painter.drawEllipse(center_x - 62, center_y - 49, 6, 6)
+from desktop.hud import Hero,GridBackground,ScanOverlay,clock
 
 
 class TargetDialog(QDialog):
@@ -157,6 +167,7 @@ class Window(QMainWindow):
         self.tools = catalog()
         self.tool_by_key = {t["key"]: t for t in self.tools}
         self.runner = Runner(store, self)
+        clock().set_enabled(store.settings.get("animations",True))
         self.runner.output.connect(self.append_output)
         self.runner.completed.connect(self.run_completed)
         self.runner.activeChanged.connect(self.active_changed)
@@ -172,7 +183,7 @@ class Window(QMainWindow):
         self.setCentralWidget(root)
         sidebar = QWidget()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(196)
+        sidebar.setFixedWidth(210)
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(12, 18, 12, 16)
         brand = QHBoxLayout()
@@ -180,42 +191,49 @@ class Window(QMainWindow):
         icon.setPixmap(self.windowIcon().pixmap(36, 36))
         brand.addWidget(icon)
         text = label("CHAOSTIC\nTOOL")
-        text.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        brand_font = QFont(theme.DISPLAY, 12)
+        brand_font.setWeight(QFont.Weight.Black)
+        brand_font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 104)
+        text.setFont(brand_font)
+        text.setStyleSheet("color: #c2aaff;")
         brand.addWidget(text)
         brand.addStretch()
         side.addLayout(brand)
         side.addSpacing(24)
-        side.addWidget(label("WORKSPACE", "eyebrow"))
+        side.addWidget(label("OPERATOR / LOCAL", "eyebrow"))
         side.addSpacing(8)
-        self.nav = []
-        names = ["Vue d’ensemble", "Cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres", "Attack flows"]
-        symbols = ["overview", "target", "tools", "run", "history", "settings", "run"]
+        names = ["Centre de contrôle", "Cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"]
+        symbols = ["overview", "target", "tools", "run", "history", "settings", "flow"]
+        # self.nav stays ordered by stack index (nav[i] -> page i); only the on-screen
+        # order is customised so Attack flows sits next to Exécution.
+        self.nav = [None] * len(names)
         for index, name in enumerate(names):
             item = button(f"  {name}", lambda checked=False, n=index: self.navigate(n), "nav")
             item.setIcon(nav_icon(symbols[index]))
             item.setIconSize(QSize(18, 18))
             item.setCheckable(True)
-            self.nav.append(item)
-            side.addWidget(item)
+            self.nav[index] = item
+        for stack_index in (0, 1, 2, 3, 6, 4, 5):
+            side.addWidget(self.nav[stack_index])
         side.addStretch()
         side.addWidget(label(platform.system().upper()+" DESKTOP", "eyebrow"))
-        side.addWidget(label(f"Version {VERSION} · Aperçu", "muted"))
+        side.addWidget(label(f"NEXUS  /  {VERSION}", "muted"))
         side.addSpacing(8)
         side.addWidget(button("Ouvrir mes fichiers", self.open_data))
         outer.addWidget(sidebar)
-        body = QWidget()
+        body = GridBackground()
         main = QVBoxLayout(body)
         main.setContentsMargins(20, 18, 20, 16)
         main.setSpacing(14)
         heading = QHBoxLayout()
         title_area = QVBoxLayout()
         title_area.setSpacing(6)
-        title_area.addWidget(label("CHAOSTICTOOL   /   ESPACE LOCAL", "eyebrow"))
+        title_area.addWidget(label("NEXUS  /  CENTRE DE CONTRÔLE", "eyebrow"))
         self.page_title = label("", "pageTitle")
         title_area.addWidget(self.page_title)
         heading.addLayout(title_area)
         heading.addStretch()
-        heading.addWidget(label("●  "+platform.system(), "badge"))
+        heading.addWidget(status_badge(platform.system(), "#73deb0"))
         heading.addSpacing(14)
         heading.addWidget(button("+  Ajouter une cible", self.add_target, "primary"))
         main.addLayout(heading)
@@ -230,11 +248,19 @@ class Window(QMainWindow):
         self.build_settings()
         self.flow_panel=FlowPanel(self)
         self.stack.addWidget(self.flow_panel)
-        self.statusBar().showMessage("Prêt · Les résultats sont enregistrés sur cet ordinateur")
+        from PySide6.QtGui import QShortcut,QKeySequence
+        self.search_shortcut=QShortcut(QKeySequence('Ctrl+K'),self)
+        self.search_shortcut.activated.connect(self.focus_search)
+        self.execution_shortcut=QShortcut(QKeySequence('F6'),self)
+        self.execution_shortcut.activated.connect(lambda:self.navigate(3))
+        self.statusBar().showMessage("PRÊT  /  Ctrl+K : arsenal  /  F6 : exécution  /  Résultats enregistrés localement")
         self.refresh()
         self.navigate(0)
         if store.warning:
             self.statusBar().showMessage(store.warning)
+
+    def focus_search(self):
+        self.navigate(2);self.search.setFocus();self.search.selectAll()
 
     def page(self):
         widget = QWidget()
@@ -247,41 +273,38 @@ class Window(QMainWindow):
 
     def build_home(self):
         layout = self.page()
-        layout.addWidget(Hero())
+        self.hero = Hero(on_tools=lambda:self.navigate(2),on_flows=lambda:self.navigate(6))
+        hero=self.hero
+        effects.glow(hero, "#9b75ff", blur=34, alpha=70)
+        layout.addWidget(hero)
         stats = QHBoxLayout()
         stats.setSpacing(16)
         self.stats = []
-        for caption, detail in (("CIBLES", "Vos environnements enregistrés"), ("OUTILS PRÊTS", "Inclus ou détectés sur ce PC"), ("OPÉRATIONS", "Un historique conservé localement")):
+        for (caption, detail), tint in zip((("01 / CIBLES", "Environnements enregistrés"), ("02 / ARSENAL PRÊT", "Outils inclus ou détectés"), ("03 / OPÉRATIONS", "Journaux conservés localement")), (effects.LINUX, effects.READY, effects.RUNNING)):
             frame, content = card()
             content.addWidget(label(caption, "eyebrow"))
             value = label("0", "number")
+            value.setStyleSheet(f"color: {tint};")
+            effects.glow(value, tint, blur=24, alpha=140)
             self.stats.append(value)
             content.addWidget(value)
             content.addWidget(label(detail, "muted", True))
             stats.addWidget(frame)
         layout.addLayout(stats)
-        quick = QHBoxLayout()
-        frame, content = card()
-        content.addWidget(label("Commencer en quelques clics", "sectionTitle"))
-        content.addWidget(label("Vérifiez l’application ou découvrez les outils disponibles.", "muted", True))
-        buttons = QHBoxLayout()
-        buttons.addWidget(button("Diagnostic local", lambda: self.launch("desktop-diagnostic"), "primary"))
-        buttons.addWidget(button("Explorer les outils  →", lambda: self.navigate(2)))
-        buttons.addStretch()
-        content.addLayout(buttons)
-        quick.addWidget(frame, 3)
-        frame, content = card()
-        content.addWidget(label("CIBLE ACTIVE", "eyebrow"))
-        self.active_name = label("Aucune cible", "sectionTitle")
-        self.active_host = label("Ajoutez votre premier environnement.", "muted", True)
-        content.addWidget(self.active_name)
-        content.addWidget(self.active_host)
-        quick.addWidget(frame, 2)
-        layout.addLayout(quick)
+        target_bar=QFrame();target_bar.setObjectName('card')
+        target_layout=QHBoxLayout(target_bar);target_layout.setContentsMargins(20,14,20,14)
+        target_text=QVBoxLayout();target_text.setSpacing(5)
+        target_text.addWidget(label("CIBLE ACTIVE / PROCHAINE OPÉRATION","eyebrow"))
+        self.active_name=label("Aucune cible","sectionTitle",True)
+        self.active_host=label("Ajoutez votre premier environnement.","muted",True)
+        target_text.addWidget(self.active_name);target_text.addWidget(self.active_host)
+        target_layout.addLayout(target_text,1)
+        target_layout.addWidget(button("Diagnostic local",lambda:self.launch("desktop-diagnostic")))
+        layout.addWidget(target_bar)
         top = QHBoxLayout()
-        top.addWidget(label("Activité récente", "sectionTitle"))
+        top.addWidget(label("JOURNAL DES OPÉRATIONS", "sectionTitle"))
         top.addStretch()
-        top.addWidget(button("Tout voir  →", lambda: self.navigate(4)))
+        top.addWidget(button("Tout voir  »", lambda: self.navigate(4)))
         layout.addLayout(top)
         self.recent = table(["OPÉRATION", "CIBLE", "ÉTAT", "DATE"])
         self.recent.cellDoubleClicked.connect(lambda *_: self.navigate(4))
@@ -329,9 +352,9 @@ class Window(QMainWindow):
         self.pack_button=menu.addAction("Installer le pack natif",lambda:self.install_tools([p for p in PORTABLE_PACK if can_install(p)]))
         self.python_pack_button=menu.addAction("Installer les outils Python",lambda:self.install_tools(PYTHON_PACK))
         self.linux_pack_button=menu.addAction("Installer le pack Linux",lambda:self.install_linux(list(self.tool_by_key)))
-        install_menu=button("Installer des outils ▾",kind="primary"); install_menu.setMenu(menu)
+        install_menu=button("Installer des outils",kind="primary"); install_menu.setMenu(menu)
         installs.addWidget(install_menu)
-        installs.addWidget(button("Attack flows →",lambda:self.navigate(6)))
+        installs.addWidget(button("Attack flows  »",lambda:self.navigate(6)))
         installs.addStretch(); installs.addWidget(button("Actualiser",self.refresh))
         layout.addLayout(installs)
         split = QSplitter(); self.tools_split=split
@@ -354,18 +377,22 @@ class Window(QMainWindow):
         content.addWidget(self.tool_note)
         content.addWidget(self.tool_path)
         content.addStretch()
+        # Primary action first, on its own.
         self.launch_button = button("Configurer et lancer", self.launch_selected, "primary")
+        content.addWidget(self.launch_button)
+        # Secondary block: install / configure, visually separated.
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setStyleSheet("color: #26314a; margin-top: 8px; margin-bottom: 2px;")
+        content.addWidget(divider)
+        content.addWidget(label("INSTALLATION & CONFIGURATION", "eyebrow"))
+        self.install_button = button("Installer cet outil", self.install_selected)
         self.linux_install_button = button("Installer côté Linux", self.install_selected_linux)
         self.linux_path_button = button("Chemin Linux personnalisé…", self.configure_linux_path)
-        content.addWidget(self.linux_install_button)
-        content.addWidget(self.linux_path_button)
         self.configure_button = button("Choisir l’exécutable…", self.configure_executable)
-        self.download_button = button("Téléchargement officiel ↗", self.open_download)
-        self.install_button = button("Installer cet outil", self.install_selected)
-        content.addWidget(self.install_button)
-        content.addWidget(self.launch_button)
-        content.addWidget(self.configure_button)
-        content.addWidget(self.download_button)
+        self.download_button = button("Téléchargement officiel  »", self.open_download)
+        for widget in (self.install_button, self.linux_install_button, self.linux_path_button, self.configure_button, self.download_button):
+            content.addWidget(widget)
         detail_scroll=QScrollArea(); detail_scroll.setWidgetResizable(True); detail_scroll.setWidget(detail)
         detail_scroll.setMinimumWidth(265); split.addWidget(detail_scroll)
         split.setSizes([640, 330])
@@ -381,7 +408,7 @@ class Window(QMainWindow):
         self.execution_tool.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.execute_button=button("Configurer et exécuter",lambda:self.launch(self.execution_tool.currentData()),"primary")
         pick.addWidget(self.execution_tool,1); pick.addWidget(self.execute_button); layout.addLayout(pick)
-        self.flow_return=button("Retour au flow →",lambda:self.navigate(6)); self.flow_return.hide(); layout.addWidget(self.flow_return)
+        self.flow_return=button("Retour au flow  »",lambda:self.navigate(6)); self.flow_return.hide(); layout.addWidget(self.flow_return)
         self.run_title = label("Prêt pour votre prochaine opération", "sectionTitle", True)
         self.run_info = label("Les sorties des outils apparaîtront ici en temps réel.", "muted", True)
         layout.addWidget(self.run_title)
@@ -397,7 +424,13 @@ class Window(QMainWindow):
         self.console.setAccessibleName("Journal de l’opération")
         self.console.document().setMaximumBlockCount(5000)
         self.console.setPlaceholderText("Aucune opération lancée.\n\nChoisissez un outil dans la boîte à outils pour commencer.")
-        layout.addWidget(self.console, 1)
+        console_wrap = QWidget()
+        console_grid = QGridLayout(console_wrap)
+        console_grid.setContentsMargins(0, 0, 0, 0)
+        console_grid.addWidget(self.console, 0, 0)
+        self.scan = ScanOverlay(console_wrap)
+        console_grid.addWidget(self.scan, 0, 0)
+        layout.addWidget(console_wrap, 1)
         self.input_row=QWidget(); entry=QHBoxLayout(self.input_row); entry.setContentsMargins(0,0,0,0)
         self.terminal_input=QLineEdit(); self.terminal_input.setPlaceholderText("Saisie pour la session interactive…")
         self.secret_input=QCheckBox("Masquer"); self.secret_input.setChecked(True)
@@ -410,12 +443,13 @@ class Window(QMainWindow):
         self.terminal_screen=None
 
         actions = QHBoxLayout()
-        self.stop_button = button("■  Arrêter l’opération", self.runner.stop, "danger")
+        self.stop_button = button("Arrêter l’opération", self.runner.stop, "danger")
         # clicked(bool) must not replace Runner.stop's cancellation flag.
         self.stop_button.clicked.disconnect()
         self.stop_button.clicked.connect(self.stop_current)
         self.stop_button.setEnabled(False)
         self.stop_button.hide()
+        effects.pulse(self.stop_button, "#9b75ff", low=8, high=28, ms=900)
         actions.addWidget(self.stop_button)
         self.run_folder = button("Ouvrir les résultats", self.open_run_folder)
         self.run_folder.setEnabled(False)
@@ -450,6 +484,14 @@ class Window(QMainWindow):
         scroll=QScrollArea(); scroll.setWidgetResizable(True)
         panel=QWidget(); layout=QVBoxLayout(panel)
         scroll.setWidget(panel); outer.addWidget(scroll)
+        appearance,appearance_box=card()
+        appearance_box.addWidget(label("NEXUS / Apparence", "sectionTitle"))
+        self.motion_toggle=QCheckBox("Animations immersives")
+        self.motion_toggle.setChecked(self.store.settings.get('animations',True))
+        self.motion_toggle.toggled.connect(self.set_motion)
+        appearance_box.addWidget(self.motion_toggle)
+        appearance_box.addWidget(label("Orbite, particules, transitions et survols. Désactivez les effets pour une interface statique ; les opérations continuent normalement.","muted",True))
+        layout.addWidget(appearance)
         frame,content=card()
         content.addWidget(label("Environnement Linux", "sectionTitle"))
         self.backend_status=label("Non vérifié", "muted", True)
@@ -478,14 +520,18 @@ class Window(QMainWindow):
         frame, content = card()
         content.addWidget(label("À propos de cette version", "sectionTitle"))
         content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les attack flows proposent des étapes guidées et configurables. Le pilotage Tor/VPN reste séparé. Le routage est celui de l’environnement choisi.", "muted", True))
-        content.addWidget(button("Ouvrir le dépôt GitHub ↗", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
+        content.addWidget(button("Ouvrir le dépôt GitHub  »", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
         layout.addWidget(frame)
         layout.addStretch()
 
+    def set_motion(self,enabled):
+        self.store.settings['animations']=bool(enabled);self.store.save();clock().set_enabled(enabled)
+
     def navigate(self, index):
         self.stack.setCurrentIndex(index)
+        effects.fade_in(self.stack.currentWidget())
         if index==6: self.flow_panel.refresh()
-        self.page_title.setText(["Vue d’ensemble", "Vos cibles", "Boîte à outils", "Exécution", "Historique", "Paramètres", "Attack flows"][index])
+        self.page_title.setText(["Centre de contrôle", "Vos cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"][index])
         for i, item in enumerate(self.nav):
             item.setChecked(i == index)
         self.nav[index].setFocus(Qt.FocusReason.OtherFocusReason)
@@ -496,13 +542,13 @@ class Window(QMainWindow):
             self.backend_status.setText(status.get('error') or (str(len(status.get('tools',{})))+' outils détectés · '+status.get('checked','Connexion non vérifiée')))
         self.history_rows = self.store.history()
         for value, count in zip(self.stats, (len(self.store.targets), sum(availability(t, self.store.settings["executables"], self.store.root)[1] for t in self.tools), len(self.history_rows))):
-            value.setText(str(count))
+            effects.count_up(value, count)
         target = self.store.active_target
         self.active_name.setText(target["label"] if target else "Aucune cible")
         self.active_host.setText(target["url"] if target else "Ajoutez votre premier environnement.")
-        fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets])
+        fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
         rows = [(r["tool"], (r.get("target") or {}).get("label", "Cet ordinateur"), STATUS.get(r["status"], r["status"]), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
-        fill_table(self.recent, rows[:3])
+        fill_table(self.recent, rows[:3], pill_cols=(2,))
         self.recent_empty.setVisible(not rows)
         self.filter_history()
         self.filter_tools()
@@ -544,7 +590,7 @@ class Window(QMainWindow):
                                and (category is None or t["key"] in members or (category=="builtin" and t["key"].startswith("desktop-")))
                                and (not self.only_ready.isChecked() or availability(t, self.store.settings["executables"], self.store.root)[1])]
         self.tool_table.blockSignals(True)
-        fill_table(self.tool_table, [(t["name"], t["group"], availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools])
+        fill_table(self.tool_table, [(t["name"], t["group"], availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools], pill_cols=(2,))
         self.tool_table.blockSignals(False)
         self.tool_count.setText(f"{len(self.filtered_tools)} outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux")
         if self.filtered_tools:
@@ -762,6 +808,7 @@ class Window(QMainWindow):
         self.console.moveCursor(QTextCursor.MoveOperation.End)
 
     def active_changed(self, active):
+        self.scan.set_active(active)
         self.linux_pack_button.setEnabled(not active)
         self.terminal_input.setEnabled(active)
         self.pack_button.setEnabled(not active)
@@ -788,7 +835,7 @@ class Window(QMainWindow):
         self.visible_history=[r for r in self.history_rows if not query or query in
             (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('target') or {})).casefold()]
         fill_table(self.history_table,[(r['tool']+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
-            (r.get('target') or {}).get('label','Cet ordinateur'),STATUS.get(r['status'],r['status']),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history])
+            (r.get('target') or {}).get('label','Cet ordinateur'),STATUS.get(r['status'],r['status']),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
 
     def resizeEvent(self,event):
         super().resizeEvent(event)

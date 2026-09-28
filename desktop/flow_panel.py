@@ -1,8 +1,9 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,QPushButton,QListWidget,QDialog,QDialogButtonBox,QLineEdit,QFileDialog,QMessageBox
+from PySide6.QtCore import Qt,QSize
+from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,QPushButton,QListWidget,QListWidgetItem,QDialog,QDialogButtonBox,QLineEdit,QFileDialog,QMessageBox
 from core.tools import TOOLS
 from desktop.catalog import availability
 from desktop.flows import load_flows,save_custom,import_flows,validate_flow,step_tool,FlowSession
+from desktop import effects
 
 class FlowEditor(QDialog):
     def __init__(self,parent,flow=None):
@@ -82,8 +83,21 @@ class FlowPanel(QWidget):
         for index,(key,preset) in enumerate(flow['steps']):
             state=self.session.record['steps'][index]['status'] if self.session else 'pending'
             tool=self.window.tool_by_key[key]; ready=availability(tool,self.window.store.settings['executables'],self.window.store.root)[0]
-            self.list.addItem(f"{index+1:02d} · {tool['name']} — {TOOLS[key]['presets'][preset]['label']}\n{states.get(state,state)} · {ready}")
+            item=QListWidgetItem(); item.setData(Qt.ItemDataRole.AccessibleTextRole, f"{index+1} {tool['name']} {states.get(state,state)}"); self.list.addItem(item)
+            self.list.setItemWidget(item,self._step_widget(index,tool['name'],TOOLS[key]['presets'][preset]['label'],states.get(state,state),ready))
+            item.setSizeHint(QSize(0,96))
         self.list.setCurrentRow(max(0,current))
+    def _step_widget(self,index,tool_name,preset_label,state_text,ready_text):
+        holder=QWidget(); holder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
+        box=QVBoxLayout(holder); box.setContentsMargins(6,4,6,4); box.setSpacing(5)
+        title=QLabel(f"{index+1:02d} · {tool_name} — {preset_label}")
+        title.setStyleSheet('font-weight:600; background:transparent;'); title.setWordWrap(True); title.setTextFormat(Qt.TextFormat.PlainText)
+        title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
+        box.addWidget(title)
+        pills=QHBoxLayout(); pills.setContentsMargins(0,0,0,0); pills.setSpacing(8)
+        pills.addWidget(effects.status_pill(state_text)); pills.addWidget(effects.status_pill(ready_text)); pills.addStretch()
+        box.addLayout(pills)
+        return holder
     def ensure_session(self):
         if not self.window.store.active_target and not self.session:
             raise ValueError('Ajoutez et sélectionnez une cible dans Cibles avant de démarrer un flow.')

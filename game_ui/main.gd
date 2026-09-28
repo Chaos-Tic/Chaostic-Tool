@@ -1,23 +1,23 @@
 extends Node3D
 
-# ChaosticTool — poste d'opérateur Cyberpunk.
-# Décor resserré : une console avec une table holographique comme unique point
-# d'intérêt. La caméra est calme au repos et accompagne chaque section par un
-# court déplacement. L'interface s'anime surtout à l'interaction ; les textes,
-# formulaires et résultats restent sur des surfaces lisibles.
+# ChaosticTool — prévisualisation, thème sobre.
+# Un vrai moteur 3D, mais une direction posée : matières mates, lumière douce de
+# studio, une seule teinte d'accent acier, typographie en casse normale. Pas de
+# néons, pas d'hologramme lumineux, pas d'effets qui balayent. La fenêtre reste
+# toujours fenêtrée. L'interface s'anime avec retenue, surtout à l'interaction.
 
-const GOLD = Color("f2d64b")
-const CYAN = Color("6fe0da")
-const WHITE = Color("e6efe9")
-const MUTED = Color("93abae")
-const INK = Color("06121a")
+const INK    = Color("14171a")   # fond / texte sur clair
+const SURF    = Color("1c2024")  # panneaux
+const SURF2   = Color("23282d")  # boutons au repos
+const LINE    = Color("39424a")  # bordures
+const TEXT    = Color("e7e9eb")
+const MUTED   = Color("969ca3")
+const ACCENT  = Color("9fb2bd")   # acier doux, unique accent
 
 var camera: Camera3D
-var cam_target := Vector3(2.4, 1.9, -2.0)
-var holo: Node3D
-var holo_globe: Node3D
-var holo_glow: OmniLight3D
-var key_light: DirectionalLight3D
+var cam_target := Vector3(2.4, 1.7, -2.0)
+var focal: Node3D
+var spin: Node3D
 var page: Control
 var root_ui: Control
 var title: Label
@@ -26,11 +26,10 @@ var back_button: Button
 var scene_tween: Tween
 var target_tween: Tween
 var ui_tween: Tween
-var display_font = preload("res://assets/Orbitron.ttf")
+var display_font = preload("res://assets/Exo2.ttf")
 var body_font = preload("res://assets/Exo2.ttf")
-var mono_font = preload("res://assets/ShareTechMono-Regular.ttf")
 var config = ConfigFile.new()
-var settings = {"fullscreen":true,"master":0.45,"ui":0.5,"ambience":0.18,"mute":false,"motion":true,"fps":60}
+var settings = {"master":0.45,"ui":0.5,"ambience":0.18,"mute":false,"motion":true,"fps":60}
 var players = {}
 var ambience: AudioStreamPlayer
 var tick = 0.0
@@ -40,15 +39,14 @@ var qa_dir = ""
 var settings_path = "user://settings.cfg"
 var status_label: Label
 var selected_tool := 0
-var focus_pulse := 0.0
 
-# Cadrage caméra par section : position et cible du regard. La table holo reste
-# à droite pour laisser la colonne de texte à gauche parfaitement lisible.
+# Cadrage caméra par section : position + cible du regard. L'objet focal reste à
+# droite pour dégager la colonne de texte, à gauche, sur fond sombre lisible.
 const FRAMES = {
-	"home":     {"pos": Vector3(-5.4, 3.35, 8.6), "look": Vector3(2.6, 1.85, -2.2)},
-	"arsenal":  {"pos": Vector3(-3.4, 3.05, 7.4), "look": Vector3(2.9, 1.75, -2.4)},
-	"fiche":    {"pos": Vector3(-1.2, 2.75, 6.2), "look": Vector3(3.1, 1.85, -2.6)},
-	"settings": {"pos": Vector3(-6.2, 3.6, 8.8),  "look": Vector3(1.8, 1.7, -2.0)},
+	"home":     {"pos": Vector3(-5.2, 3.1, 8.6), "look": Vector3(2.6, 1.7, -2.2)},
+	"arsenal":  {"pos": Vector3(-3.3, 2.85, 7.4), "look": Vector3(2.9, 1.65, -2.4)},
+	"fiche":    {"pos": Vector3(-1.3, 2.6, 6.3), "look": Vector3(3.0, 1.7, -2.6)},
+	"settings": {"pos": Vector3(-6.0, 3.3, 8.9), "look": Vector3(1.8, 1.6, -2.0)},
 }
 
 func _ready():
@@ -56,7 +54,7 @@ func _ready():
 		if arg.begins_with("--qa-dir="): qa_dir = arg.trim_prefix("--qa-dir=")
 	if not qa_dir.is_empty(): settings_path = qa_dir.path_join("settings.cfg")
 	config.load(settings_path)
-	for key in settings: settings[key] = config.get_value("preferences",key,settings[key])
+	for key in settings: settings[key] = config.get_value("preferences", key, settings[key])
 	catalog = JSON.parse_string(FileAccess.get_file_as_string("res://catalog.json"))
 	build_audio()
 	build_world()
@@ -67,7 +65,7 @@ func _ready():
 
 # ------------------------------------------------------------------ matériaux
 
-func material(color: Color, emission = 0.0, rough = 0.42, metal = 0.5):
+func material(color: Color, rough = 0.6, metal = 0.25, emission = 0.0):
 	var m = StandardMaterial3D.new()
 	m.albedo_color = color
 	m.roughness = rough
@@ -95,23 +93,22 @@ func cyl(parent: Node3D, pos: Vector3, height: float, top_r: float, bottom_r: fl
 	mesh.height = height
 	mesh.top_radius = top_r
 	mesh.bottom_radius = bottom_r
-	mesh.radial_segments = 48
+	mesh.radial_segments = 56
 	node.mesh = mesh
 	node.material_override = mat
 	node.position = pos
 	parent.add_child(node)
 	return node
 
-func ring(parent: Node3D, y: float, inner: float, outer: float, mat: Material):
+func ring(parent: Node3D, inner: float, outer: float, mat: Material):
 	var node = MeshInstance3D.new()
 	var torus = TorusMesh.new()
 	torus.inner_radius = inner
 	torus.outer_radius = outer
-	torus.rings = 40
-	torus.ring_segments = 10
+	torus.rings = 48
+	torus.ring_segments = 12
 	node.mesh = torus
 	node.material_override = mat
-	node.position.y = y
 	parent.add_child(node)
 	return node
 
@@ -121,38 +118,38 @@ func build_world():
 	var env_node = WorldEnvironment.new()
 	var env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("050e14")
+	env.background_color = Color("15181c")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("2c4a52")
-	env.ambient_light_energy = 0.5
+	env.ambient_light_color = Color("3b434a")
+	env.ambient_light_energy = 0.8
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_white = 1.1
+	env.tonemap_white = 1.0
 	env.fog_enabled = true
-	env.fog_light_color = Color("0c2029")
-	env.fog_density = 0.02
-	env.fog_aerial_perspective = 0.4
+	env.fog_light_color = Color("1a1f24")
+	env.fog_density = 0.012
+	env.fog_aerial_perspective = 0.3
 	env_node.environment = env
 	add_child(env_node)
 
-	key_light = DirectionalLight3D.new()
-	key_light.rotation_degrees = Vector3(-52,-38,0)
-	key_light.light_color = Color("9fd3d8")
-	key_light.light_energy = 1.15
+	# Lumière douce de studio : une clé chaude-neutre, un remplissage froid léger.
+	var key_light = DirectionalLight3D.new()
+	key_light.rotation_degrees = Vector3(-48, -40, 0)
+	key_light.light_color = Color("d5dade")
+	key_light.light_energy = 1.05
 	key_light.shadow_enabled = true
+	key_light.shadow_blur = 1.5
 	add_child(key_light)
-
 	var fill = DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(-20,120,0)
-	fill.light_color = Color("2b6f78")
-	fill.light_energy = 0.35
+	fill.rotation_degrees = Vector3(-18, 128, 0)
+	fill.light_color = Color("6d777d")
+	fill.light_energy = 0.4
 	add_child(fill)
 
 	build_room()
-	build_console()
-	build_hologram()
+	build_focal()
 
 	camera = Camera3D.new()
-	camera.fov = 52
+	camera.fov = 50
 	camera.position = FRAMES.home.pos
 	cam_target = FRAMES.home.look
 	add_child(camera)
@@ -160,163 +157,99 @@ func build_world():
 	camera.current = true
 
 func build_room():
-	# Sol : dalle sombre + grille discrète en shader, sans barres qui rampent.
+	# Sol mat, sans grille lumineuse : un léger assombrissement vers les bords.
 	var floor_plane = MeshInstance3D.new()
 	var pm = PlaneMesh.new()
-	pm.size = Vector2(46, 46)
+	pm.size = Vector2(48, 48)
 	floor_plane.mesh = pm
 	var floor_mat = ShaderMaterial.new()
 	var floor_shader = Shader.new()
 	floor_shader.code = """
 shader_type spatial;
-render_mode cull_disabled;
-uniform vec3 base_color = vec3(0.030, 0.055, 0.066);
-uniform vec3 line_color = vec3(0.16, 0.44, 0.47);
+uniform vec3 base_color = vec3(0.075, 0.085, 0.095);
 void fragment() {
-	vec2 g = abs(fract(UV * 46.0) - 0.5) / fwidth(UV * 46.0);
-	float line = 1.0 - min(min(g.x, g.y), 1.0);
 	float dist = length(UV - vec2(0.5));
-	float fade = smoothstep(0.52, 0.14, dist);
-	ALBEDO = base_color;
-	EMISSION = line_color * line * fade * 0.6;
-	ROUGHNESS = 0.65;
-	METALLIC = 0.2;
+	float fade = smoothstep(0.55, 0.12, dist);
+	ALBEDO = base_color * (0.55 + 0.45 * fade);
+	ROUGHNESS = 0.7;
+	METALLIC = 0.1;
 }
 """
 	floor_mat.shader = floor_shader
 	floor_plane.material_override = floor_mat
 	add_child(floor_plane)
 
-	var wall_mat = material(Color("0b1a22"), 0.0, 0.7, 0.15)
-	var trim = material(CYAN, 1.1)
+	var wall = material(Color("1a1e22"), 0.75, 0.1)
+	var wall_dark = material(Color("14181c"), 0.8, 0.1)
+	var ledge = material(Color("242a30"), 0.55, 0.3)
 
-	# Mur du fond avec un grand écran d'opérateur en veille (sombre, discret).
-	box(self, Vector3(1.5, 4.2, -13.6), Vector3(30, 9.2, 0.6), wall_mat)
-	var screen = box(self, Vector3(1.5, 4.4, -13.2), Vector3(13.5, 5.4, 0.12), material(Color("081f27"), 0.35, 0.3, 0.2))
-	screen.name = "OperatorScreen"
-	# Cadre sobre et épais autour de l'écran, non émissif : pas de liseré rasant.
-	box(self, Vector3(1.5, 7.25, -13.15), Vector3(14.0, 0.18, 0.16), material(Color("13323b"), 0.0, 0.5, 0.3))
-	box(self, Vector3(1.5, 1.55, -13.15), Vector3(14.0, 0.18, 0.16), material(Color("13323b"), 0.0, 0.5, 0.3))
-	# Fines colonnes de données sur l'écran, statiques et sobres.
-	for i in range(9):
-		var h = 0.6 + fmod(float(i) * 1.7, 3.0)
-		box(self, Vector3(-4.4 + i * 1.35, 2.4 + h * 0.5, -13.1), Vector3(0.7, h, 0.05), material(Color("0e343f"), 0.5, 0.3, 0.2))
+	# Fond architectural calme : un mur mat, une niche en léger retrait derrière
+	# l'objet, une tablette horizontale. Aucun écran de données, aucun néon.
+	box(self, Vector3(1.5, 4.0, -13.6), Vector3(30, 9.0, 0.6), wall)
+	box(self, Vector3(3.0, 3.6, -13.2), Vector3(9.5, 6.2, 0.2), wall_dark)          # niche
+	box(self, Vector3(3.0, 6.85, -13.1), Vector3(9.9, 0.14, 0.32), ledge)           # linteau
+	box(self, Vector3(3.0, 0.55, -13.1), Vector3(9.9, 0.14, 0.32), ledge)           # seuil
+	box(self, Vector3(1.5, 2.1, -12.4), Vector3(26, 0.16, 0.7), ledge)              # tablette basse
 
-	# Parois latérales suggérées, tenues en retrait — pièce fermée, pas de couloir.
-	# Aucun liseré rasant : les néons de mur balayaient l'écran, on les retire.
 	for side in [-1, 1]:
-		var x = side * 12.5
-		box(self, Vector3(x, 4.2, -6.0), Vector3(0.6, 9.2, 16), wall_mat, side * 6.0)
+		var x = side * 12.6
+		box(self, Vector3(x, 4.0, -6.0), Vector3(0.6, 9.0, 16), wall, side * 6.0)
 
-	# Plafond simple, sans réglette lumineuse : la lumière vient de la scène.
-	box(self, Vector3(1.5, 8.7, -6.0), Vector3(30, 0.5, 16), wall_mat)
+	box(self, Vector3(1.5, 8.5, -6.0), Vector3(30, 0.5, 16), wall)
 
-func build_console():
-	var desk_dark = material(Color("101f27"), 0.0, 0.5, 0.55)
-	var desk_metal = material(Color("1b2d34"), 0.0, 0.35, 0.7)
-	var edge = material(CYAN, 1.4)
-	var edge_gold = material(GOLD, 1.1)
+func build_focal():
+	# Objet focal sobre : un socle mat et une sculpture mate qui tourne lentement,
+	# posée sous un projecteur doux. Présence par la lumière et la matière, pas par
+	# l'émission. Deux fins anneaux d'acier croisent une sphère mate.
+	focal = Node3D.new()
+	focal.position = Vector3(3.0, 0, -2.2)
+	add_child(focal)
 
-	# Table opérateur : un plateau incliné, travaillé, plutôt qu'un empilement.
-	var deck = Node3D.new()
-	deck.position = Vector3(3.0, 0, -2.4)
-	add_child(deck)
-	# Socle et pieds.
-	box(deck, Vector3(0, 0.35, 0), Vector3(6.4, 0.7, 3.6), desk_metal)
-	box(deck, Vector3(0, 0.06, 0), Vector3(6.8, 0.12, 4.0), material(Color("0a151b")))
-	box(deck, Vector3(0, 0.74, 0), Vector3(6.0, 0.06, 3.2), edge)
-	# Plateau incliné vers l'opérateur.
-	var top = box(deck, Vector3(0, 1.12, 0.35), Vector3(6.0, 0.16, 2.6), desk_dark)
-	top.rotation_degrees.x = -14
-	# Bandeau lumineux sur l'arête avant du plateau.
-	var lip = box(deck, Vector3(0, 0.86, 1.5), Vector3(6.0, 0.05, 0.12), edge_gold)
-	lip.rotation_degrees.x = -14
-	# Deux petits panneaux latéraux d'instruments, sobres.
-	box(deck, Vector3(-2.5, 1.0, 0.9), Vector3(0.9, 0.5, 0.7), desk_metal, 16)
-	box(deck, Vector3(2.5, 1.0, 0.9), Vector3(0.9, 0.5, 0.7), desk_metal, -16)
-	box(deck, Vector3(-2.5, 1.27, 0.92), Vector3(0.7, 0.02, 0.5), edge, 16)
-	box(deck, Vector3(2.5, 1.27, 0.92), Vector3(0.7, 0.02, 0.5), edge_gold, -16)
+	var plinth_mat = material(Color("20262b"), 0.5, 0.35)
+	var plinth_top = material(Color("2a3137"), 0.45, 0.45)
+	cyl(focal, Vector3(0, 0.12, 0), 0.24, 1.5, 1.7, material(Color("161a1e"), 0.6, 0.2))
+	cyl(focal, Vector3(0, 0.5, 0), 0.6, 1.25, 1.4, plinth_mat)
+	cyl(focal, Vector3(0, 0.82, 0), 0.06, 1.2, 1.22, plinth_top)
 
-func build_hologram():
-	# Table holographique : émetteur sur la console + projection volumétrique
-	# tenue. Elle tourne lentement au repos et se resserre quand on ouvre une fiche.
-	holo = Node3D.new()
-	holo.position = Vector3(3.0, 1.35, -2.1)
-	add_child(holo)
+	spin = Node3D.new()
+	spin.position = Vector3(0, 1.85, 0)
+	focal.add_child(spin)
 
-	var emitter = material(CYAN, 2.2)
-	cyl(holo, Vector3(0, 0.02, 0), 0.06, 0.95, 1.05, material(Color("0c2830"), 0.6, 0.3, 0.6))
-	ring(holo, 0.09, 0.86, 0.95, emitter)
+	var steel = material(Color("aeb9c0"), 0.35, 0.75)
+	var steel_dim = material(Color("77828a"), 0.4, 0.65)
+	var core_mat = material(Color("3a434a"), 0.5, 0.4)
 
-	# Cône de projection additif, très transparent, plus dense en bas.
-	var cone = MeshInstance3D.new()
-	var cone_mesh = CylinderMesh.new()
-	cone_mesh.height = 2.5
-	cone_mesh.top_radius = 0.95
-	cone_mesh.bottom_radius = 0.7
-	cone_mesh.radial_segments = 40
-	cone_mesh.cap_top = false
-	cone_mesh.cap_bottom = false
-	cone.mesh = cone_mesh
-	var cone_mat = ShaderMaterial.new()
-	var cone_shader = Shader.new()
-	cone_shader.code = """
-shader_type spatial;
-render_mode blend_add, cull_disabled, unshaded, depth_draw_never, shadows_disabled;
-uniform vec3 tint = vec3(0.43, 0.88, 0.86);
-varying float vy;
-void vertex() { vy = UV.y; }
-void fragment() {
-	float fres = pow(1.0 - abs(dot(normalize(NORMAL), normalize(VIEW))), 1.6);
-	float vfade = smoothstep(0.0, 1.0, vy);
-	ALBEDO = tint;
-	ALPHA = clamp((fres * 0.42 + 0.06) * vfade, 0.0, 0.5);
-}
-"""
-	cone_mat.shader = cone_shader
-	cone.material_override = cone_mat
-	cone.position.y = 1.3
-	holo.add_child(cone)
-
-	# Globe filaire lent : anneaux croisés + noyau — c'est le point d'intérêt.
-	holo_globe = Node3D.new()
-	holo_globe.position.y = 1.35
-	holo.add_child(holo_globe)
-	var wire = material(CYAN, 2.6)
-	wire.albedo_color = Color(CYAN.r, CYAN.g, CYAN.b, 0.9)
-	wire.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var core = MeshInstance3D.new()
 	var sphere = SphereMesh.new()
 	sphere.radius = 0.62
 	sphere.height = 1.24
-	sphere.radial_segments = 24
-	sphere.rings = 14
+	sphere.radial_segments = 40
+	sphere.rings = 22
 	core.mesh = sphere
-	var core_mat = material(Color("123842"), 1.2, 0.2, 0.4)
-	core_mat.albedo_color = Color(0.07, 0.22, 0.26, 0.55)
-	core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	core.mesh.material = core_mat
-	holo_globe.add_child(core)
-	for i in range(3):
-		var r = ring(holo_globe, 0.0, 0.60, 0.64, wire)
-		r.rotation_degrees = Vector3(90 * i, 30 * i, 20 * i)
-	ring(holo_globe, 0.0, 0.86, 0.90, material(GOLD, 1.6)).rotation_degrees = Vector3(78, 0, 0)
-	# Un unique anneau doré incliné suffit comme accent ; pas de semis de cubes.
+	core.material_override = core_mat
+	spin.add_child(core)
 
-	holo_glow = OmniLight3D.new()
-	holo_glow.position = Vector3(3.0, 2.0, -2.1)
-	holo_glow.light_color = CYAN
-	holo_glow.light_energy = 2.2
-	holo_glow.omni_range = 8.0
-	add_child(holo_glow)
+	ring(spin, 0.86, 0.90, steel).rotation_degrees = Vector3(78, 0, 0)
+	ring(spin, 0.98, 1.01, steel_dim).rotation_degrees = Vector3(20, 40, 10)
+	# Un fin socle-accent acier sur le plateau, seule touche de teinte.
+	ring(focal, 1.12, 1.16, material(ACCENT, 0.4, 0.6)).position.y = 0.86
+
+	# Projecteur doux au-dessus, pour détacher la sculpture du fond.
+	var spot = SpotLight3D.new()
+	spot.position = Vector3(3.0, 5.4, -1.6)
+	spot.rotation_degrees = Vector3(-90, 0, 0)
+	spot.light_color = Color("e4e8ea")
+	spot.light_energy = 3.2
+	spot.spot_range = 9.0
+	spot.spot_angle = 26.0
+	spot.spot_attenuation = 1.4
+	spot.shadow_enabled = true
+	add_child(spot)
 
 # ----------------------------------------------------------------------- UI
 
-func label_at(parent, text, at, size, font_size = 22, color = WHITE, display = false, font_override = null, wrap = false):
+func label_at(parent, text, at, size, font_size = 22, color = TEXT, display = false, font_override = null, wrap = false):
 	var item = Label.new()
-	# L'autowrap doit être posé AVANT la taille : sinon le label se dimensionne
-	# d'abord au contenu (très large) et wrappe ensuite à cette largeur, ce qui
-	# faisait déborder les textes longs hors des panneaux.
 	if wrap:
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.clip_text = true
@@ -333,23 +266,22 @@ func label_at(parent, text, at, size, font_size = 22, color = WHITE, display = f
 	parent.add_child(item)
 	return item
 
-func style(color, border, left_accent = 4):
+func style(bg, border, left_accent = 1):
 	var s = StyleBoxFlat.new()
-	s.bg_color = color
+	s.bg_color = bg
 	s.border_color = border
 	s.set_border_width_all(1)
 	s.border_width_left = left_accent
 	s.content_margin_left = 22
 	s.content_margin_right = 20
-	s.set_corner_radius_all(3)
+	s.set_corner_radius_all(4)
 	return s
 
-func panel_at(parent, at, size, tint = Color(0.024, 0.052, 0.066, 0.975), border = Color("32565c")):
+func panel_at(parent, at, size):
 	var p = Panel.new()
 	p.position = at
 	p.size = size
-	var s = style(tint, border, 1)
-	s.set_corner_radius_all(4)
+	var s = style(Color(SURF.r, SURF.g, SURF.b, 0.975), LINE, 1)
 	p.add_theme_stylebox_override("panel", s)
 	parent.add_child(p)
 	return p
@@ -361,14 +293,20 @@ func button_at(parent, text, at, size, action, primary = false):
 	b.size = size
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_override("font", body_font)
-	b.add_theme_font_size_override("font_size", 24)
-	b.add_theme_color_override("font_color", INK if primary else WHITE)
-	b.add_theme_color_override("font_hover_color", INK if primary else GOLD)
-	b.add_theme_color_override("font_focus_color", INK if primary else GOLD)
-	b.add_theme_stylebox_override("normal", style(GOLD if primary else Color(0.03, 0.07, 0.085, 0.85), Color("5f7a78")))
-	b.add_theme_stylebox_override("hover", style(Color("f7e072") if primary else Color(0.07, 0.15, 0.17, 0.95), GOLD))
-	b.add_theme_stylebox_override("focus", style(Color("f7e072") if primary else Color(0.06, 0.14, 0.155, 0.97), GOLD))
-	b.add_theme_stylebox_override("pressed", style(Color("ffe98a") if primary else Color(0.02, 0.08, 0.10, 0.98), CYAN))
+	b.add_theme_font_size_override("font_size", 23)
+	b.add_theme_color_override("font_color", INK if primary else TEXT)
+	b.add_theme_color_override("font_hover_color", INK if primary else TEXT)
+	b.add_theme_color_override("font_focus_color", INK if primary else TEXT)
+	if primary:
+		b.add_theme_stylebox_override("normal", style(ACCENT, ACCENT, 1))
+		b.add_theme_stylebox_override("hover", style(Color("b3c3cc"), Color("b3c3cc"), 1))
+		b.add_theme_stylebox_override("focus", style(Color("b3c3cc"), Color("cdd8de"), 1))
+		b.add_theme_stylebox_override("pressed", style(Color("8aa0ac"), ACCENT, 1))
+	else:
+		b.add_theme_stylebox_override("normal", style(Color(SURF2.r, SURF2.g, SURF2.b, 0.9), LINE, 1))
+		b.add_theme_stylebox_override("hover", style(Color("2b3238"), ACCENT, 3))
+		b.add_theme_stylebox_override("focus", style(Color("2b3238"), ACCENT, 3))
+		b.add_theme_stylebox_override("pressed", style(Color("20262b"), ACCENT, 3))
 	b.mouse_entered.connect(func(): b.grab_focus())
 	b.focus_entered.connect(func(): sound("hover"))
 	b.pressed.connect(func(): sound("confirm"); action.call())
@@ -382,23 +320,22 @@ func build_ui():
 	root_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	canvas.add_child(root_ui)
 
-	# Voile dégradé ancré à gauche : la colonne de texte est toujours sur du sombre,
-	# le point d'intérêt 3D reste visible à droite. Aucune animation ici.
+	# Voile ancré à gauche : la colonne de texte reste sur du sombre. Statique.
 	var veil = ColorRect.new()
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var shader = Shader.new()
-	shader.code = "shader_type canvas_item; void fragment(){ float a = mix(0.95, 0.0, smoothstep(0.0, 0.62, UV.x)); float top = mix(0.35, 0.0, smoothstep(0.0, 0.32, UV.y)); float bot = smoothstep(0.72, 1.0, UV.y) * 0.5; COLOR = vec4(0.01, 0.022, 0.03, clamp(a + top + bot, 0.0, 0.97)); }"
+	shader.code = "shader_type canvas_item; void fragment(){ float a = mix(0.9, 0.0, smoothstep(0.0, 0.6, UV.x)); float bot = smoothstep(0.78, 1.0, UV.y) * 0.35; COLOR = vec4(0.055, 0.062, 0.07, clamp(a + bot, 0.0, 0.92)); }"
 	var sm = ShaderMaterial.new(); sm.shader = shader; veil.material = sm
 	root_ui.add_child(veil)
 
-	label_at(root_ui, "CHAOSTIC / TOOL", Vector2(64, 40), Vector2(900, 35), 22, CYAN, true)
-	label_at(root_ui, "POSTE D'OPÉRATEUR  ·  PRÉVISUALISATION", Vector2(64, 80), Vector2(1000, 28), 14, MUTED, true)
-	title = label_at(root_ui, "", Vector2(64, 138), Vector2(1200, 130), 55, GOLD, true)
-	subtitle = label_at(root_ui, "", Vector2(66, 236), Vector2(760, 60), 22, WHITE)
+	label_at(root_ui, "ChaosticTool", Vector2(64, 42), Vector2(900, 40), 26, TEXT, true)
+	label_at(root_ui, "Prévisualisation", Vector2(66, 84), Vector2(1000, 26), 15, MUTED)
+	title = label_at(root_ui, "", Vector2(64, 140), Vector2(1200, 120), 42, TEXT, true)
+	subtitle = label_at(root_ui, "", Vector2(66, 232), Vector2(760, 60), 20, MUTED)
 	page = Control.new(); page.position = Vector2(66, 300); page.size = Vector2(1500, 520); root_ui.add_child(page)
-	back_button = button_at(root_ui, "←  RETOUR", Vector2(1300, 44), Vector2(235, 46), func(): back_action())
-	status_label = label_at(root_ui, "F11  PLEIN ÉCRAN     ·     ÉCHAP  RETOUR     ·     FLÈCHES + ENTRÉE", Vector2(64, 850), Vector2(1300, 30), 15, MUTED, false, mono_font)
+	back_button = button_at(root_ui, "←  Retour", Vector2(1310, 44), Vector2(225, 46), func(): back_action())
+	status_label = label_at(root_ui, "Échap  retour       ·       Flèches + Entrée", Vector2(64, 852), Vector2(1300, 28), 15, MUTED)
 
 func back_action():
 	if current_page == "fiche": show_page("arsenal")
@@ -412,32 +349,26 @@ func show_page(which):
 	current_page = which
 	clear_page()
 	back_button.visible = which != "home"
-	if which == "fiche": back_button.text = "←  ARSENAL"
-	else: back_button.text = "←  ACCUEIL"
+	back_button.text = "←  Arsenal" if which == "fiche" else "←  Accueil"
 	if scene_tween: scene_tween.kill()
 	if ui_tween: ui_tween.kill()
 	if target_tween: target_tween.kill()
-	focus_pulse = 1.0
 	match which:
 		"home":
-			title.text = "VOTRE PROCHAINE\nOPÉRATION."
-			title.add_theme_font_size_override("font_size", 46)
-			subtitle.text = "Entrez dans votre poste de commandement."
-			subtitle.position.y = 258
+			title.text = "Bienvenue."
+			subtitle.text = "Choisissez une section pour commencer."
+			subtitle.position.y = 244
 			build_home()
 		"arsenal":
-			title.text = "ARSENAL"
-			title.add_theme_font_size_override("font_size", 56)
+			title.text = "Arsenal"
 			subtitle.text = "Le catalogue réel de ChaosticTool. Choisissez un outil, ouvrez sa fiche."
 			subtitle.position.y = 232
 			build_arsenal()
 		"fiche":
-			title.add_theme_font_size_override("font_size", 46)
 			subtitle.position.y = 232
 			build_fiche()
 		"settings":
-			title.text = "IMAGE & SON"
-			title.add_theme_font_size_override("font_size", 56)
+			title.text = "Image & son"
 			subtitle.text = "Réglez votre expérience. Les préférences sont conservées."
 			subtitle.position.y = 232
 			build_settings()
@@ -445,7 +376,7 @@ func show_page(which):
 	var frame = FRAMES.get(which, FRAMES.home)
 	if settings.motion and camera:
 		page.modulate.a = 0
-		page.position.x = 92
+		page.position.x = 88
 		ui_tween = create_tween().set_parallel(true)
 		ui_tween.tween_property(page, "modulate:a", 1.0, 0.3)
 		ui_tween.tween_property(page, "position:x", 66.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -461,11 +392,11 @@ func show_page(which):
 	if not controls.is_empty(): controls[0].grab_focus()
 
 func build_home():
-	button_at(page, "01   EXPLORER L'ARSENAL", Vector2(0, 24), Vector2(600, 76), func(): show_page("arsenal"), true)
-	button_at(page, "02   IMAGE & SON", Vector2(0, 116), Vector2(600, 76), func(): show_page("settings"))
-	button_at(page, "03   OUVRIR DESKTOP 0.8", Vector2(0, 208), Vector2(600, 76), open_desktop)
-	button_at(page, "QUITTER", Vector2(0, 312), Vector2(290, 60), func(): get_tree().quit())
-	label_at(page, "Prototype graphique : les opérations restent dans Desktop 0.8.\nAucun outil n'est lancé depuis cette prévisualisation.", Vector2(2, 398), Vector2(820, 64), 18, MUTED)
+	button_at(page, "Explorer l'arsenal", Vector2(0, 20), Vector2(560, 70), func(): show_page("arsenal"))
+	button_at(page, "Image & son", Vector2(0, 104), Vector2(560, 70), func(): show_page("settings"))
+	button_at(page, "Ouvrir Desktop 0.8", Vector2(0, 188), Vector2(560, 70), open_desktop)
+	button_at(page, "Quitter", Vector2(0, 288), Vector2(270, 58), func(): get_tree().quit())
+	label_at(page, "Prévisualisation graphique : les opérations restent dans Desktop 0.8.\nAucun outil n'est lancé depuis cette fenêtre.", Vector2(2, 372), Vector2(820, 64), 17, MUTED)
 
 func build_arsenal():
 	panel_at(page, Vector2(-14, -12), Vector2(624, 512))
@@ -473,26 +404,26 @@ func build_arsenal():
 	search.placeholder_text = "Rechercher un outil…"
 	search.add_theme_font_override("font", body_font)
 	search.add_theme_font_size_override("font_size", 21)
-	search.add_theme_stylebox_override("normal", style(Color(0.03, 0.07, 0.09, 0.95), Color("3a5f64"), 1))
-	search.add_theme_stylebox_override("focus", style(Color(0.05, 0.10, 0.12, 0.98), GOLD, 1))
+	search.add_theme_color_override("font_color", TEXT)
+	search.add_theme_stylebox_override("normal", style(Color("181c20"), LINE, 1))
+	search.add_theme_stylebox_override("focus", style(Color("1d2226"), ACCENT, 1))
 	page.add_child(search)
 	var list = ItemList.new(); list.position = Vector2(8, 66); list.size = Vector2(584, 380)
 	list.add_theme_font_override("font", body_font); list.add_theme_font_size_override("font_size", 23)
 	list.add_theme_constant_override("v_separation", 12)
-	list.add_theme_color_override("font_color", WHITE)
-	list.add_theme_color_override("font_selected_color", GOLD)
+	list.add_theme_color_override("font_color", TEXT)
+	list.add_theme_color_override("font_selected_color", TEXT)
 	list.add_theme_stylebox_override("panel", style(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0))
-	list.add_theme_stylebox_override("selected", style(Color(0.09, 0.17, 0.19, 0.9), GOLD))
-	list.add_theme_stylebox_override("selected_focus", style(Color(0.10, 0.19, 0.21, 0.95), GOLD))
+	list.add_theme_stylebox_override("selected", style(Color("2b3238"), ACCENT, 3))
+	list.add_theme_stylebox_override("selected_focus", style(Color("2b3238"), ACCENT, 3))
 	page.add_child(list)
 
-	# Volet de synthèse à droite, sur panneau opaque : toujours lisible.
 	panel_at(page, Vector2(636, -12), Vector2(636, 460))
-	var detail = label_at(page, "", Vector2(660, 6), Vector2(600, 60), 34, GOLD, true)
-	var meta = label_at(page, "", Vector2(662, 66), Vector2(590, 30), 18, CYAN, false, mono_font)
-	var description = label_at(page, "", Vector2(662, 108), Vector2(588, 150), 22, WHITE, false, null, true)
-	var profiles = label_at(page, "", Vector2(662, 268), Vector2(588, 90), 19, MUTED, false, null, true)
-	var open_btn = button_at(page, "OUVRIR LA FICHE  →", Vector2(660, 372), Vector2(320, 58), func(): show_page("fiche"), true)
+	var detail = label_at(page, "", Vector2(660, 8), Vector2(600, 54), 32, TEXT, true)
+	var meta = label_at(page, "", Vector2(662, 66), Vector2(590, 28), 17, ACCENT)
+	var description = label_at(page, "", Vector2(662, 106), Vector2(588, 150), 22, TEXT, false, null, true)
+	var profiles = label_at(page, "", Vector2(662, 268), Vector2(588, 90), 18, MUTED, false, null, true)
+	var open_btn = button_at(page, "Ouvrir la fiche  →", Vector2(660, 372), Vector2(320, 56), func(): show_page("fiche"), true)
 
 	var indices = []
 	var populate = func(query):
@@ -509,17 +440,16 @@ func build_arsenal():
 		var idx = list.get_item_metadata(index)
 		selected_tool = idx
 		var tool = catalog[idx]
-		detail.text = str(tool.name).to_upper()
-		meta.text = str(tool.get("group", "")).to_upper() + "   ·   " + str(tool.get("category", "")).to_upper()
+		detail.text = str(tool.name)
+		meta.text = str(tool.get("group", "")) + "   ·   " + str(tool.get("category", ""))
 		description.text = str(tool.get("desc", ""))
 		profiles.text = "%d profil(s) natif(s)  ·  %d profil(s) Linux\nConsultation du catalogue — l'exécution reste dans Desktop." % [tool.get("presets", []).size(), tool.get("linux_presets", []).size()]
-		open_btn.text = "OUVRIR LA FICHE " + str(tool.name).to_upper() + "  →"
+		open_btn.text = "Ouvrir la fiche " + str(tool.name) + "  →"
 		sound("hover")
 	search.text_changed.connect(populate)
 	list.item_selected.connect(preview)
 	list.item_activated.connect(func(index): preview.call(index); show_page("fiche"))
 	populate.call("")
-	# Restaure la sélection courante (ex. Nmap) si présente.
 	var start = indices.find(selected_tool)
 	if start < 0: start = 0
 	if list.item_count > 0:
@@ -528,81 +458,77 @@ func build_arsenal():
 
 func build_fiche():
 	var tool = catalog[selected_tool]
-	title.text = str(tool.name).to_upper()
+	title.text = str(tool.name)
 	subtitle.text = str(tool.get("group", "")) + "   ·   catégorie " + str(tool.get("category", ""))
 
-	# Colonne gauche : description + profils, sur panneaux lisibles.
 	panel_at(page, Vector2(-14, -12), Vector2(700, 300))
-	label_at(page, "DESCRIPTION", Vector2(8, 6), Vector2(400, 26), 16, CYAN, false, mono_font)
-	label_at(page, str(tool.get("desc", "")), Vector2(8, 40), Vector2(660, 120), 23, WHITE, false, null, true)
+	label_at(page, "Description", Vector2(8, 8), Vector2(400, 26), 16, ACCENT)
+	label_at(page, str(tool.get("desc", "")), Vector2(8, 42), Vector2(660, 110), 22, TEXT, false, null, true)
 	var note = str(tool.get("note", ""))
 	if not note.is_empty():
-		label_at(page, "NOTE", Vector2(8, 168), Vector2(400, 24), 15, GOLD, false, mono_font)
-		label_at(page, note, Vector2(8, 194), Vector2(660, 96), 17, MUTED, false, null, true)
+		label_at(page, "Note", Vector2(8, 168), Vector2(400, 24), 15, MUTED)
+		label_at(page, note, Vector2(8, 196), Vector2(660, 92), 17, MUTED, false, null, true)
 
-	# Bandeau de comptes de profils.
 	var natifs = tool.get("presets", []).size()
 	var linux = tool.get("linux_presets", []).size()
 	panel_at(page, Vector2(-14, 300), Vector2(700, 74))
-	label_at(page, "%d PROFILS NATIFS" % natifs, Vector2(20, 316), Vector2(320, 44), 26, WHITE, true)
-	label_at(page, "%d PROFILS LINUX" % linux, Vector2(360, 316), Vector2(320, 44), 26, CYAN, true)
+	label_at(page, "%d profils natifs" % natifs, Vector2(20, 316), Vector2(320, 44), 24, TEXT, true)
+	label_at(page, "%d profils Linux" % linux, Vector2(360, 316), Vector2(320, 44), 24, ACCENT, true)
 
-	# Colonne droite : profils disponibles (labels seuls, consultation).
 	panel_at(page, Vector2(712, -12), Vector2(560, 386))
-	label_at(page, "PROFILS DISPONIBLES  ·  CONSULTATION", Vector2(732, 6), Vector2(520, 26), 15, CYAN, false, mono_font)
-	var plist = ItemList.new(); plist.position = Vector2(732, 40); plist.size = Vector2(516, 322)
+	label_at(page, "Profils disponibles — consultation", Vector2(732, 8), Vector2(520, 26), 15, ACCENT)
+	var plist = ItemList.new(); plist.position = Vector2(732, 42); plist.size = Vector2(516, 320)
 	plist.add_theme_font_override("font", body_font); plist.add_theme_font_size_override("font_size", 20)
 	plist.add_theme_constant_override("v_separation", 9)
-	plist.add_theme_color_override("font_color", WHITE)
-	plist.add_theme_color_override("font_selected_color", GOLD)
+	plist.add_theme_color_override("font_color", TEXT)
+	plist.add_theme_color_override("font_selected_color", TEXT)
 	plist.add_theme_stylebox_override("panel", style(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0))
-	plist.add_theme_stylebox_override("selected", style(Color(0.09, 0.17, 0.19, 0.9), GOLD))
-	plist.add_theme_stylebox_override("selected_focus", style(Color(0.10, 0.19, 0.21, 0.95), GOLD))
+	plist.add_theme_stylebox_override("selected", style(Color("2b3238"), ACCENT, 3))
+	plist.add_theme_stylebox_override("selected_focus", style(Color("2b3238"), ACCENT, 3))
 	plist.focus_mode = Control.FOCUS_ALL
 	for preset in tool.get("presets", []):
-		plist.add_item("· " + str(preset.get("label", "profil")))
+		plist.add_item("·  " + str(preset.get("label", "profil")))
 	if plist.item_count == 0:
 		plist.add_item("Profils Linux uniquement — voir Desktop.")
 	page.add_child(plist)
 
-	# Actions : l'exécution reste dans Desktop (aucun outil lancé ici).
-	button_at(page, "OUVRIR DANS DESKTOP 0.8", Vector2(-14, 392), Vector2(440, 60), open_desktop, true)
-	label_at(page, "Exécution non raccordée à cette prévisualisation.", Vector2(440, 408), Vector2(500, 40), 17, MUTED, false, mono_font)
+	button_at(page, "Ouvrir dans Desktop 0.8", Vector2(-14, 392), Vector2(420, 58), open_desktop, true)
+	label_at(page, "Exécution non raccordée à cette prévisualisation.", Vector2(424, 408), Vector2(520, 40), 16, MUTED)
 
 func toggle_at(text, key, y):
-	var check = CheckButton.new(); check.text = text; check.position = Vector2(24, y); check.size = Vector2(660, 44)
-	check.add_theme_font_override("font", body_font); check.add_theme_font_size_override("font_size", 23)
-	check.add_theme_color_override("font_color", WHITE)
+	var check = CheckButton.new(); check.text = text; check.position = Vector2(24, y); check.size = Vector2(640, 44)
+	check.add_theme_font_override("font", body_font); check.add_theme_font_size_override("font_size", 22)
+	check.add_theme_color_override("font_color", TEXT)
 	check.button_pressed = bool(settings[key]); page.add_child(check)
 	check.toggled.connect(func(value): settings[key] = value; apply_settings(); save_settings(); sound("confirm"))
 	return check
 
 func slider_at(text, key, y):
-	label_at(page, text, Vector2(724, y), Vector2(520, 30), 22, WHITE)
+	label_at(page, text, Vector2(724, y), Vector2(520, 30), 22, TEXT)
 	var slider = HSlider.new(); slider.position = Vector2(724, y + 36); slider.size = Vector2(470, 34)
 	slider.min_value = 0; slider.max_value = 100; slider.step = 1; slider.value = float(settings[key]) * 100
 	page.add_child(slider)
-	var amount = label_at(page, str(int(slider.value)) + " %", Vector2(1206, y + 32), Vector2(120, 38), 22, CYAN, false, mono_font)
+	var amount = label_at(page, str(int(slider.value)) + " %", Vector2(1206, y + 32), Vector2(120, 38), 21, ACCENT)
 	slider.value_changed.connect(func(value): settings[key] = value / 100.0; amount.text = str(int(value)) + " %"; apply_audio(); save_settings())
 
 func build_settings():
 	panel_at(page, Vector2(-14, -12), Vector2(690, 500))
 	panel_at(page, Vector2(700, -12), Vector2(572, 500))
-	toggle_at("Plein écran sans bordure · F11", "fullscreen", 4)
-	toggle_at("Ambiance et transitions animées", "motion", 78)
-	toggle_at("Couper tous les sons", "mute", 152)
-	label_at(page, "Cadence maximale", Vector2(24, 236), Vector2(450, 34), 22, WHITE)
-	var fps = OptionButton.new(); fps.position = Vector2(24, 278); fps.size = Vector2(440, 46)
+	toggle_at("Ambiance et transitions animées", "motion", 16)
+	toggle_at("Couper tous les sons", "mute", 96)
+	label_at(page, "Cadence maximale", Vector2(24, 188), Vector2(450, 34), 22, TEXT)
+	var fps = OptionButton.new(); fps.position = Vector2(24, 230); fps.size = Vector2(440, 46)
 	fps.add_theme_font_override("font", body_font); fps.add_theme_font_size_override("font_size", 21)
 	for rate in [30, 60, 120]: fps.add_item(str(rate) + " images/s", rate)
 	fps.select([30, 60, 120].find(int(settings.fps)))
 	fps.item_selected.connect(func(index): settings.fps = fps.get_item_id(index); apply_settings(); save_settings())
 	page.add_child(fps)
+	label_at(page, "La fenêtre reste fenêtrée, redimensionnable.", Vector2(24, 300), Vector2(640, 40), 17, MUTED)
 	slider_at("Volume général", "master", 0)
 	slider_at("Interface · survols et confirmations", "ui", 118)
 	slider_at("Ambiance sonore", "ambience", 236)
-	button_at(page, "TESTER LE SON", Vector2(724, 360), Vector2(470, 54), func(): sound("confirm"))
-	label_at(page, "Réglages du prototype, séparés de Desktop.\nÉchap revient au menu ; F11 quitte le plein écran.", Vector2(24, 372), Vector2(640, 80), 19, MUTED)
+	button_at(page, "Tester le son", Vector2(724, 360), Vector2(470, 54), func(): sound("confirm"))
+	label_at(page, "Réglages du prototype, séparés de Desktop.\nÉchap revient au menu.", Vector2(24, 372), Vector2(640, 80), 18, MUTED)
 
 func build_audio():
 	for bus in ["Interface", "Ambience"]:
@@ -629,39 +555,30 @@ func apply_audio():
 func apply_settings():
 	Engine.max_fps = int(settings.fps)
 	apply_audio()
-	if qa_dir.is_empty(): DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+	# Toujours fenêtré : jamais de plein écran.
+	if qa_dir.is_empty():
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 func save_settings():
 	for key in settings: config.set_value("preferences", key, settings[key])
 	config.save(settings_path)
 
 func _process(delta):
-	if focus_pulse > 0.0: focus_pulse = max(0.0, focus_pulse - delta * 1.4)
 	if DisplayServer.window_is_focused() and settings.motion:
 		tick += delta
-		# Le globe tourne lentement — seule vraie animation au repos.
-		if holo_globe:
-			holo_globe.rotation.y = tick * 0.18
-			holo_globe.rotation.x = sin(tick * 0.11) * 0.12
-			# À l'ouverture d'une fiche, il se resserre brièvement (vivant à l'interaction).
-			var s = 1.0 + focus_pulse * 0.12
-			holo_globe.scale = Vector3(s, s, s)
-		if holo_glow:
-			holo_glow.light_energy = 2.0 + sin(tick * 0.5) * 0.15 + focus_pulse * 0.8
+		if spin:
+			spin.rotation.y = tick * 0.14
+			spin.rotation.x = sin(tick * 0.09) * 0.08
 	if camera:
-		# Léger flottement de caméra, très tenu, sans jamais balayer la scène.
 		var drift = Vector3.ZERO
 		if settings.motion:
-			drift = Vector3(sin(tick * 0.16) * 0.05, cos(tick * 0.13) * 0.035, 0.0)
+			drift = Vector3(sin(tick * 0.15) * 0.04, cos(tick * 0.12) * 0.03, 0.0)
 		camera.look_at(cam_target + drift)
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F11:
-			settings.fullscreen = not settings.fullscreen; apply_settings(); save_settings(); get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_ESCAPE:
-			if current_page != "home": sound("back"); back_action()
-			else: settings.fullscreen = false; apply_settings(); save_settings()
+		if event.keycode == KEY_ESCAPE and current_page != "home":
+			sound("back"); back_action()
 
 func open_desktop():
 	var exe = OS.get_environment("LOCALAPPDATA").path_join("Programs/ChaosticTool/ChaosticTool.exe")
@@ -680,7 +597,6 @@ func run_qa():
 	show_page("arsenal")
 	await get_tree().create_timer(1.1).timeout
 	await snap("arsenal")
-	# Sélectionne Nmap pour la fiche de démonstration si présent.
 	for i in range(catalog.size()):
 		if str(catalog[i].name) == "Nmap": selected_tool = i; break
 	show_page("fiche")
@@ -692,13 +608,9 @@ func run_qa():
 	settings.master = 0.27; settings.mute = true; settings.motion = false; settings.fps = 30
 	apply_settings(); save_settings()
 	var readback = ConfigFile.new(); readback.load(settings_path)
-	var result = {"catalog": catalog.size(), "settings_persisted": readback.get_value("preferences", "master") == 0.27, "mute": AudioServer.is_bus_mute(0), "fps": Engine.max_fps, "renderer": RenderingServer.get_video_adapter_name(), "driver": RenderingServer.get_current_rendering_method()}
+	var result = {"catalog": catalog.size(), "settings_persisted": readback.get_value("preferences", "master") == 0.27, "mute": AudioServer.is_bus_mute(0), "fps": Engine.max_fps, "windowed": DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED, "renderer": RenderingServer.get_video_adapter_name(), "driver": RenderingServer.get_current_rendering_method()}
 	players.confirm.play()
 	await get_tree().create_timer(0.03).timeout
 	result["audio_player_started"] = players.confirm.playing
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	await get_tree().create_timer(0.3).timeout
-	result["fullscreen"] = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	var file = FileAccess.open(qa_dir.path_join("validation.json"), FileAccess.WRITE); file.store_string(JSON.stringify(result, "  ")); file.close()
 	get_tree().quit()

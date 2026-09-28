@@ -8,15 +8,16 @@ de Godot, de Python ou de Git n'est nécessaire pour essayer ce paquet Windows x
 
 ## Ce qui fonctionne
 
-- Poste d'opérateur Cyberpunk resserré : console et **table holographique** comme
-  unique point d'intérêt, sol en grille tenue, éclairage, profondeur et brouillard.
+- Direction **sobre** : matières mates, lumière douce de studio, une seule teinte
+  d'accent acier, typographie en casse normale. Un objet mat (sphère et fin anneau
+  d'acier) sur un socle, sous un projecteur doux, comme unique point d'intérêt.
+  Aucun néon, aucun hologramme lumineux, aucun effet qui balaye.
 - Caméra calme au repos ; chaque section est accompagnée d'un court déplacement.
-  L'interface s'anime surtout à l'interaction (survol, ouverture de fiche) ; pas de
-  barres qui balayent les panneaux en permanence.
+  L'interface s'anime surtout à l'interaction (survol, ouverture de fiche).
 - Parcours travaillé **accueil → arsenal → fiche outil** : la fiche présente la
   description, la note, les comptes de profils natifs/Linux et la liste des profils,
   sur des panneaux opaques et lisibles.
-- Plein écran sans bordure au premier lancement, fenêtre alternative avec F11.
+- **Toujours en fenêtré**, redimensionnable (pas de plein écran).
 - Navigation souris et clavier, transitions de panneaux et déplacements de caméra.
 - Sons de survol/confirmation/retour et ambiance originale en boucle.
 - Volumes général, interface et ambiance indépendants, sourdine, réglages persistants.
@@ -33,7 +34,7 @@ Il ne remplace pas l'application Desktop installée et ne modifie pas son histor
 Le bouton Desktop ouvre l'application existante pour les opérations.
 
 Le décor est une scène procédurale : la direction artistique du parcours
-accueil → arsenal → fiche est désormais un poste d'opérateur travaillé, mais les
+accueil → arsenal → fiche est désormais un thème sobre et travaillé, mais les
 autres écrans et le raccordement métier restent à faire. Le paquet utilise le
 binaire officiel Godot pour exécuter le projet ; la distribution finale devra
 utiliser les templates d'export et son propre installateur après migration.
@@ -45,9 +46,9 @@ Ne pas confondre ces limites avec la matrice multi-systèmes de Desktop 0.8.
 
 ## Commandes et réglages
 
-**F11** bascule plein écran/fenêtre. **Échap** revient à l'accueil ; depuis l'accueil,
-il quitte le plein écran. Les flèches/Tab déplacent le focus, Entrée active un bouton.
-Quitter ferme la prévisualisation.
+La prévisualisation reste **toujours fenêtrée** (redimensionnable). **Échap** revient
+à l'accueil. Les flèches/Tab déplacent le focus, Entrée active un bouton. Quitter
+ferme la prévisualisation.
 
 Préférences séparées : `%APPDATA%/ChaosticToolGamePreview/settings.cfg`.
 Les tests automatiques utilisent un dossier isolé. Les sons sont à volume modéré

@@ -852,6 +852,15 @@ class Window(QMainWindow):
         if result.get("detail"):
             self.append_output("\n" + result["detail"] + "\n")
         self.statusBar().showMessage(f"{result['tool']} : {state.lower()}.")
+        if result.get('command')==['builtin','wsl-setup']:
+            import json
+            try:
+                setup=json.loads((self.store.root/'wsl-setup.json').read_text(encoding='utf-8'))
+                if setup.get('stage') in ('restart_required','distribution_pending'):
+                    text='Redémarrage Windows requis — reprenez après redémarrage' if setup['stage']=='restart_required' else 'Préparation en attente — Kali n’est pas encore disponible'
+                    self.run_info.setText(text)
+                    self.statusBar().showMessage(text)
+            except (OSError,ValueError):pass
         self.refresh()
         if result['tool']=='Dépendances natives':
             pending=getattr(self,'pending_installers',[]); self.pending_installers=[]

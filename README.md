@@ -2,11 +2,11 @@
 
 **L'application graphique pour Windows 10 et Windows 11.** Retrouvez les outils, leurs formulaires de configuration et les résultats depuis la même interface.
 
-**[Télécharger Desktop 0.6.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.0)** · **[Guide Windows](README_WINDOWS.md)** · [Version Linux en terminal](README_LINUX.md)
+**[Télécharger Desktop 0.6.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.6.1)** · **[Guide Windows](README_WINDOWS.md)** · [Version Linux en terminal](README_LINUX.md)
 
 ![ChaosticTool Desktop 0.6 sous Windows : centre de contrôle violet et cyan, noyau orbital et activité récente](docs/images/windows/desktop-0.6-accueil.png)
 
-*Capture réelle de Desktop 0.6.0 avec la nouvelle interface NEXUS. Les états affichés dépendent de votre configuration.*
+*Capture réelle de Desktop 0.6.1 avec la nouvelle interface NEXUS. Les états affichés dépendent de votre configuration.*
 
 > **[Guide Windows illustré](README_WINDOWS.md)** : premier lancement pas à pas, lecture des états, installation des outils, configuration WSL/SSH, sauvegarde et dépannage.
 
@@ -14,8 +14,8 @@
 
 | Votre système | Téléchargement |
 |---|---|
-| Windows 10 64 bits, version 1809+, ou Windows 11 sur Intel/AMD | [Installateur x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.0/ChaosticTool-Setup-0.6.0-windows-x64.exe) |
-| Windows 11 sur ARM64 | [Installateur ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.0/ChaosticTool-Setup-0.6.0-windows-arm64.exe) |
+| Windows 10 64 bits, version 1809+, ou Windows 11 sur Intel/AMD | [Installateur x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.1/ChaosticTool-Setup-0.6.1-windows-x64.exe) |
+| Windows 11 sur ARM64 | [Installateur ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.6.1/ChaosticTool-Setup-0.6.1-windows-arm64.exe) |
 
 Ouvrez l'installateur, puis lancez **ChaosticTool Desktop** depuis le menu Démarrer. Python et Git ne sont pas nécessaires pour lancer l'application installée. Les raccourcis et la désinstallation Windows sont pris en charge.
 
@@ -36,7 +36,7 @@ Les outils compatibles s'exécutent nativement. Les outils Linux passent par un 
 - **[Linux CLI](README_LINUX.md)** : interface en terminal, captures et documentation de la version d'origine.
 - **[Catalogue et compatibilité des outils](docs/WINDOWS_PORT.md)**.
 
-Desktop 0.6.0 est une préversion. Les builds actuels sont sans signature d'éditeur Windows ni notarisation Apple ; les protections du système peuvent afficher un avertissement ou bloquer l'ouverture. Desktop reprend les trois attack flows CLI et permet de créer, modifier, importer et exporter des flows personnalisés. Tor/proxychains et VPN guard restent propres à la CLI.
+Desktop 0.6.1 est une préversion. Les builds actuels sont sans signature d'éditeur Windows ni notarisation Apple ; les protections du système peuvent afficher un avertissement ou bloquer l'ouverture. Desktop reprend les trois attack flows CLI et permet de créer, modifier, importer et exporter des flows personnalisés. Tor/proxychains et VPN guard restent propres à la CLI.
 
 [Code sous licence MIT](LICENSE) · [Builds Windows, Linux et macOS](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)
 

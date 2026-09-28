@@ -1,5 +1,5 @@
 """Bounded interaction animations and readable status badges."""
-from PySide6.QtCore import Qt,QVariantAnimation,QPropertyAnimation,QEasingCurve,QRectF
+from PySide6.QtCore import Qt,QVariantAnimation,QPropertyAnimation,QEasingCurve,QRectF,QPointF
 from PySide6.QtGui import QColor,QPainter,QPen
 from PySide6.QtWidgets import QLabel,QPushButton,QGraphicsOpacityEffect,QSizePolicy
 
@@ -30,6 +30,16 @@ class GamingButton(QPushButton):
         self.hover_anim=QVariantAnimation(self);self.hover_anim.setDuration(170)
         self.hover_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.hover_anim.valueChanged.connect(self._hover)
+        self.ripple=1.;self.ripple_center=QPointF()
+        self.click_anim=QVariantAnimation(self);self.click_anim.setDuration(450)
+        self.click_anim.setStartValue(0.);self.click_anim.setEndValue(1.)
+        self.click_anim.valueChanged.connect(self._ripple)
+    def _ripple(self,value):self.ripple=float(value);self.update()
+    def mousePressEvent(self,event):
+        from desktop.hud import clock
+        if clock().enabled:
+            self.ripple_center=event.position();self.click_anim.stop();self.click_anim.start()
+        super().mousePressEvent(event)
     def _hover(self,value):self.hover=float(value);self.update()
     def animate(self,value):
         from desktop.hud import clock
@@ -38,11 +48,17 @@ class GamingButton(QPushButton):
         self.hover_anim.setStartValue(self.hover);self.hover_anim.setEndValue(value);self.hover_anim.start()
     def enterEvent(self,event):super().enterEvent(event);self.animate(1.)
     def leaveEvent(self,event):super().leaveEvent(event);self.animate(0.)
-    def hideEvent(self,event):self.hover_anim.stop();super().hideEvent(event)
+    def hideEvent(self,event):self.hover_anim.stop();self.click_anim.stop();self.ripple=1.;super().hideEvent(event)
     def paintEvent(self,event):
         super().paintEvent(event)
-        if self.hover<=0 or not self.isEnabled():return
+        if not self.isEnabled():return
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        from PySide6.QtGui import QPainterPath
+        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),8,8);p.setClipPath(path)
+        if self.ripple<1:
+            p.setPen(Qt.PenStyle.NoPen);p.setBrush(QColor(126,231,255,int(65*(1-self.ripple))))
+            radius=self.width()*self.ripple;p.drawEllipse(self.ripple_center,radius,radius)
+        if self.hover<=0:return
         c=QColor('#bb9eff' if self.objectName()=='primary' else '#6eddeb');c.setAlpha(int(170*self.hover))
         p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),8,8)
 

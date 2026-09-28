@@ -759,10 +759,8 @@ class Window(QMainWindow):
 
     def setup_wsl(self):
         if self.runner.active: self.navigate(3); return
-        self.console.clear(); self.terminal_screen=None; self.input_row.hide()
-        self.run_title.setText('Installation WSL / Kali Linux')
-        self.runner.start('Linux','Installation WSL',{'label':'Cet ordinateur'},worker='wsl-setup',timeout_ms=1_800_000)
-        self.navigate(3)
+        from desktop.wsl_setup import offer
+        offer(self)
 
     def configure_linux_path(self):
         tool=self.selected_tool()
@@ -826,6 +824,9 @@ class Window(QMainWindow):
 
     def stop_current(self):
         if not self.runner.active: return
+        if self.runner.record.get('command')==['builtin','wsl-setup']:
+            answer=QMessageBox.question(self,'Préparation Linux','Interrompre le suivi ? Une activation Windows élevée ou un téléchargement Linux déjà lancé peut continuer en arrière-plan. Attendez sa fin avant de reprendre.',QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)
+            if answer!=QMessageBox.StandardButton.Yes:return
         self.stop_button.setEnabled(False)
         self.stop_button.setText("Arrêt en cours…")
         self.runner.stop()
@@ -918,7 +919,10 @@ class Window(QMainWindow):
 
     def closeEvent(self, event):
         if self.runner.active:
-            answer = QMessageBox.question(self, "Opération en cours", "Arrêter l’opération et fermer l’application ? Les résultats partiels seront conservés.",
+            message="Arrêter l’opération et fermer l’application ? Les résultats partiels seront conservés."
+            if self.runner.record.get('command')==['builtin','wsl-setup']:
+                message+=' Une activation Windows ou une installation Linux déjà lancée peut continuer en arrière-plan ; attendez sa fin avant de reprendre.'
+            answer = QMessageBox.question(self, "Opération en cours", message,
                                           QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if answer != QMessageBox.StandardButton.Yes:
                 event.ignore()

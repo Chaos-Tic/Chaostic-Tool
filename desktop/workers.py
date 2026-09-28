@@ -119,15 +119,8 @@ def main(arguments):
                     from desktop.backends import inspect_backend
                     inspect_backend(request['target'])
                 elif worker=='wsl-setup':
-                    if sys.platform!='win32': raise ValueError('WSL est disponible uniquement sous Windows.')
-                    import subprocess
-                    from desktop.backends import decode_wsl
-                    print('Installation de WSL et Kali Linux. Windows peut demander une élévation. Aucun redémarrage automatique.',flush=True)
-                    result=subprocess.run(['wsl.exe','--install','--distribution','kali-linux','--no-launch','--web-download'],capture_output=True,timeout=1700,creationflags=0x08000000)
-                    print(decode_wsl(result.stdout),flush=True)
-                    print(decode_wsl(result.stderr),flush=True)
-                    if result.returncode: raise RuntimeError('Installation WSL non terminée. Un administrateur doit activer la virtualisation et WSL sur ce PC.')
-                    print('Si Windows demande un redémarrage, redémarrez manuellement puis relancez ce bouton avant de vérifier la connexion. Configurez ensuite la distribution kali-linux.',flush=True)
+                    from desktop.wsl_setup import prepare
+                    prepare(request['target'])
                 else:
                     {"diagnostic": diagnostic, "dns": dns, "http": http, "tls": tls,'whois':whois,'dig':dig}[worker](request.get("target"))
                 return 0

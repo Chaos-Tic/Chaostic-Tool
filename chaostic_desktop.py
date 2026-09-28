@@ -37,6 +37,13 @@ def main():
         QMessageBox.warning(window, "Erreur", f"{value}\n\nLes détails sont conservés dans desktop-errors.log.")
     sys.excepthook = exception_handler
     window.show()
+    if sys.platform=='win32' and '--smoke-test' not in sys.argv:
+        import json
+        try:
+            pending=json.loads((root/'wsl-setup.json').read_text(encoding='utf-8')).get('stage')!='ready'
+        except (OSError,ValueError): pending=False
+        if '--setup-wsl' in sys.argv or pending:
+            QTimer.singleShot(400,window.setup_wsl)
     # Deterministic smoke test for the packaged application, with isolated data.
     if "--smoke-test" in sys.argv:
         result_file = root / "smoke-result.json"

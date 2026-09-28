@@ -178,4 +178,3 @@ Pour signaler un problème, indiquez les versions de Desktop et Windows, l’arc
 Le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) construit Windows, Linux et macOS en x64/ARM64 et teste les applications empaquetées. Les sources de cette version correspondent au tag `desktop-v0.8.0`. Le [guide Desktop](docs/DESKTOP.md) décrit l’exécution depuis les sources et la construction des paquets.
 
 [Licence MIT](LICENSE) · Interface française · **Documentation révisée pour Desktop 0.8.0**
-

@@ -460,6 +460,7 @@ class Window(QMainWindow):
 
     def build_history(self):
         layout = self.page()
+        layout.setSpacing(10)
         layout.addWidget(label("Chaque opération conserve sa cible, son état et son journal complet.", "muted"))
         splitter = QSplitter(Qt.Orientation.Vertical)
         self.history_search=QLineEdit(); self.history_search.setPlaceholderText("Rechercher un outil, un profil, une cible ou un flow…")
@@ -472,7 +473,7 @@ class Window(QMainWindow):
         self.history_period=QComboBox()
         for text,days in [('Toutes les dates',0),('Dernières 24 h',1),('7 derniers jours',7),('30 derniers jours',30)]:self.history_period.addItem(text,days)
         for widget in (self.history_target,self.history_state,self.history_tool,self.history_period):
-            widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon);widget.setMinimumContentsLength(12)
+            widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon);widget.setMinimumContentsLength(6)
             filters.addWidget(widget,1);widget.currentIndexChanged.connect(self.filter_history)
         layout.addLayout(filters)
         self.history_count=label('','muted');layout.addWidget(self.history_count)
@@ -488,6 +489,7 @@ class Window(QMainWindow):
         actions = QHBoxLayout()
         actions.addWidget(button("Ouvrir le dossier", self.open_history_folder))
         actions.addWidget(button("Exporter le journal…", self.export_history))
+        actions.addWidget(button('Réinitialiser filtres',self.reset_history_filters))
         self.delete_history_button=button('Supprimer ce résultat…',self.delete_history_result,'danger')
         self.delete_history_button.setEnabled(False)
         actions.addStretch()
@@ -495,7 +497,6 @@ class Window(QMainWindow):
         layout.addLayout(actions)
         destructive=QHBoxLayout();destructive.addWidget(self.delete_history_button);destructive.addStretch();destructive.addWidget(self.clear_history_button)
         layout.addLayout(destructive)
-        layout.addWidget(button('Réinitialiser les filtres',self.reset_history_filters))
 
     def build_settings(self):
         outer=self.page()

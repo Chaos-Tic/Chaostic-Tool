@@ -52,6 +52,12 @@ class FlowPanel(QWidget):
         for title,callback in [('Créer',self.create),('Modifier / copier',self.edit)]:
             b=QPushButton(title); b.clicked.connect(callback); head.addWidget(b); self.edit_buttons.append(b)
         layout.addLayout(head)
+        target_row=QHBoxLayout();target_row.addWidget(QLabel('Cible du flow'))
+        self.target_select=QComboBox();target_row.addWidget(self.target_select,1)
+        self.target_select.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon);self.target_select.setMinimumContentsLength(15)
+        self.add_target_button=QPushButton('Ajouter une cible…');self.add_target_button.clicked.connect(self.add_flow_target);target_row.addWidget(self.add_target_button)
+        layout.addLayout(target_row)
+        self.target_select.currentIndexChanged.connect(self.change_target)
         files=QHBoxLayout()
         for title,callback in [('Importer CLI…',self.import_cli),('Exporter…',self.export_cli),('Supprimer',self.delete),('Résultats du flow',self.results)]:
             b=QPushButton(title); b.clicked.connect(callback); files.addWidget(b); self.edit_buttons.append(b)
@@ -76,10 +82,35 @@ class FlowPanel(QWidget):
         if key: self.select.setCurrentIndex(max(0,self.select.findData(key)))
         self.select.blockSignals(False); self.reset()
     def reset(self): self.session=None; self.refresh(); self.list.setCurrentRow(0)
+    def refresh_targets(self):
+        chosen=(self.session.record.get('target') or {}).get('id') if self.session else self.target_select.currentData()
+        if not chosen:chosen=(self.window.store.active_target or {}).get('id')
+        targets=list(self.window.store.targets)
+        if self.session and not any(t['id']==chosen for t in targets):targets.append(self.session.record['target'])
+        self.target_select.blockSignals(True);self.target_select.clear()
+        for target in targets:self.target_select.addItem(target['label']+' — '+target['url'],target['id'])
+        self.target_select.setCurrentIndex(max(0,self.target_select.findData(chosen)));self.target_select.blockSignals(False)
+    def selected_target(self):
+        return next((t for t in self.window.store.targets if t['id']==self.target_select.currentData()),None)
+    def change_target(self):
+        if self.session:
+            previous=self.session.record['target']['id']
+            if self.target_select.currentData()==previous:return
+            if self.window.runner.active or QMessageBox.question(self,'Changer la cible du flow','Créer une nouvelle session pour cette cible ? Les résultats de la précédente session sont conservés.',QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:
+                self.target_select.blockSignals(True);self.target_select.setCurrentIndex(self.target_select.findData(previous));self.target_select.blockSignals(False);return
+            self.session=None;self.list.setCurrentRow(0)
+        self.refresh()
+    def add_flow_target(self):
+        before=(self.window.store.active_target or {}).get('id')
+        self.window.add_target();self.refresh_targets()
+        active=(self.window.store.active_target or {}).get('id')
+        if active and active!=before:self.target_select.setCurrentIndex(self.target_select.findData(active))
     def refresh(self):
+        self.refresh_targets()
         current=self.list.currentRow(); self.list.clear(); flow=self.flows[self.select.currentData()]
-        self.info.setText(flow['desc']+'\nCible : '+((self.session.record.get('target') if self.session else self.window.store.active_target) or {}).get('label','Choisissez une cible dans Cibles'))
-        states={'pending':'À faire','success':'Terminé','failed':'Échec — relançable','cancelled':'Arrêté — relançable','skipped':'Passé','running':'En cours'}
+        target=(self.session.record.get('target') if self.session else self.selected_target()) or {}
+        self.info.setText(flow['desc']+'\nCible : '+target.get('url','Ajoutez une cible pour ce flow'))
+        states={'pending':'À faire','success':'Terminé','failed':'Échec — relançable','cancelled':'Arrêté — relançable','skipped':'Passé','running':'En cours','deleted':'Résultat supprimé — relançable'}
         for index,(key,preset) in enumerate(flow['steps']):
             state=self.session.record['steps'][index]['status'] if self.session else 'pending'
             tool=self.window.tool_by_key[key]; ready=availability(tool,self.window.store.settings['executables'],self.window.store.root)[0]
@@ -99,9 +130,9 @@ class FlowPanel(QWidget):
         box.addLayout(pills)
         return holder
     def ensure_session(self):
-        if not self.window.store.active_target and not self.session:
-            raise ValueError('Ajoutez et sélectionnez une cible dans Cibles avant de démarrer un flow.')
-        if not self.session: self.session=FlowSession(self.window.store.root,self.flows[self.select.currentData()],self.window.store.active_target)
+        if not self.selected_target() and not self.session:
+            raise ValueError('Ajoutez et sélectionnez une cible dans la liste Cible du flow.')
+        if not self.session: self.session=FlowSession(self.window.store.root,self.flows[self.select.currentData()],self.selected_target())
     def start_step(self):
         if self.window.runner.active: self.window.navigate(3); return
         i=self.list.currentRow()
@@ -109,7 +140,7 @@ class FlowPanel(QWidget):
         try:
             self.ensure_session(); key,index=self.session.flow['steps'][i]
             tool=step_tool(self.window.tool_by_key[key],index)
-            context={'flow_id':self.session.record['id'],'flow_name':self.session.record['name'],'flow_step':i}
+            context={'flow_id':self.session.record['id'],'flow_name':self.session.record['name'],'flow_step':i,'flow_target':self.session.record.get('target')}
             started=self.window.launch(key,tool_override=tool,metadata=context,target_override=self.session.record.get('target'))
             if started: self.session.update(i,'running'); self.refresh()
         except (ValueError,OSError) as exc: QMessageBox.warning(self,'Étape non lancée',str(exc))
@@ -125,7 +156,7 @@ class FlowPanel(QWidget):
         if run['status']=='success': self.list.setCurrentRow(min(i+1,self.list.count()-1))
         self.feedback.setText('Étape terminée. Consultez les résultats puis choisissez la suivante.' if run['status']=='success' else 'Étape arrêtée ou en échec. Relancez-la, passez-la ou ouvrez son journal.')
     def activity(self,active):
-        for widget in (self.select,self.launch,self.skip,self.restart,*self.edit_buttons): widget.setEnabled(not active)
+        for widget in (self.select,self.target_select,self.add_target_button,self.launch,self.skip,self.restart,*self.edit_buttons): widget.setEnabled(not active)
     def create(self): self.editor()
     def edit(self): self.editor(self.flows[self.select.currentData()],self.select.currentData())
     def editor(self,flow=None,key=None):
@@ -157,5 +188,9 @@ class FlowPanel(QWidget):
             self.reload()
         except (ValueError,OSError) as exc: QMessageBox.warning(self,'Suppression impossible',str(exc))
     def results(self):
+        self.window.reset_history_filters()
+        target=self.session.record.get('target') if self.session else self.selected_target()
+        index=self.window.history_target.findData(self.window.history_target_key(target))
+        if index>=0:self.window.history_target.setCurrentIndex(index)
         self.window.history_search.setText(self.flows[self.select.currentData()]['name'])
         self.window.navigate(4)

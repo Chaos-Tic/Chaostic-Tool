@@ -107,7 +107,7 @@ class Runner(QObject):
         display=[redact(arg,redactions) for arg in (command or ['builtin',worker])]
         directory, record = self.store.new_run(tool, preset, target, display)
         if metadata:
-            record.update({k:metadata[k] for k in ('flow_id','flow_name','flow_step') if k in metadata})
+            record.update({k:metadata[k] for k in ('flow_id','flow_name','flow_step','flow_target') if k in metadata})
             write_json(directory/'run.json',record)
         self.directory, self.record = directory, record
         self.cancelled, self.failure, self.builtin, self.offset = False, "", worker is not None, 0

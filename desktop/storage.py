@@ -8,6 +8,7 @@ import re
 import sys
 import uuid
 import unicodedata
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -146,6 +147,26 @@ class Store:
                 run.update(status="interrupted", finished=now(), detail="Application fermée avant la fin de l’opération.")
                 directory = run.pop("directory")
                 write_json(Path(directory) / "run.json", run)
+
+    def clear_history(self):
+        """Delete local run artifacts only; never follow links outside the profile."""
+        runs=self.root/'runs'
+        if runs.is_symlink() or runs.is_junction():
+            raise ValueError('Le dossier des résultats est un lien ; suppression refusée.')
+        if not runs.exists():return
+        expected=self.root.resolve()/'runs'
+        if runs.resolve()!=expected or not runs.is_dir():
+            raise ValueError('Le dossier des résultats est invalide.')
+        # Validate the full deletion tree before deleting any file. This also
+        # rejects nested junctions on Windows and links made by external tools.
+        for current,dirs,files in os.walk(runs,followlinks=False):
+            for name in dirs+files:
+                path=Path(current)/name
+                if path.is_symlink() or path.is_junction() or not path.resolve().is_relative_to(expected):
+                    raise ValueError('Un résultat contient un lien externe. Retirez ce lien avant de vider l’historique.')
+        if any(run.get('status')=='running' for run in self.history()):
+            raise ValueError('Terminez ou arrêtez l’opération en cours avant de vider l’historique.')
+        shutil.rmtree(runs)
 
     def new_run(self, tool, preset, target, command):
         def slug(value,limit):

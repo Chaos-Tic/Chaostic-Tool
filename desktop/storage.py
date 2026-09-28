@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import uuid
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -147,7 +148,12 @@ class Store:
                 write_json(Path(directory) / "run.json", run)
 
     def new_run(self, tool, preset, target, command):
-        identifier = datetime.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
+        def slug(value,limit):
+            value=unicodedata.normalize('NFKD',str(value)).encode('ascii','ignore').decode().lower()
+            return re.sub(r'[^a-z0-9]+','-',value).strip('-')[:limit].rstrip('-') or 'local'
+        host=(target or {}).get('host') or 'local'
+        identifier = (datetime.now().strftime("%Y%m%d-%H%M%S") + '__' + slug(host,30) + '__' +
+                      slug(tool,20) + '__' + slug(preset,28) + '__' + uuid.uuid4().hex[:8])
         directory = self.root / "runs" / identifier
         directory.mkdir(parents=True)
         record = dict(id=identifier, tool=tool, preset=preset, target=target,

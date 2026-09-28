@@ -4,6 +4,8 @@ import importlib.metadata
 import sys
 
 root = Path(SPECPATH).resolve().parent
+sys.path.insert(0,str(root))
+from desktop import VERSION
 license_files = []
 for distribution in importlib.metadata.distributions():
     name = distribution.metadata["Name"]
@@ -47,5 +49,5 @@ coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="ChaosticT
 if sys.platform == 'darwin':
     app = BUNDLE(coll, name='ChaosticTool.app', icon=str(root/'desktop/assets/icon.icns'),
                  bundle_identifier='io.github.chaos-tic.chaostictool',
-                 info_plist={'CFBundleShortVersionString':'0.3.0', 'CFBundleVersion':'0.3.0',
+                 info_plist={'CFBundleShortVersionString':VERSION, 'CFBundleVersion':VERSION,
                              'NSHighResolutionCapable':True, 'LSMinimumSystemVersion':'13.0'})

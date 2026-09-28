@@ -1,6 +1,7 @@
 """Shared desktop visual tokens and component states."""
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
+from pathlib import Path
 
 COLORS = dict(background="#0c1017", sidebar="#10151e", surface="#141b26", raised="#1b2432",
               border="#293344", text="#f0f3f9", muted="#a4afc2", red="#ff4d64", green="#73deb0")
@@ -43,6 +44,13 @@ def apply_theme(app: QApplication):
         QPushButton#primary:hover { background: #ff4d64; border-color: #ff4d64; }
         QPushButton#primary:disabled { background: #512b39; border-color: #512b39; color: #aa8590; }
         QPushButton#danger { background: #38202b; color: #ff9aa8; border-color: #764052; }
+        QPushButton#danger:disabled { background: #141b26; color: #697589; border-color: #253043; }
+        QListWidget { background: #101720; border: 1px solid #293344; border-radius: 9px; padding: 8px; }
+        QListWidget::item { padding: 12px; border-radius: 6px; }
+        QListWidget::item:selected { background: #30212d; color: #f0f3f9; }
+        QMenu { background: #17202d; border: 1px solid #344156; padding: 6px; }
+        QMenu::item { padding: 10px 16px; }
+        QMenu::item:selected { background: #30212d; }
         QPushButton#nav { text-align: left; border: 1px solid transparent; background: transparent; color: #a4afc2; padding: 12px 14px; font-weight: 500; }
         QPushButton#nav:hover { background: #1a2230; color: #f0f3f9; }
         QPushButton#nav:checked { background: #30212d; border-color: #643044; color: #ff8798; font-weight: 600; }
@@ -65,4 +73,4 @@ def apply_theme(app: QApplication):
         QProgressBar::chunk { background: #ff4d64; border-radius: 3px; }
         QStatusBar { color: #a4afc2; background: #10151e; border-top: 1px solid #293344; }
         QSplitter::handle { background: #0c1017; width: 12px; height: 12px; }
-    """)
+    """ + 'QComboBox::down-arrow { width: 12px; height: 8px; image: url("' + (Path(__file__).parent/'assets/chevron-down.svg').as_posix() + '"); }')

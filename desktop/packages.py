@@ -20,7 +20,7 @@ from pathlib import Path, PurePosixPath
 from desktop.storage import data_root, now, write_json
 
 MANIFEST = json.loads((Path(__file__).parent / "packages.json").read_text(encoding="utf-8"))
-PORTABLE_PACK = ["subfinder", "httpx", "ffuf", "gobuster", "nuclei", "katana", "gau", "waybackurls", "dalfox", "naabu"]
+PORTABLE_PACK = ["rustscan", "subfinder", "httpx", "ffuf", "gobuster", "nuclei", "katana", "gau", "waybackurls", "dalfox", "naabu"]
 PYTHON_PACK = ["wafw00f", "dnsrecon", "theharvester", "shodan", "xsstrike", "bloodhound-python", "impacket", "sqlmap"]
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 
@@ -256,6 +256,12 @@ def install_package(package, root=None, python=None, log=print):
     spec = package_spec(package)
     tools = root / "tools"
     tools.mkdir(parents=True, exist_ok=True)
+    if spec['kind']=='installer':
+        destination=tools/'installers'/f"{package}-{spec['version']}-setup.exe"
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        download(spec['url'],destination,spec['sha256'],log)
+        log('Installateur officiel vérifié. Terminez son assistant, puis actualisez la détection dans ChaosticTool.')
+        return dict(package=package,version=spec['version'],installer=str(destination))
     existing = installed(package, root)
     if existing and existing.get("version") == spec["version"] and managed_command(package, root=root):
         probe(managed_command(package, root=root), spec['probe'])
@@ -272,7 +278,13 @@ def install_package(package, root=None, python=None, log=print):
             digest = download(spec["url"], archive, spec["sha256"], log)
             log("Empreinte SHA-256 vérifiée. Extraction…")
             if spec['kind'] == 'file': shutil.copyfile(archive,destination/spec['binary'])
-            else: extract_archive(archive, destination, root)
+            else:
+                extract_archive(archive, destination, root)
+                if spec.get('inner_archive'):
+                    inner=(destination/spec['inner_archive']).resolve()
+                    if not inner.is_relative_to(destination.resolve()): raise ValueError('Archive interne invalide.')
+                    extract_archive(inner,destination,root)
+                    inner.unlink()
         binaries = [p for p in destination.rglob("*") if p.is_file() and p.name.lower() == spec["binary"].lower()]
         if len(binaries) != 1:
             raise RuntimeError(f"L’exécutable {spec['binary']} est absent ou ambigu dans l’archive.")

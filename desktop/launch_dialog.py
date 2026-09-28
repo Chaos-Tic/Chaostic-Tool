@@ -15,7 +15,7 @@ class LaunchDialog(QDialog):
         layout=QVBoxLayout(self)
         title=QLabel(tool['name']); title.setObjectName('sectionTitle'); layout.addWidget(title)
         description=QLabel(tool['desc']); description.setWordWrap(True); layout.addWidget(description)
-        form=QFormLayout(); layout.addLayout(form)
+        form=QFormLayout(); form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows); layout.addLayout(form)
         self.backend=QComboBox()
         if tool['mode']=='builtin': self.backend.addItem('Moteur intégré','builtin')
         elif tool['mode']=='native': self.backend.addItem('Natif · '+platform.system(),'native')
@@ -28,7 +28,7 @@ class LaunchDialog(QDialog):
         if store.active_target: self.targets.setCurrentIndex(self.targets.findData(store.active_target['id']))
         form.addRow('Cible (selon le profil)',self.targets)
         self.scroll=QScrollArea(); self.scroll.setWidgetResizable(True)
-        self.field_widget=QWidget(); self.extra_form=QFormLayout(self.field_widget)
+        self.field_widget=QWidget(); self.extra_form=QFormLayout(self.field_widget); self.extra_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.scroll.setWidget(self.field_widget); layout.addWidget(self.scroll,1)
         self.extra_fields={}; self.wordlist=QLineEdit()
         self.preview=QLabel(); self.preview.setWordWrap(True); self.preview.setTextFormat(Qt.TextFormat.PlainText)
@@ -79,7 +79,8 @@ class LaunchDialog(QDialog):
         context=[]
         if not preset.get('needs_target',True): context.append('Opération locale à l’environnement choisi ; aucune cible réseau enregistrée nécessaire.')
         if preset.get('interactive'): context.append('Session interactive dans l’onglet Exécution.')
-        if preset.get('requires_root'): context.append('Ce profil nécessite les droits administrateur Linux ; sudo peut demander son mot de passe.')
+        if preset.get('requires_root'):
+            context.append('Ce profil nécessite Npcap et peut nécessiter des droits administrateur.' if self.effective_backend()=='native' and platform.system()=='Windows' else 'Ce profil nécessite les droits administrateur ; sudo peut demander son mot de passe sous Linux.')
         if self.effective_backend()=='ssh': context.append('Fichiers d’entrée et fichiers de résultats sur la machine SSH.')
         if self.tool['category']=='wireless': context.append('Interface Wi-Fi Linux et pilotes compatibles requis pour la capture et le mode moniteur.')
         self.context.setText('\n'.join(context)); self.update_preview()

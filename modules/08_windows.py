@@ -1,6 +1,8 @@
 from core import ui
 
-TOOLS = ["secretsdump.py", "psexec.py", "GetUserSPNs.py", "crackmapexec", "bloodhound-python"]
+from core.phases import PHASES
+
+TOOLS = PHASES[7]["tools"]
 
 
 def run():

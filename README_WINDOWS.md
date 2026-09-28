@@ -4,19 +4,19 @@
 
 ### Vos outils. Vos cibles. Vos résultats, dans une interface graphique.
 
-**Windows 10 / 11 · x64 et ARM64 · Préversion 0.3.0**
+**Windows 10 / 11 · x64 et ARM64 · Préversion 0.4.0**
 
-**[Télécharger pour Intel / AMD](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.3.0/ChaosticTool-Setup-0.3.0-windows-x64.exe)** · **[Télécharger pour Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.3.0/ChaosticTool-Setup-0.3.0-windows-arm64.exe)**
+**[Télécharger pour Intel / AMD](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.4.0/ChaosticTool-Setup-0.4.0-windows-x64.exe)** · **[Télécharger pour Windows ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.4.0/ChaosticTool-Setup-0.4.0-windows-arm64.exe)**
 
-[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.3.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.4.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
 ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lancement, une vue d'exécution et un historique local. Vous choisissez une cible lorsque le profil en demande une, configurez l'opération et retrouvez son journal dans l'application.
 
-![Accueil réel de Desktop 0.3 : une cible locale, six fonctions intégrées et une résolution DNS terminée](docs/images/windows/desktop-0.3-accueil.png)
+![Accueil réel de Desktop 0.4 : une cible locale, six fonctions intégrées et une résolution DNS terminée](docs/images/windows/desktop-0.4-accueil.png)
 
-*Cette capture montre un profil de démonstration après une résolution de `localhost`. Les six fonctions intégrées sont disponibles dans ce profil ; les autres outils n'y ont pas été installés. Les captures de ce guide proviennent de Desktop 0.3.0, sans maquette ni résultats simulés.*
+*Cette capture montre un profil de démonstration après une résolution de `localhost`. Les six fonctions intégrées sont disponibles dans ce profil ; les autres outils n'y ont pas été installés. Les captures principales proviennent de Desktop 0.4.0, sans maquette ni résultats simulés. La capture de configuration Linux reste celle de 0.3, son formulaire étant inchangé.*
 
 > **À savoir avant de commencer**
 >
@@ -40,10 +40,10 @@ ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lanceme
 
 ### Quel fichier télécharger ?
 
-| Votre ordinateur | Fichier de la version 0.3.0 | Périmètre Windows |
+| Votre ordinateur | Fichier de la version 0.4.0 | Périmètre Windows |
 |---|---|---|
-| Intel ou AMD 64 bits | `ChaosticTool-Setup-0.3.0-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
-| ARM64, par exemple un PC Snapdragon | `ChaosticTool-Setup-0.3.0-windows-arm64.exe` | Windows 11 ARM64 |
+| Intel ou AMD 64 bits | `ChaosticTool-Setup-0.4.0-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
+| ARM64, par exemple un PC Snapdragon | `ChaosticTool-Setup-0.4.0-windows-arm64.exe` | Windows 11 ARM64 |
 | Windows 32 bits, Windows 7 ou Windows 8/8.1 | Aucun paquet compatible | Non pris en charge |
 
 Dans **Paramètres Windows → Système → Informations système**, consultez **Type du système**. Pour connaître la version de Windows 10, ouvrez `winver` depuis le menu Démarrer. La disponibilité d'une archive ARM64 pour l'application ne garantit pas que chaque outil tiers dispose lui aussi d'un binaire ARM64.
@@ -61,11 +61,11 @@ Dans **Paramètres Windows → Système → Informations système**, consultez *
 | GPU / carte Wi-Fi spécialisée | Non | Selon le profil et l'outil ; leurs pilotes restent à préparer |
 | Espace disque et mémoire | Aucun minimum RAM/disque n'a été certifié pour toutes les configurations | Variable, notamment avec les packs et une distribution Linux |
 
-Les installateurs 0.3.0 pèsent environ **35 Mo en x64** et **26 Mo en ARM64**. Ce sont les tailles des téléchargements, pas l'espace total après installation des outils ou de Linux.
+La taille exacte de chaque installateur figure sur la Release. Prévoyez davantage d’espace pour les dépendances, Linux et les résultats des opérations.
 
 ### Installation pas à pas
 
-1. Sur la [Release Desktop 0.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.3.0), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
+1. Sur la [Release Desktop 0.4.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.4.0), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
 2. Ouvrez le fichier `.exe`, choisissez la langue de l'assistant et suivez ses étapes.
 3. Conservez le dossier proposé, sauf besoin particulier : `%LOCALAPPDATA%\Programs\ChaosticTool`.
 4. Cochez le raccourci sur le bureau si vous le souhaitez. Le menu Démarrer propose aussi **ChaosticTool Desktop**.
@@ -79,7 +79,7 @@ La préversion n'a pas de signature d'éditeur Windows. SmartScreen ou une polit
 Téléchargez le fichier `.sha256` correspondant depuis la même Release. Dans PowerShell, adaptez le chemin de votre téléchargement :
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-0.3.0-windows-x64.exe"
+Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-0.4.0-windows-x64.exe"
 ```
 
 Comparez les 64 caractères hexadécimaux obtenus au contenu du fichier `.sha256`. La comparaison vérifie que le téléchargement correspond au fichier publié ; elle ne remplace pas une signature d'éditeur. Vous n'avez pas besoin de cette commande pour utiliser l'interface.
@@ -105,7 +105,7 @@ Dans **Vue d'ensemble**, cliquez sur **Diagnostic local**. Vous pouvez aussi le 
 
 **Résultat attendu :** une adresse de boucle locale, généralement `127.0.0.1` et/ou `::1`, apparaît dans **Exécution**. Il n'est pas nécessaire d'avoir un serveur web en fonctionnement : ce profil résout le nom `localhost` et ne fait pas de requête HTTP.
 
-![Résolution réelle de localhost terminée avec les adresses IPv4 127.0.0.1 et IPv6 ::1](docs/images/windows/desktop-0.3-execution.png)
+![Résolution réelle de localhost terminée avec les adresses IPv4 127.0.0.1 et IPv6 ::1](docs/images/windows/desktop-0.4-execution.png)
 
 *La capture montre le résultat réellement obtenu pour le parcours ci-dessus. L'IPv6 peut ne pas apparaître sur toutes les configurations.*
 
@@ -123,13 +123,14 @@ Ce parcours confirme le lancement, le traitement d'une cible et la conservation 
 | **Vue d'ensemble** | Reprendre le travail et lancer le diagnostic | Cible active, outils détectés, opérations récentes |
 | **Cibles** | Enregistrer et sélectionner un domaine, une IP ou une URL | La cible choisie pour votre prochaine opération |
 | **Boîte à outils** | Chercher, installer et configurer un outil | État de disponibilité, profils et prérequis |
-| **Exécution** | Suivre l'opération courante et interagir lorsqu'un profil le prévoit | Journal, code de sortie, boutons d'arrêt et de résultats |
+| **Exécution** | Choisir un outil, configurer son profil, lancer et suivre l’opération | Bouton Configurer et exécuter, journal, arrêt actif et résultats |
+| **Attack flows** | Préparer un enchaînement guidé compatible avec la CLI | Trois flows fournis, éditeur, import/export JSON et état des étapes |
 | **Historique** | Relire ou exporter une opération précédente | État final et dossier de résultats |
 | **Paramètres** | Configurer Linux, les chemins et accéder aux données | Environnement choisi et dernier inventaire des outils |
 
-![Catalogue Desktop sous Windows, avec recherche, filtres, packs et fiche de l'outil sélectionné](docs/images/windows/desktop-0.3-outils.png)
+![Catalogue Desktop sous Windows, avec recherche, filtres, packs et fiche de l'outil sélectionné](docs/images/windows/desktop-0.4-outils.png)
 
-*Cette capture utilise un autre profil de démonstration où plusieurs outils ont déjà été installés. Elle illustre les états possibles, pas la configuration initiale d'un nouveau poste.*
+*Le filtre Scan réseau montre Nmap, RustScan, Masscan et Naabu. Les états correspondent à un profil neuf : leur présence dans le catalogue ne signifie pas que leurs dépendances sont déjà installées.*
 
 ### Que signifient les états des outils ?
 
@@ -148,7 +149,7 @@ Ce parcours confirme le lancement, le traitement d'une cible et la conservation 
 
 ### Pendant une opération
 
-Desktop exécute une opération à la fois. Pour les sessions interactives, utilisez le champ de saisie et **Envoyer** ; **Masquer** cache la saisie et demande son masquage si l'outil la réaffiche. **Ctrl+C** envoie une interruption à la session Linux. **Arrêter l'opération** déclenche l'arrêt supervisé et conserve le journal partiel.
+Desktop exécute une opération à la fois. Pour les sessions interactives, utilisez le champ de saisie et **Envoyer** ; **Masquer** cache la saisie et demande son masquage si l'outil la réaffiche. **Ctrl+C** envoie une interruption à la session Linux. **Arrêter** apparaît pendant une opération active ; il déclenche l’arrêt supervisé, affiche « Arrêt en cours… » puis disparaît. Le journal partiel est conservé. Le bouton **Configurer et exécuter** redevient disponible après la fin ou l’arrêt.
 
 | État final | Interprétation |
 |---|---|
@@ -157,7 +158,7 @@ Desktop exécute une opération à la fois. Pour les sessions interactives, util
 | **Arrêté** | Arrêt demandé depuis l'application |
 | **Interrompu** | Une opération enregistrée était encore en cours lors d'une fermeture précédente |
 
-La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 0.3.0.
+La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 0.4.0.
 
 <a id="outils"></a>
 ## 4. Installer et configurer les outils
@@ -175,11 +176,19 @@ La sortie visible peut être limitée pour préserver la réactivité. Le journa
 
 Les archives sont choisies selon l'OS et l'architecture et contrôlées par SHA-256 avant extraction. Les outils Python disposent de leurs environnements isolés ; un runtime Python adapté peut être téléchargé automatiquement. Les versions principales sont référencées dans le [manifeste des outils](desktop/packages.json), le runtime dans [son manifeste](desktop/runtimes.json). Toutes les dépendances indirectes PyPI ne sont pas figées.
 
-Une installation de pack peut être **partiellement réussie** : les outils installés restent disponibles, même si d'autres échouent. Le journal nomme les échecs. Nmap et certains programmes demandent une installation externe ou Linux ; la présence d'une fiche n'implique pas un installateur Windows automatisé pour chaque architecture.
+Une installation de pack peut être **partiellement réussie** : les outils installés restent disponibles, même si d'autres échouent. Le journal nomme les échecs. Nmap utilise son assistant officiel, téléchargé et vérifié depuis l’application sur Windows x64. Certaines dépendances demandent toujours Linux ; la présence d’une fiche n’implique pas un binaire natif sur chaque architecture.
+
+### Nmap et RustScan : installation et dépendances
+
+**Nmap sous Windows x64 :** choisissez Nmap → Installer cet outil. Desktop télécharge l’installateur 7.991 depuis `nmap.org` et compare son SHA-256 à l’empreinte officielle. L’assistant s’ouvre ensuite ; terminez ses étapes et celle de Npcap si nécessaire. Revenez dans Desktop et cliquez sur **Actualiser**. Le téléchargement seul ne marque jamais Nmap « Prêt ». Un Nmap déjà installé peut aussi être sélectionné avec **Choisir l’exécutable…**. Sur ARM64, choisissez une distribution compatible ou le moteur Linux ; l’installateur x64 n’est pas proposé automatiquement.
+
+**RustScan :** l’installation intégrée télécharge RustScan 2.4.1 depuis sa Release officielle, vérifie l’archive et teste `--version`. Elle existe pour Windows x64, Linux x64/ARM64 et macOS Intel/Apple Silicon. Le profil **Port de la cible, sans Nmap** fonctionne seul. Les cinq profils issus de la CLI utilisent aussi Nmap ; Desktop vérifie sa présence et rend son dossier accessible au processus RustScan. Les anciens paramètres `--rate` et `-p 1-65535` sont adaptés aux options actuelles `-b` et `-r` : la taille de lot ne correspond pas à une limite stricte de paquets par seconde.
+
+Sources : [Nmap pour Windows](https://nmap.org/book/inst-windows.html), [empreinte de l’installateur](https://nmap.org/dist/sigs/nmap-7.991-setup.exe.digest.txt), [RustScan 2.4.1](https://github.com/bee-san/RustScan/releases/tag/2.4.1).
 
 ### Remplir un profil
 
-![Formulaire réel Hashcat : exécution Windows, profil MD5, sélection des deux fichiers d'entrée](docs/images/windows/desktop-0.3-formulaire.png)
+![Formulaire réel Nmap : exécution Windows, profil TCP connect et sélection de la cible](docs/images/windows/desktop-0.4-formulaire.png)
 
 1. Choisissez **Exécution** : natif Windows ou environnement Linux configuré, lorsque ces choix existent.
 2. Choisissez le **Profil**. Ses champs et ses besoins peuvent changer.
@@ -187,11 +196,27 @@ Une installation de pack peut être **partiellement réussie** : les outils inst
 4. Sélectionnez vos fichiers avec **Parcourir…**, ou renseignez les paramètres indiqués.
 5. Lisez l'aperçu et les messages sous le formulaire, puis lancez.
 
-Dans l'exemple Hashcat, le profil demande une liste de mots et un fichier de hachages ; un GPU et ses pilotes peuvent être nécessaires selon l'utilisation. L'exemple illustre les champs, sans fournir ni exécuter de traitement sur des données tierces.
+La capture montre Nmap et son profil TCP connect sur les 100 ports courants. Les profils CLI sont également disponibles dans le sélecteur : scans complets, services, UDP, scripts NSE, etc. Les prérequis Npcap et privilèges sont indiqués pour les profils concernés. Les formulaires de traitement de fichiers proposent leurs champs et boutons Parcourir selon le profil.
 
 Les champs sensibles prévus par les profils — mot de passe, cookie, clé API — sont masqués dans l'aperçu, l'historique de commande et le flux géré par Desktop. **Les fichiers produits et les configurations propres aux outils restent sous leur responsabilité** : ils peuvent conserver des informations sensibles. Par exemple, initialiser Shodan configure sa clé pour ses usages suivants.
 
 <a id="environnements"></a>
+### Classement et attack flows
+
+Le filtre des phases reprend l’ordre et les appartenances de la CLI : **01 OSINT**, **02 Scan réseau**, **03 Énumération Web**, **04 Vulnérabilités**, **05 Exploitation**, **06 Post-exploitation**, **07 Mots de passe**, **08 Windows / Active Directory**, **09 Wi-Fi**, **10 Réseau & MITM**. Un outil commun à plusieurs phases apparaît dans chacune de leurs vues, sans être compté plusieurs fois dans le catalogue. Les quatre utilitaires propres à Desktop ont leur filtre séparé.
+
+![Attack flows : étapes du flow Basic, états et actions](docs/images/windows/desktop-0.4-flows.png)
+
+1. Ajoutez puis activez une cible dans **Cibles**.
+2. Ouvrez **Attack flows** et choisissez **Basic**, **Intermediate** ou **Advanced**, partagés avec la CLI.
+3. Sélectionnez une étape puis **Configurer et exécuter l’étape**. Le formulaire utilise précisément son profil CLI ; vous pouvez choisir le moteur et compléter les champs.
+4. Consultez le journal dans **Exécution**. **Retour au flow** ramène à la session ; après une réussite, l’étape suivante est sélectionnée mais ne se lance pas automatiquement.
+5. Une étape en échec ou arrêtée peut être relancée ou passée explicitement. **Résultats du flow** filtre l’historique par son nom. **Nouvelle session** recommence le suivi sans supprimer les anciens résultats.
+
+**Créer** ouvre un éditeur : nom, description, choix de l’outil et de son profil, ajout, déplacement et retrait d’étapes. **Modifier / copier** modifie un flow personnel et duplique un flow fourni. **Importer CLI…** accepte le dictionnaire JSON de `custom_flows.json` ; l’ensemble est validé avant enregistrement. **Exporter…** produit le même format. **Supprimer** ne retire que les flows personnalisés et conserve les journaux. La cible est fixée pour la session ; les secrets saisis dans les formulaires ne sont pas stockés dans le fichier de définition.
+
+Les journaux restent consultables après fermeture ; cette version ne restaure pas automatiquement une session de flow interrompue. Les fichiers de suivi sont conservés sous `flows/history/`. Les flows réutilisent les mêmes dépendances et limites que les outils individuels : un flow n’installe pas silencieusement un outil manquant.
+
 ## 5. Choisir entre Windows, WSL et SSH
 
 ```mermaid
@@ -246,7 +271,7 @@ Recopiez le nom de distribution réellement affiché dans les paramètres de Des
 
 Choisissez **Machine ou VM Linux en SSH**, renseignez l'hôte, l'utilisateur et le port, puis, si nécessaire, le chemin de votre clé privée et celui du fichier `known_hosts`. Enregistrez et vérifiez la connexion.
 
-Le mode 0.3 utilise une authentification SSH par clé déjà fonctionnelle et refuse les clés d'hôte inconnues. Il ne fournit pas d'assistant de création de clé, d'acceptation initiale de l'hôte ou de saisie de mot de passe SSH. Une clé chiffrée doit pouvoir être utilisée sans demande interactive par le client SSH, par exemple via votre agent déjà préparé.
+Le mode SSH utilise une authentification SSH par clé déjà fonctionnelle et refuse les clés d'hôte inconnues. Il ne fournit pas d'assistant de création de clé, d'acceptation initiale de l'hôte ou de saisie de mot de passe SSH. Une clé chiffrée doit pouvoir être utilisée sans demande interactive par le client SSH, par exemple via votre agent déjà préparé.
 
 En SSH, les champs de fichiers attendent des **chemins Linux absolus**, comme `/home/demo/documents/liste.txt`, et non `C:\…`. Il n'y a pas de transfert automatique. Les fichiers de sortie se trouvent sous `~/.local/share/ChaosticTool/runs/` sur Linux ; le journal textuel de la session est enregistré côté Desktop.
 
@@ -260,6 +285,8 @@ En SSH, les champs de fichiers attendent des **chemins Linux absolus**, comme `/
 | `settings.json` dans le dossier de données | Cibles, sélection active et chemins configurés |
 | `linux.json` / `linux-status.json` | Configuration Linux et dernier inventaire |
 | `tools\` | Outils téléchargés, manifestes et informations d'échec |
+| `flows\custom.json` | Définitions des flows personnels, exportables vers la CLI |
+| `flows\history\*.json` | États des étapes et références aux opérations exécutées |
 | `runs\<opération>\run.json` | Métadonnées : outil, profil, dates, commande masquée et état |
 | `runs\<opération>\output.txt` | Journal textuel de l'opération |
 
@@ -272,7 +299,15 @@ Une copie du dossier ne garantit pas une migration immédiate des dépendances v
 <a id="maintenance"></a>
 ## 7. Mettre à jour ou désinstaller
 
-**Mise à jour :** fermez Desktop, téléchargez l'installateur de la nouvelle version pour votre architecture et lancez-le. Il n'est pas nécessaire de désinstaller la version précédente. Les données restent dans leur dossier séparé. La version 0.3 ne comporte pas de mise à jour automatique de l'application.
+Les nouveaux dossiers d’opérations portent un nom lisible, par exemple :
+
+```text
+20260928-143012__localhost__nmap__100-ports-tcp-courants__a12b34cd
+```
+
+Le nom contient l’heure locale, l’hôte, l’outil, le profil et un suffixe unique. Les métadonnées conservent aussi la date UTC. Les paramètres d’URL et les secrets ne sont pas utilisés dans le nom du dossier. Les anciens dossiers restent lisibles dans l’historique. Une recherche permet de filtrer par outil, profil, cible ou nom de flow.
+
+**Mise à jour :** fermez Desktop, téléchargez l'installateur de la nouvelle version pour votre architecture et lancez-le. Il n'est pas nécessaire de désinstaller la version précédente. Les données restent dans leur dossier séparé. Cette version ne comporte pas de mise à jour automatique de l'application.
 
 **Désinstallation :** ouvrez **Paramètres Windows → Applications**, sélectionnez **ChaosticTool Desktop**, puis **Désinstaller**. L'application et ses raccourcis sont retirés. Les cibles, journaux et outils téléchargés dans le dossier de données sont conservés.
 
@@ -307,11 +342,11 @@ Dans une [issue GitHub](https://github.com/Chaos-Tic/Chaostic-Tool/issues), indi
 <a id="validation"></a>
 ## 9. Compatibilité, tests et limites
 
-La [compilation du tag Desktop 0.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/actions/runs/36353394893) a réussi pour Windows, Linux et macOS en x64/ARM64. Les sources de cette version sont identifiées par le tag `desktop-v0.3.0` et le commit `cfc209e4ce839bb09b8ec0d963e687d950d54a67`.
+Les sources de cette version sont identifiées par le tag `desktop-v0.4.0`. Les résultats de compilation et de tests sont consultables dans le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
 
 | Vérification | Portée réelle |
 |---|---|
-| 34 tests automatisés | Formulaires, arguments, persistance, erreurs, arrêt, masquage des secrets et pont POSIX ; 5 tests POSIX sont ignorés sous Windows |
+| 40 tests automatisés | Formulaires, correspondance de chaque profil CLI, flows, filtres, petite fenêtre, clic Exécuter/Arrêter, persistance, secrets et pont POSIX ; 5 tests POSIX sont ignorés sous Windows |
 | Exécutables des 6 plateformes | Lancement de l'application compilée avec un profil temporaire |
 | Windows x64 / ARM64 en CI | Runners Windows Server 2022 et Windows 11 ARM ; cela ne teste pas chaque version de Windows 10 |
 | Installation Windows locale | Installation, réinstallation, inscription du désinstalleur et conservation des données dans un environnement de test distinct |
@@ -319,7 +354,7 @@ La [compilation du tag Desktop 0.3.0](https://github.com/Chaos-Tic/Chaostic-Tool
 | DNS avancé compilé | Réponse vérifiée contre un serveur DNS local de test |
 | Pont Linux/macOS | Inventaire et pseudo-terminal réel, y compris dans les exécutables compilés |
 
-**Ce qui n'est pas promis par la préversion :** toutes les opérations de tous les outils testées sur des cibles réelles ; tous les GPU ou périphériques Wi-Fi ; une distribution native de chaque dépendance sur ARM64 ; une configuration automatique de vos services et clés API ; une signature d'éditeur Windows ; un transfert de fichiers SSH ; la reprise après interruption d'une opération ; des opérations simultanées ; les flows et fonctions Tor/proxychains/VPN guard de la CLI.
+**Ce qui n'est pas promis par la préversion :** toutes les opérations de tous les outils testées sur des cibles réelles ; tous les GPU ou périphériques Wi-Fi ; une distribution native de chaque dépendance sur ARM64 ; une configuration automatique de vos services et clés API ; une signature d'éditeur Windows ; un transfert de fichiers SSH ; la reprise après interruption d'une opération ; des opérations simultanées ; les fonctions Tor/proxychains/VPN guard de la CLI.
 
 Le détail des profils par outil se trouve dans le [catalogue de compatibilité](docs/WINDOWS_PORT.md). Utilisez ces fonctions sur vos propres environnements ou dans le cadre d'une autorisation explicite.
 
@@ -353,4 +388,4 @@ Remplacez le chemin du compilateur par son emplacement réel. Le script de build
 | [Kali : préparation WSL](https://www.kali.org/docs/wsl/wsl-preparations/) | Installation de la distribution et premier lancement |
 | [Règles du dépôt](docs/REPOSITORY_RULES.md) | Contributions et protection de `main` |
 
-**Guide revu le 28 septembre 2026 pour Desktop 0.3.0.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.
+**Guide revu le 28 septembre 2026 pour Desktop 0.4.0.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.

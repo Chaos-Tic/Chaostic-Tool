@@ -101,11 +101,14 @@ class Runner(QObject):
     def active(self):
         return self.proc is not None
 
-    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False):
+    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False, metadata=None, environment_extra=None):
         if self.active:
             raise RuntimeError("Une opération est déjà en cours.")
         display=[redact(arg,redactions) for arg in (command or ['builtin',worker])]
         directory, record = self.store.new_run(tool, preset, target, display)
+        if metadata:
+            record.update({k:metadata[k] for k in ('flow_id','flow_name','flow_step') if k in metadata})
+            write_json(directory/'run.json',record)
         self.directory, self.record = directory, record
         self.cancelled, self.failure, self.builtin, self.offset = False, "", worker is not None, 0
         self.decoder.reset()
@@ -133,6 +136,7 @@ class Runner(QObject):
         environment.insert("PYTHONUTF8", "1")
         environment.insert("PYTHONUNBUFFERED", "1")
         environment.insert("NO_COLOR", "1")
+        for key,value in (environment_extra or {}).items(): environment.insert(key,value)
         self.proc.setProcessEnvironment(environment)
         self.proc.started.connect(self._started)
         self.proc.readyReadStandardOutput.connect(self._read)

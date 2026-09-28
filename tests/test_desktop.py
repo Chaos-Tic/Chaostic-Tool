@@ -92,7 +92,7 @@ class DesktopTests(unittest.TestCase):
     def test_catalog_and_argument_boundaries(self):
         tools = {t["key"]: t for t in catalog()}
         self.assertEqual(availability(tools["desktop-dns"], {}), ("Inclus", True))
-        self.assertFalse(availability(tools["airmon-ng"], {})[1])
+        self.assertFalse(availability(tools["airmon-ng"], {}, self.store.root)[1])
         target = parse_target("https://[::1]:8443/")
         args = build_arguments(tools["nmap"], 1, target)
         self.assertEqual(args, ["-6", "-sT", "-Pn", "-n", "-p", "8443", "::1"])

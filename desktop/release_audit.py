@@ -11,7 +11,7 @@ def assert_clean_bundle(directory):
     forbidden=[]
     for path in root.rglob('*'):
         name=path.name.casefold()
-        if name in STATE_FILES or (path.is_dir() and name=='runs') or name.startswith('settings-unreadable-'):
+        if name in STATE_FILES or (path.is_dir() and name in ('runs','flows')) or name.startswith('settings-unreadable-'):
             forbidden.append(str(path.relative_to(root)))
     if forbidden:
         raise ValueError('User state must not be shipped: '+', '.join(forbidden))

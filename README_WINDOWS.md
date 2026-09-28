@@ -445,4 +445,15 @@ Chaque utilisateur possède son espace de données Windows dans `%LOCALAPPDATA%\
 
 Avant de créer un installateur ou une archive, le build refuse les fichiers d’état utilisateur dans le bundle (paramètres, environnements Linux, journaux, dossiers de résultats). Les tests du binaire vérifient dans un profil temporaire que le premier démarrage contient zéro historique, zéro cible et aucune configuration Linux ; seul le diagnostic de test ajoute ensuite une opération.
 
-Validation : 60 tests, dont cinq réservés à POSIX et un test de liens qui dépend des permissions de la plateforme. Le bouton est testé avec annulation, confirmation, filtre actif, rafraîchissement et conservation des réglages.
+Validation : 64 tests, dont cinq réservés à POSIX et un test de liens qui dépend des permissions de la plateforme. Le bouton est testé avec annulation, confirmation, filtre actif, rafraîchissement et conservation des réglages.
+
+
+### Recherche et suppression ciblée
+
+L’historique combine la recherche textuelle et des listes Cible, État, Outil et Période (24 h, 7 jours, 30 jours ou toutes les dates). Le compteur indique le nombre affiché et le total. Réinitialiser les filtres retrouve toutes les opérations. Les cibles retirées du carnet restent filtrables tant que leurs résultats existent.
+
+Sélectionner une ligne puis **Supprimer ce résultat…** retire uniquement cette opération et ses fichiers locaux. Si elle appartient à un flow, son étape indique que le résultat a été supprimé et reste relançable. **Vider l’historique…** supprime aussi les sessions passées de flows, tout en conservant les définitions de flows personnalisés.
+
+### Cible explicite des attack flows
+
+Dans Attack flows, sélectionner **Cible du flow** ou utiliser **Ajouter une cible…**. Le formulaire de lancement reçoit cette cible, distincte de la cible globale. Chaque session conserve sa cible ; changer de cible demande de créer une nouvelle session, avec conservation de la précédente. La sélection est verrouillée pendant l’exécution. Résultats du flow applique le nom du flow et sa cible aux filtres d’historique. Les étapes locales conservent également l’association à la cible du flow dans leurs métadonnées.

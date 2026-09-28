@@ -464,6 +464,18 @@ class Window(QMainWindow):
         splitter = QSplitter(Qt.Orientation.Vertical)
         self.history_search=QLineEdit(); self.history_search.setPlaceholderText("Rechercher un outil, un profil, une cible ou un flow…")
         self.history_search.textChanged.connect(self.filter_history); layout.addWidget(self.history_search)
+        filters=QHBoxLayout()
+        self.history_target=QComboBox();self.history_target.addItem('Toutes les cibles','')
+        self.history_state=QComboBox();self.history_state.addItem('Tous les états','')
+        for key,text in STATUS.items():self.history_state.addItem(text,key)
+        self.history_tool=QComboBox();self.history_tool.addItem('Tous les outils','')
+        self.history_period=QComboBox()
+        for text,days in [('Toutes les dates',0),('Dernières 24 h',1),('7 derniers jours',7),('30 derniers jours',30)]:self.history_period.addItem(text,days)
+        for widget in (self.history_target,self.history_state,self.history_tool,self.history_period):
+            widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon);widget.setMinimumContentsLength(12)
+            filters.addWidget(widget,1);widget.currentIndexChanged.connect(self.filter_history)
+        layout.addLayout(filters)
+        self.history_count=label('','muted');layout.addWidget(self.history_count)
         self.history_table = table(["OUTIL / FLOW", "PROFIL", "CIBLE", "ÉTAT", "DATE"])
         self.history_table.itemSelectionChanged.connect(self.show_history)
         splitter.addWidget(self.history_table)
@@ -476,10 +488,14 @@ class Window(QMainWindow):
         actions = QHBoxLayout()
         actions.addWidget(button("Ouvrir le dossier", self.open_history_folder))
         actions.addWidget(button("Exporter le journal…", self.export_history))
+        self.delete_history_button=button('Supprimer ce résultat…',self.delete_history_result,'danger')
+        self.delete_history_button.setEnabled(False)
         actions.addStretch()
         self.clear_history_button=button("Vider l’historique…",self.clear_history,"danger")
-        actions.addWidget(self.clear_history_button)
         layout.addLayout(actions)
+        destructive=QHBoxLayout();destructive.addWidget(self.delete_history_button);destructive.addStretch();destructive.addWidget(self.clear_history_button)
+        layout.addLayout(destructive)
+        layout.addWidget(button('Réinitialiser les filtres',self.reset_history_filters))
 
     def build_settings(self):
         outer=self.page()
@@ -543,6 +559,7 @@ class Window(QMainWindow):
             status=linux_status(self.store.root)
             self.backend_status.setText(status.get('error') or (str(len(status.get('tools',{})))+' outils détectés · '+status.get('checked','Connexion non vérifiée')))
         self.history_rows = self.store.history()
+        self.refresh_history_filters()
         for value, count in zip(self.stats, (len(self.store.targets), sum(availability(t, self.store.settings["executables"], self.store.root)[1] for t in self.tools), len(self.history_rows))):
             effects.count_up(value, count)
         target = self.store.active_target
@@ -810,6 +827,7 @@ class Window(QMainWindow):
     def active_changed(self, active):
         self.scan.set_active(active)
         self.clear_history_button.setEnabled(not active)
+        self.delete_history_button.setEnabled(not active and self.selected_history() is not None)
         self.linux_pack_button.setEnabled(not active)
         self.terminal_input.setEnabled(active)
         self.pack_button.setEnabled(not active)
@@ -835,11 +853,65 @@ class Window(QMainWindow):
         self.runner.stop()
 
     def filter_history(self):
+        if not hasattr(self,'history_rows'):return
+        from datetime import datetime,timezone,timedelta
         query=self.history_search.text().casefold()
-        self.visible_history=[r for r in self.history_rows if not query or query in
-            (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('target') or {})).casefold()]
+        target=self.history_target.currentData();state=self.history_state.currentData();tool=self.history_tool.currentData()
+        days=self.history_period.currentData() or 0
+        def matches(r):
+            if target and self.history_target_key(r.get('flow_target') or r.get('target'))!=target:return False
+            if state and r['status']!=state:return False
+            if tool and r['tool']!=tool:return False
+            if days:
+                try:
+                    started=datetime.fromisoformat(r['started'].replace('Z','+00:00'))
+                    if started.tzinfo is None:started=started.replace(tzinfo=timezone.utc)
+                    if started<datetime.now(timezone.utc)-timedelta(days=days):return False
+                except (ValueError,TypeError):return False
+            return not query or query in (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('flow_target') or r.get('target') or {})).casefold()
+        self.visible_history=[r for r in self.history_rows if matches(r)]
         fill_table(self.history_table,[(r['tool']+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
-            (r.get('target') or {}).get('label','Cet ordinateur'),STATUS.get(r['status'],r['status']),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
+            (r.get('flow_target') or r.get('target') or {}).get('label','Cet ordinateur'),STATUS.get(r['status'],r['status']),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
+        self.history_count.setText(f'{len(self.visible_history)} résultat(s) affiché(s) sur {len(self.history_rows)}')
+        self.show_history()
+
+    @staticmethod
+    def history_target_key(target):
+        target=target or {}
+        return target.get('id') or target.get('url') or target.get('host') or '__local__'
+
+    def refresh_history_filters(self):
+        targets={}
+        for r in self.history_rows:
+            target=r.get('flow_target') or r.get('target') or {};key=self.history_target_key(target)
+            caption='Cet ordinateur / opérations locales' if key=='__local__' else target.get('label') or target.get('host') or key
+            if target.get('url'):caption+=' — '+target['url']
+            targets[key]=caption
+        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),'Toutes les cibles'),(self.history_tool,[(s,s) for s in sorted({r['tool'] for r in self.history_rows})],'Tous les outils')]:
+            old=widget.currentData();widget.blockSignals(True);widget.clear();widget.addItem(title,'')
+            for key,caption in entries:widget.addItem(caption,key)
+            widget.setCurrentIndex(max(0,widget.findData(old)));widget.blockSignals(False)
+
+    def reset_history_filters(self):
+        self.history_search.clear()
+        for widget in (self.history_target,self.history_state,self.history_tool,self.history_period):widget.setCurrentIndex(0)
+
+    def delete_history_result(self):
+        if self.runner.active:return
+        run=self.selected_history()
+        if not run:return
+        if QMessageBox.warning(self,'Supprimer ce résultat',f"Supprimer définitivement le résultat de {run['tool']} ({run.get('preset','')}) et ses fichiers locaux ? Les autres résultats, cibles et réglages sont conservés.",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:return
+        try:self.store.delete_run(run['id'])
+        except (OSError,ValueError) as exc:QMessageBox.warning(self,'Suppression incomplète',str(exc));self.refresh();return
+        session=self.flow_panel.session
+        if session:
+            for step in session.record['steps']:
+                if step.get('run_id')==run['id']:step.pop('run_id');step['status']='deleted'
+        if self.runner.directory and str(self.runner.directory)==run['directory']:
+            self.console.clear();self.runner.directory=None;self.run_folder.setEnabled(False)
+            self.run_info.setText('Résultat supprimé')
+        self.refresh();self.flow_panel.refresh()
+        self.statusBar().showMessage('Résultat local supprimé.')
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
@@ -901,11 +973,13 @@ class Window(QMainWindow):
         self.terminal_screen=None;self.terminal_input.clear();self.input_row.hide()
         self.runner.directory=None;self.runner.record={};self.run_folder.setEnabled(False)
         self.run_title.setText('Aucune opération');self.run_info.setText('Historique vidé')
+        self.flow_panel.session=None
         self.refresh();self.flow_panel.refresh()
         self.statusBar().showMessage('Historique local et résultats supprimés. Cibles et paramètres conservés.')
 
     def show_history(self):
         run = self.selected_history()
+        if hasattr(self,'delete_history_button'):self.delete_history_button.setEnabled(run is not None and not self.runner.active)
         if not run:
             self.history_log.clear()
             return

@@ -148,25 +148,52 @@ class Store:
                 directory = run.pop("directory")
                 write_json(Path(directory) / "run.json", run)
 
-    def clear_history(self):
-        """Delete local run artifacts only; never follow links outside the profile."""
-        runs=self.root/'runs'
-        if runs.is_symlink() or runs.is_junction():
-            raise ValueError('Le dossier des résultats est un lien ; suppression refusée.')
-        if not runs.exists():return
-        expected=self.root.resolve()/'runs'
-        if runs.resolve()!=expected or not runs.is_dir():
+    def _check_history_tree(self, path):
+        expected=self.root.resolve()/path.relative_to(self.root)
+        current=self.root
+        for part in path.relative_to(self.root).parts:
+            current=current/part
+            if current.is_symlink() or current.is_junction():
+                raise ValueError('Un dossier de résultats est un lien ; suppression refusée.')
+        if not path.exists():return
+        if path.resolve()!=expected or not path.is_dir():
             raise ValueError('Le dossier des résultats est invalide.')
-        # Validate the full deletion tree before deleting any file. This also
-        # rejects nested junctions on Windows and links made by external tools.
-        for current,dirs,files in os.walk(runs,followlinks=False):
+        for current,dirs,files in os.walk(path,followlinks=False):
             for name in dirs+files:
-                path=Path(current)/name
-                if path.is_symlink() or path.is_junction() or not path.resolve().is_relative_to(expected):
-                    raise ValueError('Un résultat contient un lien externe. Retirez ce lien avant de vider l’historique.')
+                child=Path(current)/name
+                if child.is_symlink() or child.is_junction() or not child.resolve().is_relative_to(expected):
+                    raise ValueError('Un résultat contient un lien. Retirez ce lien avant de supprimer les résultats.')
+
+    def clear_history(self):
+        """Clear operation and flow histories, preserving custom flow definitions."""
+        paths=[self.root/'runs',self.root/'flows/history']
+        for path in paths:self._check_history_tree(path)
         if any(run.get('status')=='running' for run in self.history()):
             raise ValueError('Terminez ou arrêtez l’opération en cours avant de vider l’historique.')
-        shutil.rmtree(runs)
+        for path in paths:
+            if path.exists():shutil.rmtree(path)
+
+    def delete_run(self, identifier):
+        if not isinstance(identifier,str) or Path(identifier).name!=identifier or identifier in ('.','..') or '/' in identifier or '\\' in identifier:
+            raise ValueError('Identifiant de résultat invalide.')
+        folder=self.root/'runs'/identifier
+        self._check_history_tree(folder)
+        self._check_history_tree(self.root/'flows/history')
+        run=next((r for r in self.history() if r['id']==identifier),None)
+        if run is None:raise ValueError('Ce résultat n’existe plus.')
+        if run.get('status')=='running':raise ValueError('Une opération en cours ne peut pas être supprimée.')
+        shutil.rmtree(folder)
+        for path in (self.root/'flows/history').glob('*.json'):
+            try:record=json.loads(path.read_text(encoding='utf-8'))
+            except (OSError,ValueError):continue
+            if not isinstance(record,dict) or not isinstance(record.get('steps'),list):continue
+            changed=False
+            for step in record.get('steps',[]):
+                if not isinstance(step,dict):continue
+                if step.get('run_id')==identifier:
+                    step.pop('run_id');step['status']='deleted';changed=True
+            if changed:
+                record['status']='active';write_json(path,record)
 
     def new_run(self, tool, preset, target, command):
         def slug(value,limit):

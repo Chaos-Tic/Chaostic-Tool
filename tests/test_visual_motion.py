@@ -1,8 +1,8 @@
 import tempfile,unittest
 from pathlib import Path
 from test_desktop import APP
-from PySide6.QtCore import Qt,QPropertyAnimation
-from PySide6.QtTest import QTest
+from PySide6.QtCore import Qt,QPropertyAnimation,QCoreApplication,QEvent
+from PySide6.QtTest import QTest,QSignalSpy
 from PySide6.QtWidgets import QPushButton
 from desktop.window import Window
 from desktop.storage import Store
@@ -24,7 +24,15 @@ class VisualMotionTests(unittest.TestCase):
         self.assertEqual(self.window.hero.phase,phase)
     def test_finished_transitions_are_released(self):
         page=self.window.stack.widget(0)
-        for _ in range(8):self.window.navigate(0);QTest.qWait(230)
+        for _ in range(8):
+            self.window.navigate(0)
+            # Wait for the actual end signal under loaded CI runners, then
+            # process Qt's deferred deletion before checking object ownership.
+            animation=page._fade_anim
+            self.assertIsNotNone(animation)
+            self.assertTrue(QSignalSpy(animation.finished).wait(2000))
+            self.assertIsNone(page._fade_anim)
+            QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
         self.assertEqual(len(page.findChildren(QPropertyAnimation)),0)
     def test_overview_icon_keeps_all_four_quadrants(self):
         image=icon('overview').pixmap(32,32).toImage()

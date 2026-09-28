@@ -2,7 +2,7 @@ import platform,subprocess
 from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog,QVBoxLayout,QFormLayout,QComboBox,QLineEdit,QLabel,QWidget,QHBoxLayout,QPushButton,QFileDialog,QScrollArea,QDialogButtonBox
-from desktop.catalog import build_arguments
+from desktop.catalog import build_arguments,native_command
 from desktop.backends import get_config,linux_status
 from desktop.profiles import SECRETS,INPUT_FILES,OUTPUT_FILES,secrets_for,redact
 
@@ -21,6 +21,8 @@ class LaunchDialog(QDialog):
         elif tool['mode']=='native': self.backend.addItem('Natif · '+platform.system(),'native')
         if tool.get('linux_presets'): self.backend.addItem('Environnement Linux configuré','linux')
         if tool['mode']=='linux': self.backend.setCurrentIndex(self.backend.findData('linux'))
+        elif tool['mode']=='native' and tool['key'] in linux_status(store.root).get('tools',{}) and not native_command(tool,store.settings['executables'].get(tool['key']),store.root):
+            self.backend.setCurrentIndex(self.backend.findData('linux'))
         form.addRow('Exécution',self.backend)
         self.profiles=QComboBox(); form.addRow('Profil',self.profiles)
         self.targets=QComboBox()
@@ -49,7 +51,7 @@ class LaunchDialog(QDialog):
         self.profile_changed()
 
     def preset(self): return self.current_presets[max(0,self.profiles.currentIndex())]
-    def target(self): return next((t for t in self.store.targets if t['id']==self.targets.currentData()),None)
+    def target(self): return getattr(self,'target_override',None) or next((t for t in self.store.targets if t['id']==self.targets.currentData()),None)
     def field_values(self): return {k:v.text() for k,v in self.extra_fields.items()}
     def effective_backend(self):
         return get_config(self.store.root).get('backend','local') if self.backend.currentData()=='linux' else 'native'
@@ -57,7 +59,7 @@ class LaunchDialog(QDialog):
         while self.extra_form.rowCount(): self.extra_form.removeRow(0)
         self.extra_fields={}
         preset=self.preset()
-        self.targets.setEnabled(preset.get('needs_target',True))
+        self.targets.setEnabled(preset.get('needs_target',True) and not getattr(self,'target_override',None))
         fields=dict(preset.get('fields',{}))
         if preset.get('wordlist'): fields={'wordlist':('Liste de mots',''),**fields}
         self.wordlist=QLineEdit()

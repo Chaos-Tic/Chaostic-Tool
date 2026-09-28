@@ -1,4 +1,4 @@
-# ChaosticTool Desktop 0.5
+# ChaosticTool Desktop 0.6
 
 **Sous Windows : [présentation, téléchargement et captures de l’interface](../README_WINDOWS.md).**
 

@@ -1,4 +1,4 @@
-# NEXUS — système visuel Desktop 0.5
+# NEXUS — système visuel Desktop 0.6
 
 Interface native PySide6, sans moteur web ni connexion requise pour le rendu.
 

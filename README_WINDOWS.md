@@ -14,7 +14,7 @@
 
 ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lancement, une vue d'exécution et un historique local. Vous choisissez une cible lorsque le profil en demande une, configurez l'opération et retrouvez son journal dans l'application.
 
-![Accueil réel de Desktop 0.5 : une cible locale, six fonctions intégrées et une résolution DNS terminée](docs/images/windows/desktop-0.6-accueil.png)
+![Accueil réel de Desktop 0.6 : une cible locale, six fonctions intégrées et une résolution DNS terminée](docs/images/windows/desktop-0.6-accueil.png)
 
 *Cette capture montre un profil de démonstration après une résolution de `localhost`. Les six fonctions intégrées sont disponibles dans ce profil ; les autres outils n'y ont pas été installés. Les captures principales proviennent de Desktop 0.6.0, sans maquette ni résultats simulés. Nmap est également détecté sur le poste de capture, ce qui explique le compteur supérieur aux six fonctions intégrées. La capture de configuration Linux reste celle de 0.3, son formulaire étant inchangé.*
 
@@ -37,7 +37,7 @@ ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lanceme
 
 ## Identité NEXUS : interface et animations
 
-Desktop 0.5 adopte une interface inspirée des HUD de jeux vidéo : violet électrique, accents cyan, fond spatial quadrillé, noyau orbital animé, typographie Orbitron et console Share Tech Mono. Les compteurs reflètent vos vraies cibles, disponibilités et opérations ; les éléments orbitaux sont décoratifs.
+Desktop 0.6 adopte une interface inspirée des HUD de jeux vidéo : violet électrique, accents cyan, fond spatial quadrillé, noyau orbital animé, typographie Orbitron et console Share Tech Mono. Les compteurs reflètent vos vraies cibles, disponibilités et opérations ; les éléments orbitaux sont décoratifs.
 
 - **Centre de contrôle** : accès direct à l’arsenal et aux attack flows, cible active et derniers journaux.
 - **Arsenal d’outils** : les dix phases CLI sont conservées. Les badges différencient disponibilité, installation requise et état d’exécution.

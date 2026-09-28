@@ -41,10 +41,21 @@ par SHA-256. Un build final utilisera les templates d'export.
 - Réglages dans un profil Godot distinct ; aucun historique Desktop embarqué.
 - Sources des sons procéduraux et licences Godot/polices fournies.
 
+## Direction artistique — état
+
+Le décor générique initial (couloir de serveurs, néons balayants) est remplacé
+sur le parcours accueil → arsenal → fiche par un **poste d'opérateur resserré**
+avec une table holographique comme point d'intérêt, caméra calme et courts
+déplacements par section. Les liserés rasants et les semis d'effets décoratifs
+sont retirés ; les panneaux de texte sont opaques et lisibles. La fiche outil
+(ex. Nmap) est dédiée : description, note, comptes de profils et liste consultable.
+L'exécution reste non raccordée — le bouton ouvre Desktop 0.8. Les autres écrans
+suivront ce cadre une fois ce parcours validé en mouvement.
+
 ## Migration restante
 
-1. Valider le rendu et les interactions du prototype, puis développer la direction
-   artistique au-delà de cette scène procédurale initiale.
+1. Étendre cette direction (poste d'opérateur, table holographique, caméra calme)
+   à tous les écrans, après validation du parcours accueil → arsenal → fiche.
 2. Extraire un service métier local de Desktop avec contrat IPC explicite : aucune
    commande shell libre ne doit provenir de l'interface. Garder validation des
    profils, confidentialité des secrets et suivi/arrêt des processus existants.

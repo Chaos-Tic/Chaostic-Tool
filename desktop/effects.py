@@ -15,9 +15,9 @@ def status_color(text):
 
 def status_pill(text,parent=None):
     pill=QLabel(str(text),parent);pill.setTextFormat(Qt.TextFormat.PlainText)
-    c=QColor(status_color(text))
+    c=QColor(status_color(text));pill.setFixedHeight(24)
     pill.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed)
-    pill.setStyleSheet(f'color:{c.name()}; background:rgba({c.red()},{c.green()},{c.blue()},22); border:1px solid rgba({c.red()},{c.green()},{c.blue()},85); border-radius:8px; padding:5px 12px; font-size:11px; font-weight:600;')
+    pill.setStyleSheet(f'color:{c.name()}; background:rgba({c.red()},{c.green()},{c.blue()},26); border:1px solid rgba({c.red()},{c.green()},{c.blue()},90); border-radius:8px; padding:2px 12px; font-size:12px; font-weight:600;')
     pill.setToolTip(str(text));pill.setAccessibleName(str(text));pill.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
     return pill
 

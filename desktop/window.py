@@ -100,7 +100,7 @@ def table(headers):
 def _pill_cell(text):
     holder = QWidget()
     box = QHBoxLayout(holder)
-    box.setContentsMargins(10, 6, 10, 6)
+    box.setContentsMargins(10, 2, 10, 2)
     box.setSpacing(0)
     box.addWidget(effects.status_pill(str(text)),0,Qt.AlignmentFlag.AlignVCenter)
     box.addStretch()

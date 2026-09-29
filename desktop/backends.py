@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 from desktop.storage import data_root,write_json,now
+from desktop.i18n import T
 
 BRIDGE=Path(__file__).parent/'linux_bridge.py'
 NO_WINDOW=0x08000000 if os.name=='nt' else 0
@@ -83,11 +84,11 @@ def inspect_backend(request):
         result=subprocess.run(bridge_command(config),input=(json.dumps({'op':'inventory','tools':choices,'markers':markers})+'\n').encode(),capture_output=True,timeout=45,creationflags=NO_WINDOW)
         if result.returncode: raise RuntimeError(result.stderr.decode('utf-8',errors='replace') or result.stdout.decode('utf-8',errors='replace'))
         status=json.loads(result.stdout)
-        if not isinstance(status.get('tools'),dict): raise ValueError('Inventaire Linux invalide.')
+        if not isinstance(status.get('tools'),dict): raise ValueError(T('Inventaire Linux invalide.'))
         status.update(config=config,checked=now())
         write_json(root/'linux-status.json',status)
-        print('Connexion vérifiée. '+str(len(status['tools']))+' outils Linux détectés.',flush=True)
-        print('Interfaces : '+', '.join(status.get('interfaces',[])),flush=True)
+        print(T('Connexion vérifiée. {count} outils Linux détectés.').format(count=len(status['tools'])),flush=True)
+        print(T('Interfaces : ')+', '.join(status.get('interfaces',[])),flush=True)
     except Exception as exc:
         write_json(root/'linux-status.json',{'config':config,'error':str(exc),'checked':now(),'tools':{}})
         raise

@@ -15,6 +15,7 @@ def main():
     from desktop.storage import Store, data_root
     from desktop.theme import apply_theme
     from desktop.window import Window
+    from desktop.i18n import T, set_language
 
     app = QApplication(sys.argv)
     app.setApplicationName("ChaosticTool Desktop")
@@ -24,10 +25,11 @@ def main():
     lock = QLockFile(str(root / "desktop.lock"))
     lock.setStaleLockTime(0)
     if not lock.tryLock(100):
-        QMessageBox.information(None, "ChaosticTool Desktop", "L’application est déjà ouverte pour cet espace de travail.")
+        QMessageBox.information(None, "ChaosticTool Desktop", T("L’application est déjà ouverte pour cet espace de travail."))
         return 0
     apply_theme(app)
     store = Store(root)
+    set_language(store.settings.get("language", "en"))
     if '--smoke-test' in sys.argv:
         from desktop.storage import write_json
         from desktop.backends import get_config
@@ -40,7 +42,7 @@ def main():
         import traceback as tb
         with (root / "desktop-errors.log").open("a", encoding="utf-8") as stream:
             tb.print_exception(kind, value, traceback, file=stream)
-        QMessageBox.warning(window, "Erreur", f"{value}\n\nLes détails sont conservés dans desktop-errors.log.")
+        QMessageBox.warning(window, T("Erreur"), T("{error}\n\nLes détails sont conservés dans desktop-errors.log.").format(error=value))
     sys.excepthook = exception_handler
     window.show()
     if sys.platform=='win32' and '--smoke-test' not in sys.argv:

@@ -1,166 +1,168 @@
 # ChaosticTool Desktop
 
-**Votre centre d’opérations graphique pour Windows 10 et Windows 11.**
+**Your graphical operations center for Windows 10 and Windows 11.**
 
-Préparez vos cibles, choisissez vos outils par phase, configurez vos opérations et retrouvez leurs résultats dans une interface claire en français, avec un thème clair ou sombre. L’application possède son installateur et se désinstalle depuis Windows.
+Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and a light or dark theme. The application has its own installer and uninstalls from Windows.
 
-**[Télécharger Desktop 1.0.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0)** · **[Guide Windows détaillé](README_WINDOWS.md)** · **[Version Linux en terminal](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.0.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
-![Centre de contrôle de ChaosticTool Desktop 1.0 : interface claire, accent orange, profil de démonstration local](docs/images/windows/desktop-1.0-accueil.png)
+![ChaosticTool Desktop 1.0 control center: clean interface, orange accent, local demo profile](docs/images/windows/desktop-1.0-accueil.png)
 
-*Application réelle, avec un profil de démonstration isolé. Les outils disponibles dépendent du poste de capture. Les releases ne contiennent ni ce profil ni l’historique du développeur.*
+*Real application, with an isolated demo profile. The available tools depend on the machine used for the capture. The releases contain neither this profile nor the developer's history.*
 
-## Deux éditions, un dépôt
+## Two editions, one repository
 
-| Édition | Usage | Documentation |
+| Edition | Use | Documentation |
 |---|---|---|
-| **Desktop / Windows** | Application graphique, formulaires et résultats sans ouvrir un terminal | Branche [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), ce README et le [guide Windows](README_WINDOWS.md) |
-| **Linux CLI** | Expérience en terminal et fonctions propres à la CLI | Branche [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli), [guide CLI](README_LINUX.md) |
-| **Desktop Linux / macOS** | La même interface graphique sur un autre système | [Paquets et installation multi-systèmes](docs/DESKTOP.md) |
+| **Desktop / Windows** | Graphical application, forms and results without opening a terminal | Branch [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), this README and the [Windows guide](README_WINDOWS.md) |
+| **Linux CLI** | Terminal experience and CLI-specific functions | Branch [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli), [CLI guide](README_LINUX.md) |
+| **Desktop Linux / macOS** | The same graphical interface on another system | [Cross-system packages and install](docs/DESKTOP.md) |
 
-La branche historique `main` s’appelle maintenant **`linux-cli`**. Le renommage ne fusionne pas les éditions. Les captures de ce README concernent Desktop.
+The historical `main` branch is now called **`linux-cli`**. The rename does not merge the editions. This README's captures cover Desktop.
 
-## Télécharger et installer
+## Download and install
 
-| Votre ordinateur | Installateur | Systèmes visés |
+| Your computer | Installer | Target systems |
 |---|---|---|
-| Intel ou AMD 64 bits | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.0/ChaosticTool-Setup-1.0.0-windows-x64.exe) | Windows 10 **1809 ou ultérieur**, Windows 11 |
+| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.0/ChaosticTool-Setup-1.0.0-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
 
-Cette version 1.0.0 est fournie pour **Windows x64**. Une archive ARM64 pourra suivre.
+This version 1.0.0 is provided for **Windows x64**. An ARM64 archive may follow.
 
-1. Vérifiez l’architecture dans **Paramètres Windows → Système → Informations système**, puis téléchargez le `.exe` correspondant. Les archives GitHub « Source code » ne sont pas l’installateur.
-2. Lancez l’installation. **Python et Git ne sont pas nécessaires** pour démarrer l’application distribuée.
-3. Ouvrez **ChaosticTool Desktop** depuis le menu Démarrer. **Ouvrir mes fichiers** donne accès à votre espace de données.
-4. Essayez le diagnostic local, puis ajoutez une cible et installez les outils nécessaires à votre usage.
+1. Check your architecture in **Windows Settings → System → About**, then download the matching `.exe`. The GitHub “Source code” archives are not the installer.
+2. Run the installation. **Python and Git are not needed** to start the distributed application.
+3. Open **ChaosticTool Desktop** from the Start menu. **Open my files** gives access to your data space.
+4. Try the local diagnostic, then add a target and install the tools you need.
 
-L’installateur et son empreinte SHA-256 figurent dans la [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0). Desktop 1.0.0 est une **version publique stable**, sans signature d’éditeur Windows ; Windows peut afficher un avertissement de réputation. La distribution macOS n’est pas notarisée.
+The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0). Desktop 1.0.0 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
 
-### Compatibilité de l’application et des outils
+### Application and tool compatibility
 
-L’interface est empaquetée pour le système ci-dessus ; Windows 32 bits n’est pas pris en charge. Les dépendances des outils sont distinctes : certains fonctionnent nativement, d’autres demandent Linux, un service, une clé API, un pilote ou des droits particuliers. WSL 2 dépend également de la virtualisation et des politiques de la machine.
+The interface is packaged for the system above; 32-bit Windows is not supported. Tool dependencies are separate: some run natively, others require Linux, a service, an API key, a driver or special rights. WSL 2 also depends on virtualization and the machine's policies.
 
-Le build est testé automatiquement. Cela ne valide pas chaque GPU, antivirus, adaptateur Wi-Fi et outil externe sur toutes les machines. Consultez la [matrice des outils](docs/WINDOWS_PORT.md) pour les limites fonctionnelles.
+The build is tested automatically. This does not validate every GPU, antivirus, Wi-Fi adapter and external tool on every machine. See the [tool matrix](docs/WINDOWS_PORT.md) for functional limits.
 
-## Votre première opération
+## Your first operation
 
-1. **Cibles → Ajouter une cible** : indiquez un domaine, une IPv4/IPv6 ou une URL et un nom reconnaissable. L’ajout seul ne lance aucune connexion.
-2. **Arsenal d’outils** : cherchez un outil ou sélectionnez sa phase. Son état indique s’il est disponible ou demande une préparation.
-3. **Configurer et exécuter** : vérifiez la cible, le moteur et le profil. Les champs dépendent de l’outil.
-4. **Exécution** : suivez la sortie et l’état. **Arrêter** interrompt l’opération ; le journal partiel reste disponible.
-5. **Historique** : retrouvez le résultat, sa cible, sa date et son état, puis ouvrez les fichiers produits.
+1. **Targets → Add a target**: enter a domain, an IPv4/IPv6 or a URL and a recognizable name. Adding alone starts no connection.
+2. **Tool arsenal**: search for a tool or select its phase. Its status shows whether it is available or needs preparation.
+3. **Configure and run**: check the target, the engine and the profile. The fields depend on the tool.
+4. **Execution**: follow the output and the status. **Stop** interrupts the operation; the partial log stays available.
+5. **History**: find the result, its target, its date and its status, then open the produced files.
 
-Pour découvrir l’interface sans scan distant, utilisez **Diagnostic local** ou une résolution de `localhost`. Utilisez les outils et les flows dans le cadre de vos autorisations.
+To explore the interface without a remote scan, use **Local diagnostic** or a `localhost` resolution. Use the tools and flows within your authorizations.
 
-## Les sept espaces de travail
+## The seven workspaces
 
-| Écran | Fonction |
+| Screen | Function |
 |---|---|
-| **Centre de contrôle** | Cible active, outils inclus/détectés, opérations conservées et raccourcis |
-| **Cibles** | Ajout, nommage et sélection des environnements |
-| **Arsenal d’outils** | Recherche, classement par phase, installations compatibles et profils |
-| **Exécution** | Configuration, sorties, saisie des sessions interactives et arrêt |
-| **Attack flows** | Cible propre au flow et suite d’étapes guidées |
-| **Historique** | Filtres combinables, consultation et suppression des résultats |
-| **Paramètres** | Linux/WSL/SSH, thème clair/sombre, animations, chemins de données et détection des outils |
+| **Control center** | Active target, bundled/detected tools, kept operations and shortcuts |
+| **Targets** | Add, name and select environments |
+| **Tool arsenal** | Search, ordering by phase, compatible installs and profiles |
+| **Execution** | Configuration, output, interactive-session input and stop |
+| **Attack flows** | Flow-specific target and a sequence of guided steps |
+| **History** | Combinable filters, viewing and deletion of results |
+| **Settings** | Linux/WSL/SSH, light/dark theme, language, animations, data paths and tool detection |
 
-**Raccourcis :** `Ctrl+K` ouvre la recherche de l’arsenal ; `F6` ouvre l’exécution. Les commandes restent accessibles au clavier.
+**Shortcuts:** `Ctrl+K` opens the arsenal search; `F6` opens execution. Commands stay keyboard-accessible.
 
-## Catalogue : 48 outils CLI et 4 diagnostics supplémentaires
+## Catalog: 48 CLI tools and 4 extra diagnostics
 
-![Arsenal classé par phases](docs/images/windows/desktop-1.0-arsenal.png)
+![Arsenal ordered by phase](docs/images/windows/desktop-1.0-arsenal.png)
 
-Desktop reprend les **48 outils d’origine**, avec leurs profils graphiques, et ajoute **4 diagnostics**. Le classement par phases reprend celui de la CLI. Les options sont présentées dans des formulaires.
+Desktop reuses the **48 original tools**, with their graphical profiles, and adds **4 diagnostics**. The ordering by phase follows the CLI's. Options are presented in forms.
 
-**Une entrée dans le catalogue ne signifie pas que son programme est installé.** Les états distinguent les fonctions intégrées, les exécutables détectés et les dépendances manquantes. Un pack natif et des installations individuelles sont proposés lorsque le programme peut être géré sur votre plateforme.
+**A catalog entry does not mean its program is installed.** The statuses distinguish bundled functions, detected executables and missing dependencies. A native pack and individual installs are offered when the program can be managed on your platform.
 
-| Moteur | Utilisation | Préparation |
+| Engine | Use | Preparation |
 |---|---|---|
-| **Natif** | Fonctions intégrées et outils compatibles avec le système hôte | Aucune pour les fonctions intégrées ; installation ou chemin d’exécutable pour les autres |
-| **WSL** | Outils Linux sous Windows, dont Nmap/RustScan via l’environnement configuré | WSL, distribution et dépendances Linux |
-| **Linux local** | Desktop lancé sous Linux | Outils installés sur ce système |
-| **SSH** | Votre machine Linux ou VM distante | Accès SSH et outils sur cette machine |
+| **Native** | Bundled functions and tools compatible with the host system | None for bundled functions; install or executable path for the others |
+| **WSL** | Linux tools under Windows, including Nmap/RustScan via the configured environment | WSL, distribution and Linux dependencies |
+| **Local Linux** | Desktop launched under Linux | Tools installed on that system |
+| **SSH** | Your remote Linux machine or VM | SSH access and tools on that machine |
 
-Les archives portables gérées sont vérifiées par SHA-256 ; les outils Python gérés utilisent des environnements isolés. Certaines fonctions dépendent de services ou de matériel spécifique. **Tor/proxychains et VPN guard** restent propres à l’édition CLI.
+Managed portable archives are verified by SHA-256; managed Python tools use isolated environments. Some functions depend on services or specific hardware. **Tor/proxychains and VPN guard** remain specific to the CLI edition.
 
-## Préparer WSL et Kali Linux
+## Prepare WSL and Kali Linux
 
-Dans **Paramètres → Installer WSL et Kali Linux…**, Desktop détecte l’environnement, propose la préparation de WSL/Kali et configure les composants Linux qu’il gère. L’activation des fonctionnalités Windows peut demander une élévation administrateur.
+In **Settings → Install WSL and Kali Linux…**, Desktop detects the environment, offers WSL/Kali preparation and configures the Linux components it manages. Enabling Windows features may require an administrator elevation.
 
-**Si Windows demande un redémarrage, redémarrez le PC avant de reprendre.** Un téléchargement terminé ne signifie pas que la distribution est utilisable. Desktop conserve l’étape de préparation et distingue le redémarrage requis d’un environnement prêt. La préparation inachevée peut être reprise au lancement suivant.
+**If Windows asks for a restart, restart the PC before resuming.** A finished download does not mean the distribution is usable. Desktop keeps the preparation step and distinguishes a required restart from a ready environment. An unfinished preparation can be resumed at the next launch.
 
-Le compte Linux dédié `chaostic-tool` sert aux opérations ordinaires. Les profils demandant explicitement des privilèges sont traités séparément. Votre distribution WSL par défaut n’est pas remplacée.
+The dedicated Linux account `chaostic-tool` is used for ordinary operations. Profiles that explicitly request privileges are handled separately. Your default WSL distribution is not replaced.
 
-WSL n’est pas nécessaire pour ouvrir Desktop ou utiliser les fonctions natives. Il ne donne pas automatiquement accès aux fonctions Wi-Fi bas niveau : interfaces, pilotes et matériel doivent être disponibles dans l’environnement choisi. [Préparation et dépannage détaillés](README_WINDOWS.md).
+WSL is not needed to open Desktop or use the native functions. It does not automatically grant access to low-level Wi-Fi functions: interfaces, drivers and hardware must be available in the chosen environment. [Detailed preparation and troubleshooting](README_WINDOWS.md).
 
-## Attack flows : une cible et des étapes explicites
+## Attack flows: one target and explicit steps
 
-![Sélecteur de cible des attack flows](docs/images/windows/desktop-1.0-flows.png)
+![Attack flows target selector](docs/images/windows/desktop-1.0-flows.png)
 
-Les trois flows d’origine sont disponibles, avec création, édition, import et export de flows personnalisés. Choisissez d’abord **Cible du flow** : la session conserve cette cible même si vous sélectionnez ensuite une autre cible globale.
+The three original flows are available, with creation, editing, import and export of custom flows. First choose **Flow target**: the session keeps that target even if you later select another global target.
 
-Chaque étape propose son outil et sa configuration. Après réussite, la sélection avance ; **l’étape suivante n’est pas exécutée automatiquement**. Changer la cible d’une session existante propose une nouvelle session et conserve les résultats précédents. Une opération active verrouille les changements incompatibles avec son suivi.
+Each step offers its tool and its configuration. After a success, the selection advances; **the next step is not run automatically**. Changing an existing session's target offers a new session and keeps the previous results. An active operation locks changes incompatible with its tracking.
 
-Les résultats du flow restent associés à sa cible, y compris pour les étapes locales. Vérifiez la disponibilité des outils et du moteur avant le lancement.
+Flow results stay associated with its target, including for local steps. Check the availability of the tools and the engine before launching.
 
-## Un historique sous votre contrôle
+## A history under your control
 
-Combinez les filtres **cible, outil, état, période** (24 heures, 7 jours, 30 jours ou tout) et **recherche textuelle**. Le compteur distingue les résultats affichés de l’ensemble conservé. Réinitialisez les filtres pour retrouver les autres opérations.
+![History with combinable filters and per-result actions](docs/images/windows/desktop-1.0-historique.png)
 
-- **Supprimer un résultat** enlève l’opération et ses fichiers après confirmation. Les autres résultats sont conservés et les références des flows sont actualisées.
-- **Vider l’historique** supprime les résultats et sessions de flows après confirmation. Les cibles, réglages, outils installés et définitions de flows personnalisés restent disponibles.
-- Une opération active doit être terminée ou arrêtée avant suppression.
+Combine the **target, tool, status, period** filters (24 hours, 7 days, 30 days or all) and **text search**. The counter distinguishes the displayed results from the whole kept set. Reset the filters to find the other operations.
 
-Les dossiers portent des noms descriptifs pour reconnaître l’outil et le contexte. Une sortie limitée à l’écran ne remplace pas le journal complet enregistré. [Stockage et historique](README_WINDOWS.md).
+- **Delete a result** removes the operation and its files after confirmation. Other results are kept and flow references are updated.
+- **Clear the history** deletes results and flow sessions after confirmation. Targets, settings, installed tools and custom flow definitions stay available.
+- An active operation must be finished or stopped before deletion.
 
-## Interface claire, thème clair ou sombre
+Folders have descriptive names to recognize the tool and the context. Output limited on screen does not replace the full saved log. [Storage and history](README_WINDOWS.md).
 
-![Thème sombre de ChaosticTool Desktop 1.0](docs/images/windows/desktop-1.0-sombre.png)
+## Clean interface, light or dark theme
 
-Desktop 1.0 adopte une **interface claire et épurée** : fond clair, beaucoup d’air, un seul accent orange, typographie posée. Les cartes se détachent par des ombres douces et s’animent légèrement au survol. Un **thème sombre** complet est disponible : le bouton en haut de la fenêtre bascule clair/sombre et votre choix est mémorisé.
+![ChaosticTool Desktop 1.0 dark theme](docs/images/windows/desktop-1.0-sombre.png)
 
-Dans **Paramètres → Apparence**, désactivez les animations ou choisissez une cadence cible 60/30 pour l’ambiance. Cette cadence n’est pas une garantie de FPS. Les tableaux et journaux restent stables. Le rendu utilise **Qt/PySide6**, sans moteur de jeu.
+Desktop 1.0 uses a **clean, uncluttered interface**: light background, plenty of room, a single orange accent, calm typography. Cards stand out with soft shadows and animate slightly on hover. A full **dark theme** is available: the button at the top of the window toggles light/dark and your choice is remembered.
 
-## Données personnelles, mise à jour et désinstallation
+In **Settings → Appearance**, disable the animations or choose a 60/30 target frame rate for the ambiance. That rate is not an FPS guarantee. Tables and logs stay stable. Rendering uses **Qt/PySide6**, with no game engine.
 
-Les données sont séparées du programme. Sous Windows, l’emplacement par défaut est :
+## Personal data, updates and uninstall
+
+Data is separate from the program. On Windows, the default location is:
 
 ```text
 %LOCALAPPDATA%\ChaosticTool\Desktop
 ```
 
-L’installateur public n’embarque **ni historique, ni cibles, ni configuration Linux personnelle**. La construction vérifie l’absence de fichiers de profil dans le paquet. Le test de l’application empaquetée vérifie un profil initial vide avant d’exécuter son diagnostic.
+The public installer bundles **no history, no targets and no personal Linux configuration**. The build checks for the absence of profile files in the package. The packaged-application test verifies an empty initial profile before running its diagnostic.
 
-Desktop 1.0 vérifie aussi les nouvelles versions et vous prévient : **Paramètres → À propos → Rechercher les mises à jour**. La vérification n'installe rien automatiquement ; elle ouvre la page de téléchargement.
+Desktop 1.0 also checks for new versions and notifies you: **Settings → About → Check for updates**. The check installs nothing automatically; it opens the download page.
 
-Pour sauvegarder, fermez Desktop et copiez votre dossier de données. Pour mettre à jour, fermez l’application puis exécutez le nouvel installateur : vos données sont conservées. Une réinstallation sur votre PC retrouve donc normalement votre historique ; cet historique n’est pas fourni aux autres utilisateurs.
+To back up, close Desktop and copy your data folder. To update, close the application then run the new installer: your data is kept. A reinstall on your PC therefore normally finds your history; that history is not shared with other users.
 
-Désinstallez depuis **Paramètres Windows → Applications → ChaosticTool Desktop → Désinstaller**. Les données personnelles sont conservées. Desktop ne supprime pas vos environnements WSL ou SSH lors de sa désinstallation. [Maintenance et sauvegardes](README_WINDOWS.md#maintenance).
+Uninstall from **Windows Settings → Apps → ChaosticTool Desktop → Uninstall**. Personal data is kept. Desktop does not remove your WSL or SSH environments when it uninstalls. [Maintenance and backups](README_WINDOWS.md#maintenance).
 
-## Dépannage rapide
+## Quick troubleshooting
 
-| Symptôme | Vérification |
+| Symptom | Check |
 |---|---|
-| Outil présent mais indisponible | Vérifier le moteur, les dépendances et l’inventaire Linux ; actualiser la détection |
-| Redémarrage WSL demandé | Redémarrer Windows puis reprendre la préparation avant un lancement Linux |
-| `WSL_E_DISTRO_NOT_FOUND` | Distribution indisponible : reprendre la préparation après activation/redémarrage |
-| Mauvaise cible dans un flow | Vérifier **Cible du flow** et la session, indépendantes de la cible globale |
-| Résultat apparemment disparu | Réinitialiser les filtres et vérifier le dossier de données utilisé |
-| Animations trop coûteuses | Choisir 30 images/s ou désactiver les animations |
-| Erreur de l’application | Consulter le journal de l’opération et, s’il existe, `desktop-errors.log` dans le dossier de données |
+| Tool present but unavailable | Check the engine, dependencies and Linux inventory; refresh detection |
+| WSL restart requested | Restart Windows then resume the setup before a Linux launch |
+| `WSL_E_DISTRO_NOT_FOUND` | Distribution unavailable: resume the setup after enabling/restarting |
+| Wrong target in a flow | Check **Flow target** and the session, independent from the global target |
+| Result seemingly gone | Reset the filters and check the data folder in use |
+| Animations too costly | Choose 30 fps or disable the animations |
+| Application error | Check the operation log and, if present, `desktop-errors.log` in the data folder |
 
-Pour signaler un problème, indiquez les versions de Desktop et Windows, l’architecture, le moteur, les étapes de reproduction et le message exact. Retirez les secrets et informations privées des journaux partagés.
+To report a problem, state the Desktop and Windows versions, the architecture, the engine, the reproduction steps and the exact message. Remove secrets and private information from shared logs.
 
-## Documentation et développement
+## Documentation and development
 
-| Document | Contenu |
+| Document | Content |
 |---|---|
-| [Guide Windows](README_WINDOWS.md) | Installation, utilisation détaillée, WSL/SSH, dépannage et maintenance |
-| [Desktop multi-systèmes](docs/DESKTOP.md) | Linux/macOS, architectures et paquets |
-| [Catalogue et compatibilité](docs/WINDOWS_PORT.md) | Outils, moteurs et limites |
-| [Linux CLI](README_LINUX.md) | Expérience du terminal |
-| [Règles du dépôt](docs/REPOSITORY_RULES.md) | Branches, protection de `linux-cli` et contributions |
-| [Licences tierces](docs/THIRD_PARTY.md) | Dépendances et redistribution |
+| [Windows guide](README_WINDOWS.md) | Install, detailed use, WSL/SSH, troubleshooting and maintenance |
+| [Cross-system Desktop](docs/DESKTOP.md) | Linux/macOS, architectures and packages |
+| [Catalog and compatibility](docs/WINDOWS_PORT.md) | Tools, engines and limits |
+| [Linux CLI](README_LINUX.md) | The terminal experience |
+| [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
+| [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-Le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) construit Windows, Linux et macOS et teste les applications empaquetées. Les sources de cette version correspondent au tag `desktop-v1.0.0`. Le [guide Desktop](docs/DESKTOP.md) décrit l’exécution depuis les sources et la construction des paquets.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. This version's sources match the `desktop-v1.0.0` tag. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[Licence MIT](LICENSE) · Interface française · **Documentation révisée pour Desktop 1.0.0**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.0.0**

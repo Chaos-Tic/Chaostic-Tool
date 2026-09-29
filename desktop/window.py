@@ -140,7 +140,7 @@ class TargetDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(26, 26, 26, 26)
         layout.setSpacing(18)
-        layout.addWidget(label("Nouvelle cible", "sectionTitle"))
+        layout.addWidget(label("Nouvelle cible", "sectionTitle"))  # noqa: traduit via label()
         layout.addWidget(label("Un domaine, une adresse IP ou une URL complète.\nL’ajout n’effectue aucune connexion réseau.", "muted", True))
         form = QFormLayout()
         form.setSpacing(14)
@@ -149,8 +149,8 @@ class TargetDialog(QDialog):
         self.address = QLineEdit()
         self.address.setPlaceholderText(T("https://example.com ou 127.0.0.1"))
         self.address.setObjectName("targetAddress")
-        form.addRow("Nom (facultatif)", self.name)
-        form.addRow("Adresse", self.address)
+        form.addRow(T("Nom (facultatif)"), self.name)
+        form.addRow(T("Adresse"), self.address)
         layout.addLayout(form)
         actions = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
         actions.button(QDialogButtonBox.StandardButton.Ok).setText(T("Ajouter la cible"))
@@ -288,33 +288,33 @@ class Window(QMainWindow):
     def check_updates(self, manual=False):
         if manual and hasattr(self, "update_button"):
             self.update_button.setEnabled(False)
-            self.update_button.setText("Vérification…")
+            self.update_button.setText(T("Vérification…"))
         self.update_checker.check(manual=manual)
 
     def _on_update_result(self, available, version, url, manual):
         if hasattr(self, "update_button"):
             self.update_button.setEnabled(True)
-            self.update_button.setText("Rechercher les mises à jour")
+            self.update_button.setText(T("Rechercher les mises à jour"))
         if available and version:
-            message = f"Mise à jour disponible : Desktop {version}."
+            message = T("Mise à jour disponible : Desktop {version}.").format(version=version)
             self.statusBar().showMessage(message)
             if hasattr(self, "update_label"):
-                self.update_label.setText(message + " Ouvrez la page de téléchargement pour l’installer.")
+                self.update_label.setText(message + T(" Ouvrez la page de téléchargement pour l’installer."))
                 self.update_label.setVisible(True)
             if manual:
                 box = QMessageBox(self)
-                box.setWindowTitle("Mise à jour disponible")
-                box.setText(f"Desktop {version} est disponible (vous avez {VERSION}).")
-                box.setInformativeText("Ouvrir la page de téléchargement ?")
+                box.setWindowTitle(T("Mise à jour disponible"))
+                box.setText(T("Desktop {version} est disponible (vous avez {current}).").format(version=version, current=VERSION))
+                box.setInformativeText(T("Ouvrir la page de téléchargement ?"))
                 box.setStandardButtons(QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
                 box.setDefaultButton(QMessageBox.StandardButton.Open)
                 if box.exec() == QMessageBox.StandardButton.Open:
                     QDesktopServices.openUrl(QUrl(url))
         elif manual:
             if version:
-                QMessageBox.information(self, "À jour", f"Vous utilisez déjà la dernière version (Desktop {VERSION}).")
+                QMessageBox.information(self, T("À jour"), T("Vous utilisez déjà la dernière version (Desktop {current}).").format(current=VERSION))
             else:
-                QMessageBox.warning(self, "Mise à jour", "Impossible de vérifier les mises à jour pour le moment.")
+                QMessageBox.warning(self, T("Mise à jour"), T("Impossible de vérifier les mises à jour pour le moment."))
 
     def focus_search(self):
         self.navigate(2);self.search.setFocus();self.search.selectAll()
@@ -472,7 +472,7 @@ class Window(QMainWindow):
     def build_execution(self):
         layout = self.page()
         pick=QHBoxLayout(); self.execution_tool=QComboBox()
-        for tool in self.tools: self.execution_tool.addItem(tool['name'],tool['key'])
+        for tool in self.tools: self.execution_tool.addItem(T(tool['name']),tool['key'])
         self.execution_tool.setAccessibleName("Outil à exécuter")
         self.execution_tool.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.execute_button=button("Configurer et exécuter",lambda:self.launch(self.execution_tool.currentData()),"primary")
@@ -684,7 +684,7 @@ class Window(QMainWindow):
     def refresh(self):
         if hasattr(self,'backend_status'):
             status=linux_status(self.store.root)
-            self.backend_status.setText(status.get('error') or (str(len(status.get('tools',{})))+' outils détectés · '+status.get('checked','Connexion non vérifiée')))
+            self.backend_status.setText(status.get('error') or (str(len(status.get('tools',{})))+T(' outils détectés · ')+T(status.get('checked','Connexion non vérifiée'))))
         self.history_rows = self.store.history()
         self.refresh_history_filters()
         for value, count in zip(self.stats, (len(self.store.targets), sum(availability(t, self.store.settings["executables"], self.store.root)[1] for t in self.tools), len(self.history_rows))):
@@ -705,7 +705,7 @@ class Window(QMainWindow):
             try:
                 self.store.add_target(dialog.address.text(), dialog.name.text())
             except (ValueError, OSError) as exc:
-                QMessageBox.warning(self, "Cible non enregistrée", str(exc))
+                QMessageBox.warning(self, T("Cible non enregistrée"), str(exc))
                 continue
             self.refresh()
             self.statusBar().showMessage(T("Cible enregistrée et sélectionnée."))
@@ -722,7 +722,7 @@ class Window(QMainWindow):
         row = self.target_table.currentRow()
         if 0 <= row < len(self.store.targets):
             target = self.store.targets[row]
-            if QMessageBox.question(self, "Retirer la cible", f"Retirer « {target['label']} » ? Les résultats seront conservés.") == QMessageBox.StandardButton.Yes:
+            if QMessageBox.question(self, T("Retirer la cible"), T("Retirer « {label} » ? Les résultats seront conservés.").format(label=target['label'])) == QMessageBox.StandardButton.Yes:
                 self.store.remove_target(target["id"])
                 self.refresh()
 
@@ -736,9 +736,9 @@ class Window(QMainWindow):
                                and (category is None or t["key"] in members or (category=="builtin" and t["key"].startswith("desktop-")))
                                and (not self.only_ready.isChecked() or availability(t, self.store.settings["executables"], self.store.root)[1])]
         self.tool_table.blockSignals(True)
-        fill_table(self.tool_table, [(t["name"], t["group"], availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools], pill_cols=(2,))
+        fill_table(self.tool_table, [(T(t["name"]), T(t["group"]), availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools], pill_cols=(2,))
         self.tool_table.blockSignals(False)
-        self.tool_count.setText(f"{len(self.filtered_tools)} outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux")
+        self.tool_count.setText(f"{len(self.filtered_tools)} " + T("outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux"))
         if self.filtered_tools:
             row = next((i for i, t in enumerate(self.filtered_tools) if t["key"] == selected_key), 0)
             self.tool_table.selectRow(row)
@@ -761,19 +761,19 @@ class Window(QMainWindow):
                 item.setEnabled(False)
             return
         status, ready = availability(tool, self.store.settings["executables"], self.store.root)
-        self.tool_name.setText(tool["name"])
-        self.tool_status.setText(f"{tool['group'].upper()}  /  {status.upper()}")
-        self.tool_desc.setText(tool["desc"])
-        self.tool_note.setText(tool["note"])
+        self.tool_name.setText(T(tool["name"]))
+        self.tool_status.setText(f"{T(tool['group']).upper()}  /  {T(status).upper()}")
+        self.tool_desc.setText(T(tool["desc"]))
+        self.tool_note.setText(T(tool["note"]))
         package = tool.get("package")
         record = installed(package, self.store.root) if package else None
         self.install_button.setVisible(bool(package) and can_install(package))
         self.install_button.setEnabled(bool(package) and not self.runner.active)
         self.install_button.setText(T("Vérifier l’installation") if record else T("Installer cet outil"))
         if record:
-            self.tool_note.setText(tool["note"] + "\nVersion installée : " + record["version"])
+            self.tool_note.setText(T(tool["note"]) + T("\nVersion installée : ") + record["version"])
         elif package and (error := installation_error(package, self.store.root)):
-            self.tool_note.setText(tool['note'] + '\nDernier échec : ' + error[-600:])
+            self.tool_note.setText(T(tool['note']) + T('\nDernier échec : ') + error[-600:])
 
         self.tool_path.setText(find_executable(tool, self.store.settings["executables"].get(tool["key"]), self.store.root) or "")
         self.launch_button.setEnabled(bool(tool['presets']) and not self.runner.active)
@@ -863,15 +863,15 @@ class Window(QMainWindow):
                     request=target
                     if backend=='linux':
                         executable=linux_status(self.store.root).get('tools',{}).get(key)
-                        if not executable: raise ValueError('Outil Linux non détecté. Configurez Linux et actualisez son inventaire dans les paramètres.')
+                        if not executable: raise ValueError(T('Outil Linux non détecté. Configurez Linux et actualisez son inventaire dans les paramètres.'))
                         kwargs={'command':[executable,*args],'bridge':True,'fields':{**fields,'wordlist':dialog.wordlist.text()},'elevate':preset.get('requires_root',False)}
                     else:
                         command=native_command(tool,self.store.settings['executables'].get(key),self.store.root)
-                        if not command: raise ValueError('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.')
+                        if not command: raise ValueError(T('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.'))
                         kwargs={'command':[*command,*args]}
                         if key=='rustscan' and preset.get('cli_index') is not None:
                             nmap=native_command(self.tool_by_key['nmap'],self.store.settings['executables'].get('nmap'),self.store.root)
-                            if not nmap: raise ValueError('Ce profil RustScan appelle Nmap. Installez Nmap depuis la boîte à outils, ou choisissez le profil « Port de la cible, sans Nmap ».')
+                            if not nmap: raise ValueError(T('Ce profil RustScan appelle Nmap. Installez Nmap depuis la boîte à outils, ou choisissez le profil « Port de la cible, sans Nmap ».'))
                             kwargs['environment_extra']={'PATH':str(Path(nmap[0]).parent)+os.pathsep+os.environ.get('PATH','')}
                     kwargs['redactions']=secret_values
                 self.console.clear(); self.terminal_screen=None
@@ -880,8 +880,8 @@ class Window(QMainWindow):
                     import pyte
                     self.terminal_screen=pyte.Screen(120,30); self.terminal_stream=pyte.Stream(self.terminal_screen)
                 self.input_row.setVisible(interactive)
-                self.run_title.setText(tool['name']+' · '+preset['label'])
-                self.run_info.setText(('Cible : '+target['url'] if target else 'Environnement local sélectionné')+' · En cours')
+                self.run_title.setText(T(tool['name'])+' · '+T(preset['label']))
+                self.run_info.setText((T('Cible : ')+target['url'] if target else T('Environnement local sélectionné'))+T(' · En cours'))
                 self.flow_return.setVisible(bool(metadata))
                 self.execution_tool.setCurrentIndex(self.execution_tool.findData(key))
                 self.runner.start(tool['name'],preset['label'],request,metadata=metadata,**kwargs)
@@ -889,7 +889,7 @@ class Window(QMainWindow):
                 return True
             except (ValueError,RuntimeError,OSError) as exc:
                 if not show_dialog: raise
-                QMessageBox.warning(self,'Lancement impossible',str(exc))
+                QMessageBox.warning(self,T('Lancement impossible'),str(exc))
 
     def configure_backend(self):
         dialog=BackendDialog(self.store.root,self)
@@ -899,8 +899,8 @@ class Window(QMainWindow):
     def check_backend(self):
         if self.runner.active: self.navigate(3); return
         self.console.clear(); self.terminal_screen=None; self.input_row.hide()
-        self.run_title.setText('Vérification de l’environnement Linux')
-        self.runner.start('Linux','Inventaire',{'root':str(self.store.root),'label':'Environnement Linux'},worker='linux-check',timeout_ms=60_000)
+        self.run_title.setText(T('Vérification de l’environnement Linux'))
+        self.runner.start('Linux',T('Inventaire'),{'root':str(self.store.root),'label':T('Environnement Linux')},worker='linux-check',timeout_ms=60_000)
         self.navigate(3)
 
     def setup_wsl(self):
@@ -911,10 +911,10 @@ class Window(QMainWindow):
     def configure_linux_path(self):
         tool=self.selected_tool()
         if not tool: return
-        value,ok=QInputDialog.getText(self,'Programme Linux','Chemin absolu du programme dans Linux :')
+        value,ok=QInputDialog.getText(self,T('Programme Linux'),T('Chemin absolu du programme dans Linux :'))
         if ok and value:
             if not value.startswith('/') or any(ord(c)<32 for c in value):
-                QMessageBox.warning(self,'Chemin invalide','Indiquez un chemin Linux absolu.'); return
+                QMessageBox.warning(self,T('Chemin invalide'),T('Indiquez un chemin Linux absolu.')); return
             config=get_config(self.store.root)
             config.setdefault('paths',{})[tool['key']]=value
             save_config(config,self.store.root); self.check_backend()
@@ -927,10 +927,10 @@ class Window(QMainWindow):
         if self.runner.active: self.navigate(3); return
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
-            self.run_title.setText('Installation des paquets Linux')
-            self.runner.start('Dépendances Linux','Paquets Kali/Debian',{'label':'Environnement Linux'},command=install_plan(keys),bridge=True,elevate=True,timeout_ms=3_600_000)
+            self.run_title.setText(T('Installation des paquets Linux'))
+            self.runner.start(T('Dépendances Linux'),T('Paquets Kali/Debian'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,timeout_ms=3_600_000)
             self.navigate(3)
-        except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,'Installation Linux',str(exc))
+        except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 
     def send_terminal_input(self):
         value=self.terminal_input.text()
@@ -973,7 +973,7 @@ class Window(QMainWindow):
     def stop_current(self):
         if not self.runner.active: return
         if self.runner.record.get('command')==['builtin','wsl-setup']:
-            answer=QMessageBox.question(self,'Préparation Linux','Interrompre le suivi ? Une activation Windows élevée ou un téléchargement Linux déjà lancé peut continuer en arrière-plan. Attendez sa fin avant de reprendre.',QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)
+            answer=QMessageBox.question(self,T('Préparation Linux'),T('Interrompre le suivi ? Une activation Windows élevée ou un téléchargement Linux déjà lancé peut continuer en arrière-plan. Attendez sa fin avant de reprendre.'),QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)
             if answer!=QMessageBox.StandardButton.Yes:return
         self.stop_button.setEnabled(False)
         self.stop_button.setText(T("Arrêt en cours…"))
@@ -998,8 +998,8 @@ class Window(QMainWindow):
             return not query or query in (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('flow_target') or r.get('target') or {})).casefold()
         self.visible_history=[r for r in self.history_rows if matches(r)]
         fill_table(self.history_table,[(r['tool']+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
-            (r.get('flow_target') or r.get('target') or {}).get('label','Cet ordinateur'),STATUS.get(r['status'],r['status']),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
-        self.history_count.setText(f'{len(self.visible_history)} résultat(s) affiché(s) sur {len(self.history_rows)}')
+            (r.get('flow_target') or r.get('target') or {}).get('label',T('Cet ordinateur')),T(STATUS.get(r['status'],r['status'])),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
+        self.history_count.setText(T('{shown} résultat(s) affiché(s) sur {total}').format(shown=len(self.visible_history),total=len(self.history_rows)))
         self.show_history()
 
     @staticmethod
@@ -1011,10 +1011,10 @@ class Window(QMainWindow):
         targets={}
         for r in self.history_rows:
             target=r.get('flow_target') or r.get('target') or {};key=self.history_target_key(target)
-            caption='Cet ordinateur / opérations locales' if key=='__local__' else target.get('label') or target.get('host') or key
+            caption=T('Cet ordinateur / opérations locales') if key=='__local__' else target.get('label') or target.get('host') or key
             if target.get('url'):caption+=' — '+target['url']
             targets[key]=caption
-        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),'Toutes les cibles'),(self.history_tool,[(s,s) for s in sorted({r['tool'] for r in self.history_rows})],'Tous les outils')]:
+        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),T('Toutes les cibles')),(self.history_tool,[(s,s) for s in sorted({r['tool'] for r in self.history_rows})],T('Tous les outils'))]:
             old=widget.currentData();widget.blockSignals(True);widget.clear();widget.addItem(title,'')
             for key,caption in entries:widget.addItem(caption,key)
             widget.setCurrentIndex(max(0,widget.findData(old)));widget.blockSignals(False)
@@ -1027,18 +1027,18 @@ class Window(QMainWindow):
         if self.runner.active:return
         run=self.selected_history()
         if not run:return
-        if QMessageBox.warning(self,'Supprimer ce résultat',f"Supprimer définitivement le résultat de {run['tool']} ({run.get('preset','')}) et ses fichiers locaux ? Les autres résultats, cibles et réglages sont conservés.",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:return
+        if QMessageBox.warning(self,T('Supprimer ce résultat'),T("Supprimer définitivement le résultat de {tool} ({preset}) et ses fichiers locaux ? Les autres résultats, cibles et réglages sont conservés.").format(tool=run['tool'],preset=run.get('preset','')),QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:return
         try:self.store.delete_run(run['id'])
-        except (OSError,ValueError) as exc:QMessageBox.warning(self,'Suppression incomplète',str(exc));self.refresh();return
+        except (OSError,ValueError) as exc:QMessageBox.warning(self,T('Suppression incomplète'),str(exc));self.refresh();return
         session=self.flow_panel.session
         if session:
             for step in session.record['steps']:
                 if step.get('run_id')==run['id']:step.pop('run_id');step['status']='deleted'
         if self.runner.directory and str(self.runner.directory)==run['directory']:
             self.console.clear();self.runner.directory=None;self.run_folder.setEnabled(False)
-            self.run_info.setText('Résultat supprimé')
+            self.run_info.setText(T('Résultat supprimé'))
         self.refresh();self.flow_panel.refresh()
-        self.statusBar().showMessage('Résultat local supprimé.')
+        self.statusBar().showMessage(T('Résultat local supprimé.'))
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
@@ -1049,8 +1049,8 @@ class Window(QMainWindow):
                 self.tools_split.setSizes([300,260] if self.width()<1100 else [640,330])
 
     def run_completed(self, result):
-        state = STATUS[result["status"]]
-        self.run_info.setText(f"{state} · Code de sortie : {result['exit_code']} · Résultats conservés")
+        state = T(STATUS[result["status"]])
+        self.run_info.setText(T("{state} · Code de sortie : {code} · Résultats conservés").format(state=state,code=result['exit_code']))
         if result.get("detail"):
             self.append_output("\n" + result["detail"] + "\n")
         self.statusBar().showMessage(f"{result['tool']} : {state.lower()}.")
@@ -1059,7 +1059,7 @@ class Window(QMainWindow):
             try:
                 setup=json.loads((self.store.root/'wsl-setup.json').read_text(encoding='utf-8'))
                 if setup.get('stage') in ('restart_required','distribution_pending'):
-                    text='Redémarrage Windows requis — reprenez après redémarrage' if setup['stage']=='restart_required' else 'Préparation en attente — Kali n’est pas encore disponible'
+                    text=T('Redémarrage Windows requis — reprenez après redémarrage') if setup['stage']=='restart_required' else T('Préparation en attente — Kali n’est pas encore disponible')
                     self.run_info.setText(text)
                     self.statusBar().showMessage(text)
             except (OSError,ValueError):pass
@@ -1072,10 +1072,10 @@ class Window(QMainWindow):
                     path=self.store.root/'tools/installers'/f"{package}-{spec['version']}-setup.exe"
                     try:
                         import hashlib
-                        if hashlib.sha256(path.read_bytes()).hexdigest()!=spec['sha256']: raise ValueError('Empreinte de l’installateur invalide.')
+                        if hashlib.sha256(path.read_bytes()).hexdigest()!=spec['sha256']: raise ValueError(T('Empreinte de l’installateur invalide.'))
                         os.startfile(str(path))
-                        self.run_info.setText('Assistant officiel ouvert. Terminez l’installation puis cliquez sur Actualiser dans la boîte à outils.')
-                    except (OSError,ValueError) as exc: QMessageBox.warning(self,'Installateur',str(exc))
+                        self.run_info.setText(T('Assistant officiel ouvert. Terminez l’installation puis cliquez sur Actualiser dans la boîte à outils.'))
+                    except (OSError,ValueError) as exc: QMessageBox.warning(self,T('Installateur'),str(exc))
         if result['tool']=='Dépendances Linux':
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0,self.check_backend)
@@ -1086,23 +1086,23 @@ class Window(QMainWindow):
 
     def clear_history(self):
         if self.runner.active:return
-        answer=QMessageBox.warning(self,'Vider tout l’historique',
-            'Supprimer définitivement TOUT l’historique local, même les opérations masquées par la recherche, ainsi que leurs journaux et fichiers de résultats ?\n\nLes cibles, paramètres, outils installés et WSL sont conservés. Les exports copiés ailleurs et les résultats stockés sur Linux/SSH ne sont pas supprimés. Cette action est irréversible.',
+        answer=QMessageBox.warning(self,T('Vider tout l’historique'),
+            T('Supprimer définitivement TOUT l’historique local, même les opérations masquées par la recherche, ainsi que leurs journaux et fichiers de résultats ?\n\nLes cibles, paramètres, outils installés et WSL sont conservés. Les exports copiés ailleurs et les résultats stockés sur Linux/SSH ne sont pas supprimés. Cette action est irréversible.'),
             QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)
         if answer!=QMessageBox.StandardButton.Yes:return
         try:
             self.store.clear_history()
         except (OSError,ValueError) as exc:
             self.refresh()
-            QMessageBox.warning(self,'Historique non vidé',str(exc))
+            QMessageBox.warning(self,T('Historique non vidé'),str(exc))
             return
         self.history_search.clear();self.history_log.clear();self.console.clear()
         self.terminal_screen=None;self.terminal_input.clear();self.input_row.hide()
         self.runner.directory=None;self.runner.record={};self.run_folder.setEnabled(False)
-        self.run_title.setText('Aucune opération');self.run_info.setText('Historique vidé')
+        self.run_title.setText(T('Aucune opération'));self.run_info.setText(T('Historique vidé'))
         self.flow_panel.session=None
         self.refresh();self.flow_panel.refresh()
-        self.statusBar().showMessage('Historique local et résultats supprimés. Cibles et paramètres conservés.')
+        self.statusBar().showMessage(T('Historique local et résultats supprimés. Cibles et paramètres conservés.'))
 
     def show_history(self):
         run = self.selected_history()
@@ -1116,12 +1116,12 @@ class Window(QMainWindow):
                 data = stream.read(512_001)
             text = data[:512_000].decode("utf-8", errors="replace")
             if len(data) > 512_000:
-                text += "\n\n[Aperçu limité. Exportez le journal pour lire le fichier complet.]"
+                text += "\n\n" + T("[Aperçu limité. Exportez le journal pour lire le fichier complet.]")
             if run.get("detail"):
                 text += "\n" + run["detail"]
             self.history_log.setPlainText(text)
         except OSError as exc:
-            self.history_log.setPlainText(f"Journal indisponible : {exc}")
+            self.history_log.setPlainText(T("Journal indisponible : {error}").format(error=exc))
 
     def open_data(self):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.store.root)))
@@ -1138,23 +1138,23 @@ class Window(QMainWindow):
         run = self.selected_history()
         if not run:
             return
-        destination, _ = QFileDialog.getSaveFileName(self, "Exporter le journal", f"chaostic-{run['id']}.txt", "Texte (*.txt)")
+        destination, _ = QFileDialog.getSaveFileName(self, T("Exporter le journal"), f"chaostic-{run['id']}.txt", T("Texte (*.txt)"))
         if destination:
             import shutil
             try:
                 source = Path(run["directory"]) / "output.txt"
                 if source.resolve() != Path(destination).resolve():
                     shutil.copyfile(source, destination)
-                self.statusBar().showMessage("Journal exporté.")
+                self.statusBar().showMessage(T("Journal exporté."))
             except OSError as exc:
-                QMessageBox.warning(self, "Export impossible", str(exc))
+                QMessageBox.warning(self, T("Export impossible"), str(exc))
 
     def closeEvent(self, event):
         if self.runner.active:
-            message="Arrêter l’opération et fermer l’application ? Les résultats partiels seront conservés."
+            message=T("Arrêter l’opération et fermer l’application ? Les résultats partiels seront conservés.")
             if self.runner.record.get('command')==['builtin','wsl-setup']:
-                message+=' Une activation Windows ou une installation Linux déjà lancée peut continuer en arrière-plan ; attendez sa fin avant de reprendre.'
-            answer = QMessageBox.question(self, "Opération en cours", message,
+                message+=T(' Une activation Windows ou une installation Linux déjà lancée peut continuer en arrière-plan ; attendez sa fin avant de reprendre.')
+            answer = QMessageBox.question(self, T("Opération en cours"), message,
                                           QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if answer != QMessageBox.StandardButton.Yes:
                 event.ignore()

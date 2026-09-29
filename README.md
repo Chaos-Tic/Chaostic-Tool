@@ -18,6 +18,15 @@ ChaosticTool is a Rich-powered terminal framework for authorized security testin
 
 ---
 
+## Downloads — two editions
+
+| Edition | Platform | Latest release |
+|---|---|---|
+| **Windows app** — graphical desktop (installer, dark/light themes, built-in updater) | Windows 10 / 11 · x64 | **[Desktop 1.0.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0)** |
+| **Linux CLI** — Rich terminal framework | Linux | **[CLI 1.3.2](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v1.3.2)** |
+
+The **Windows app** lives on the [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) branch; the **Linux CLI** on [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli).
+
 ## Screenshots
 
 <p align="center">

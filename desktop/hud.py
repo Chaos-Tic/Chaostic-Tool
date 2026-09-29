@@ -55,8 +55,6 @@ class GridBackground(QWidget):
 class Hero(MotionPanel):
     def __init__(self,parent=None,on_tools=None,on_flows=None):
         super().__init__(parent);self.motion_active=False;self.setMinimumHeight(350);self.parallax=QPointF()
-        from desktop.reactor import create_reactor
-        self.reactor=create_reactor(self)
         box=QVBoxLayout(self);box.setContentsMargins(28,25,28,25);box.setSpacing(12)
         tag=QLabel('ChaosticTool');tag.setObjectName('heroTag');box.addWidget(tag)
         self.title=QLabel('Préparez votre\nprochaine opération.');self.title.setObjectName('heroTitle');box.addWidget(self.title)
@@ -70,8 +68,6 @@ class Hero(MotionPanel):
         row.addStretch();box.addLayout(row)
     def resizeEvent(self,event):
         super().resizeEvent(event)
-        # Le réacteur néon appartient à l'ancien thème sombre : on le masque.
-        self.reactor.setVisible(False)
         clock().sync()
 
     def paintEvent(self,event):

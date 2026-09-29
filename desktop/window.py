@@ -270,9 +270,16 @@ class Window(QMainWindow):
         if store.warning:
             self.statusBar().showMessage(store.warning)
         from desktop.updater import UpdateChecker
+        from PySide6.QtGui import QGuiApplication
         self.update_checker = UpdateChecker(self)
         self.update_checker.result.connect(self._on_update_result)
-        QTimer.singleShot(2500, lambda: self.check_updates(manual=False))
+        # Vérification discrète au démarrage — jamais en mode headless (tests/CI),
+        # et via un timer rattaché à la fenêtre pour ne pas tirer après sa fermeture.
+        if QGuiApplication.platformName() != "offscreen":
+            self._update_timer = QTimer(self)
+            self._update_timer.setSingleShot(True)
+            self._update_timer.timeout.connect(lambda: self.check_updates(manual=False))
+            self._update_timer.start(2500)
 
     def check_updates(self, manual=False):
         if manual and hasattr(self, "update_button"):

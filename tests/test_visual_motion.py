@@ -22,23 +22,12 @@ class VisualMotionTests(unittest.TestCase):
         self.assertFalse(clock().timer.isActive());self.assertFalse(Store(self.store.root).settings['animations'])
         self.window.navigate(0);phase=self.window.hero.phase;QTest.qWait(100)
         self.assertEqual(self.window.hero.phase,phase)
-    def test_rate_persists_and_reactor_freezes_when_hidden(self):
+    def test_rate_persists_and_clock_freezes_when_minimized(self):
         self.window.motion_rate.setCurrentIndex(1)
         self.assertEqual(clock().timer.interval(),33)
         self.assertEqual(Store(self.store.root).settings['animation_fps'],30)
-        reactor=self.window.hero.reactor
-        self.window.navigate(2);QTest.qWait(250);phase=reactor.phase
-        QTest.qWait(100);self.assertEqual(reactor.phase,phase)
         self.window.showMinimized();QTest.qWait(100)
         self.assertFalse(clock().timer.isActive())
-    def test_reactor_moves_and_static_frame_is_stable(self):
-        reactor=self.window.hero.reactor
-        self.window.resize(1440,920);QTest.qWait(250)
-        before=reactor.grab().toImage();QTest.qWait(180)
-        self.assertNotEqual(before,reactor.grab().toImage())
-        self.window.motion_toggle.setChecked(False);QTest.qWait(250)
-        frozen=reactor.grab().toImage();QTest.qWait(100)
-        self.assertEqual(frozen,reactor.grab().toImage())
     def test_resting_arsenal_has_no_ambient_timer_and_home_tiles_navigate(self):
         self.window.navigate(2);QTest.qWait(400)
         self.assertFalse(clock().timer.isActive())

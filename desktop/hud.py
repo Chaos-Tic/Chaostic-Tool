@@ -56,11 +56,12 @@ class Hero(MotionPanel):
     def __init__(self,parent=None,on_tools=None,on_flows=None):
         super().__init__(parent);self.motion_active=False;self.setMinimumHeight(350);self.parallax=QPointF()
         box=QVBoxLayout(self);box.setContentsMargins(28,25,28,25);box.setSpacing(12)
-        tag=QLabel('ChaosticTool');tag.setObjectName('heroTag');box.addWidget(tag)
-        self.title=QLabel('Préparez votre\nprochaine opération.');self.title.setObjectName('heroTitle');box.addWidget(self.title)
-        desc=QLabel('Votre cible, votre arsenal, vos décisions —\ntoutes vos opérations au même endroit.');desc.setObjectName('heroDesc');desc.setWordWrap(True);box.addWidget(desc)
+        from desktop.i18n import T
+        tag=QLabel(T('ChaosticTool'));tag.setObjectName('heroTag');box.addWidget(tag)
+        self.title=QLabel(T('Préparez votre\nprochaine opération.'));self.title.setObjectName('heroTitle');box.addWidget(self.title)
+        desc=QLabel(T('Votre cible, votre arsenal, vos décisions —\ntoutes vos opérations au même endroit.'));desc.setObjectName('heroDesc');desc.setWordWrap(True);box.addWidget(desc)
         row=QHBoxLayout()
-        for text,fn,kind in [('Ouvrir l’arsenal',on_tools,'primary'),('Attack flows',on_flows,'ghost')]:
+        for text,fn,kind in [(T('Ouvrir l’arsenal'),on_tools,'primary'),(T('Attack flows'),on_flows,'ghost')]:
             from desktop.effects import GamingButton
             b=GamingButton(text);b.setObjectName(kind);b.setCursor(Qt.CursorShape.PointingHandCursor)
             if fn:b.clicked.connect(fn)

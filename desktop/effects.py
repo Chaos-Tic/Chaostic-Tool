@@ -14,7 +14,8 @@ def status_color(text):
     return MUTED
 
 def status_pill(text,parent=None):
-    pill=QLabel(str(text),parent);pill.setTextFormat(Qt.TextFormat.PlainText)
+    from desktop.i18n import T
+    pill=QLabel(T(str(text)),parent);pill.setTextFormat(Qt.TextFormat.PlainText)
     c=QColor(status_color(text));pill.setFixedHeight(24)
     pill.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed)
     pill.setStyleSheet(f'color:{c.name()}; background:rgba({c.red()},{c.green()},{c.blue()},26); border:1px solid rgba({c.red()},{c.green()},{c.blue()},90); border-radius:8px; padding:2px 12px; font-size:12px; font-weight:600;')

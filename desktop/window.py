@@ -32,8 +32,11 @@ from desktop.packages import PORTABLE_PACK, PYTHON_PACK, MANIFEST, find_python, 
 STATUS = {"running": "En cours", "success": "Terminé", "failed": "Échec", "cancelled": "Arrêté", "interrupted": "Interrompu"}
 
 
+from desktop.i18n import T, set_language, language
+
+
 def label(text, kind="", wrap=False):
-    result = QLabel(text)
+    result = QLabel(T(text))
     result.setTextFormat(Qt.TextFormat.PlainText)
     result.setWordWrap(wrap)
     if kind:
@@ -42,7 +45,7 @@ def label(text, kind="", wrap=False):
 
 
 def button(text, callback=None, kind=""):
-    result = effects.GamingButton(text)
+    result = effects.GamingButton(T(text))
     result.setCursor(Qt.CursorShape.PointingHandCursor)
     if callback:
         result.clicked.connect(callback)
@@ -85,7 +88,7 @@ def card():
 
 def table(headers):
     result = QTableWidget(0, len(headers))
-    result.setHorizontalHeaderLabels(headers)
+    result.setHorizontalHeaderLabels([T(h) for h in headers])
     result.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
     result.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
     result.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -132,7 +135,7 @@ from desktop.hud import Hero,GridBackground,ScanOverlay,CircuitCard,HUDRail,cloc
 class TargetDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setWindowTitle("Ajouter une cible")
+        self.setWindowTitle(T("Ajouter une cible"))
         self.setMinimumWidth(480)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(26, 26, 26, 26)
@@ -142,17 +145,17 @@ class TargetDialog(QDialog):
         form = QFormLayout()
         form.setSpacing(14)
         self.name = QLineEdit()
-        self.name.setPlaceholderText("Ex. Mon environnement de test")
+        self.name.setPlaceholderText(T("Ex. Mon environnement de test"))
         self.address = QLineEdit()
-        self.address.setPlaceholderText("https://example.com ou 127.0.0.1")
+        self.address.setPlaceholderText(T("https://example.com ou 127.0.0.1"))
         self.address.setObjectName("targetAddress")
         form.addRow("Nom (facultatif)", self.name)
         form.addRow("Adresse", self.address)
         layout.addLayout(form)
         actions = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
-        actions.button(QDialogButtonBox.StandardButton.Ok).setText("Ajouter la cible")
+        actions.button(QDialogButtonBox.StandardButton.Ok).setText(T("Ajouter la cible"))
         actions.button(QDialogButtonBox.StandardButton.Ok).setObjectName("primary")
-        actions.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
+        actions.button(QDialogButtonBox.StandardButton.Cancel).setText(T("Annuler"))
         actions.accepted.connect(self.accept)
         actions.rejected.connect(self.reject)
         layout.addWidget(actions)
@@ -165,8 +168,9 @@ class Window(QMainWindow):
     def __init__(self, store):
         super().__init__()
         self.store = store
-        # Applique le thème enregistré (clair par défaut) avant de construire l'UI.
+        # Applique le thème et la langue enregistrés avant de construire l'UI.
         theme.set_mode(QApplication.instance(), store.settings.get("theme", "light"))
+        set_language(store.settings.get("language", "en"))
         self.tools = catalog()
         self.tool_by_key = {t["key"]: t for t in self.tools}
         self.runner = Runner(store, self)
@@ -175,7 +179,7 @@ class Window(QMainWindow):
         self.runner.output.connect(self.append_output)
         self.runner.completed.connect(self.run_completed)
         self.runner.activeChanged.connect(self.active_changed)
-        self.setWindowTitle("ChaosticTool Desktop")
+        self.setWindowTitle(T("ChaosticTool Desktop"))
         self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/icon.svg")))
         self.setMinimumSize(900, 600)
         screen=QApplication.primaryScreen().availableGeometry()
@@ -264,7 +268,7 @@ class Window(QMainWindow):
         self.search_shortcut.activated.connect(self.focus_search)
         self.execution_shortcut=QShortcut(QKeySequence('F6'),self)
         self.execution_shortcut.activated.connect(lambda:self.navigate(3))
-        self.statusBar().showMessage("PRÊT  /  Ctrl+K : arsenal  /  F6 : exécution  /  Résultats enregistrés localement")
+        self.statusBar().showMessage(T("PRÊT  /  Ctrl+K : arsenal  /  F6 : exécution  /  Résultats enregistrés localement"))
         self.refresh()
         self.navigate(0)
         if store.warning:
@@ -387,21 +391,21 @@ class Window(QMainWindow):
         layout = self.page()
         toolbar = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Rechercher un outil, une fonction…")
+        self.search.setPlaceholderText(T("Rechercher un outil, une fonction…"))
         self.search.setClearButtonEnabled(True)
         self.search.setAccessibleName("Rechercher un outil")
         self.search.textChanged.connect(self.filter_tools)
         toolbar.addWidget(self.search, 1)
         self.category = QComboBox()
-        self.category.addItem("Toutes les phases",None)
-        for i,phase in enumerate(PHASES): self.category.addItem(f"{i+1:02d} · {phase['name']}",phase['id'])
-        self.category.addItem("Utilitaires intégrés","builtin")
+        self.category.addItem(T("Toutes les phases"),None)
+        for i,phase in enumerate(PHASES): self.category.addItem(f"{i+1:02d} · "+T(phase['name']),phase['id'])
+        self.category.addItem(T("Utilitaires intégrés"),"builtin")
         self.category.setMaximumWidth(285)
         self.category.setMinimumWidth(240)
         self.category.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.category.currentIndexChanged.connect(self.filter_tools)
         toolbar.addWidget(self.category)
-        self.only_ready = QCheckBox("Prêts uniquement")
+        self.only_ready = QCheckBox(T("Prêts uniquement"))
         self.only_ready.toggled.connect(self.filter_tools)
         toolbar.addWidget(self.only_ready)
         layout.addLayout(toolbar)
@@ -488,7 +492,7 @@ class Window(QMainWindow):
         self.console.setReadOnly(True)
         self.console.setAccessibleName("Journal de l’opération")
         self.console.document().setMaximumBlockCount(5000)
-        self.console.setPlaceholderText("Aucune opération lancée.\n\nChoisissez un outil dans la boîte à outils pour commencer.")
+        self.console.setPlaceholderText(T("Aucune opération lancée.\n\nChoisissez un outil dans la boîte à outils pour commencer."))
         console_wrap = QWidget()
         console_grid = QGridLayout(console_wrap)
         console_grid.setContentsMargins(0, 0, 0, 0)
@@ -497,7 +501,7 @@ class Window(QMainWindow):
         console_grid.addWidget(self.scan, 0, 0)
         layout.addWidget(console_wrap, 1)
         self.input_row=QWidget(); entry=QHBoxLayout(self.input_row); entry.setContentsMargins(0,0,0,0)
-        self.terminal_input=QLineEdit(); self.terminal_input.setPlaceholderText("Saisie pour la session interactive…")
+        self.terminal_input=QLineEdit(); self.terminal_input.setPlaceholderText(T("Saisie pour la session interactive…"))
         self.secret_input=QCheckBox("Masquer"); self.secret_input.setChecked(True)
         self.terminal_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.secret_input.toggled.connect(lambda yes:self.terminal_input.setEchoMode(QLineEdit.EchoMode.Password if yes else QLineEdit.EchoMode.Normal))
@@ -528,15 +532,15 @@ class Window(QMainWindow):
         layout.setSpacing(10)
         layout.addWidget(label("Chaque opération conserve sa cible, son état et son journal complet.", "muted"))
         splitter = QSplitter(Qt.Orientation.Vertical)
-        self.history_search=QLineEdit(); self.history_search.setPlaceholderText("Rechercher un outil, un profil, une cible ou un flow…")
+        self.history_search=QLineEdit(); self.history_search.setPlaceholderText(T("Rechercher un outil, un profil, une cible ou un flow…"))
         self.history_search.textChanged.connect(self.filter_history); layout.addWidget(self.history_search)
         filters=QHBoxLayout()
-        self.history_target=QComboBox();self.history_target.addItem('Toutes les cibles','')
-        self.history_state=QComboBox();self.history_state.addItem('Tous les états','')
-        for key,text in STATUS.items():self.history_state.addItem(text,key)
-        self.history_tool=QComboBox();self.history_tool.addItem('Tous les outils','')
+        self.history_target=QComboBox();self.history_target.addItem(T('Toutes les cibles'),'')
+        self.history_state=QComboBox();self.history_state.addItem(T('Tous les états'),'')
+        for key,text in STATUS.items():self.history_state.addItem(T(text),key)
+        self.history_tool=QComboBox();self.history_tool.addItem(T('Tous les outils'),'')
         self.history_period=QComboBox()
-        for text,days in [('Toutes les dates',0),('Dernières 24 h',1),('7 derniers jours',7),('30 derniers jours',30)]:self.history_period.addItem(text,days)
+        for text,days in [('Toutes les dates',0),('Dernières 24 h',1),('7 derniers jours',7),('30 derniers jours',30)]:self.history_period.addItem(T(text),days)
         for widget in (self.history_target,self.history_state,self.history_tool,self.history_period):
             widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon);widget.setMinimumContentsLength(6)
             filters.addWidget(widget,1);widget.currentIndexChanged.connect(self.filter_history)
@@ -547,7 +551,7 @@ class Window(QMainWindow):
         splitter.addWidget(self.history_table)
         self.history_log = QPlainTextEdit()
         self.history_log.setReadOnly(True)
-        self.history_log.setPlaceholderText("Sélectionnez une opération pour lire son journal.")
+        self.history_log.setPlaceholderText(T("Sélectionnez une opération pour lire son journal."))
         splitter.addWidget(self.history_log)
         splitter.setSizes([310, 240])
         layout.addWidget(splitter, 1)
@@ -570,17 +574,25 @@ class Window(QMainWindow):
         scroll.setWidget(panel); outer.addWidget(scroll)
         appearance,appearance_box=card()
         appearance_box.addWidget(label("Apparence", "sectionTitle"))
-        self.motion_toggle=QCheckBox("Animations immersives")
+        self.motion_toggle=QCheckBox(T("Animations immersives"))
         self.motion_toggle.setChecked(self.store.settings.get('animations',True))
         self.motion_toggle.toggled.connect(self.set_motion)
         appearance_box.addWidget(self.motion_toggle)
         self.motion_rate=QComboBox()
-        self.motion_rate.addItem('Fluide · cible 60 images/s',60)
-        self.motion_rate.addItem('Économe · cible 30 images/s',30)
+        self.motion_rate.addItem(T('Fluide · cible 60 images/s'),60)
+        self.motion_rate.addItem(T('Économe · cible 30 images/s'),30)
         self.motion_rate.setCurrentIndex(1 if self.store.settings.get('animation_fps',60)==30 else 0)
         self.motion_rate.setAccessibleName('Cadence des animations')
         self.motion_rate.currentIndexChanged.connect(self.set_motion_rate)
         appearance_box.addWidget(self.motion_rate)
+        appearance_box.addWidget(label("Langue", "muted"))
+        self.language_select = QComboBox()
+        self.language_select.addItem(T("Anglais"), "en")
+        self.language_select.addItem(T("Français"), "fr")
+        self.language_select.setCurrentIndex(0 if language() == "en" else 1)
+        self.language_select.currentIndexChanged.connect(
+            lambda: self.set_app_language(self.language_select.currentData()))
+        appearance_box.addWidget(self.language_select)
         appearance_box.addWidget(label('Les animations accompagnent vos actions. Les tableaux et journaux restent stables.', 'muted', True))
         appearance_box.addWidget(label("Ambiance lumineuse lente sur l’accueil, transitions et réactions aux interactions. Aucun balayage permanent. Désactivez les effets pour une interface statique.","muted",True))
         layout.addWidget(appearance)
@@ -625,7 +637,7 @@ class Window(QMainWindow):
         layout.addStretch()
 
     def _sync_theme_button(self):
-        self.theme_button.setText("  Mode sombre" if theme.MODE == "light" else "  Mode clair")
+        self.theme_button.setText(T("  Mode sombre") if theme.MODE == "light" else T("  Mode clair"))
 
     def toggle_theme(self):
         new_mode = "dark" if theme.MODE == "light" else "light"
@@ -634,6 +646,25 @@ class Window(QMainWindow):
         self.store.save()
         self._sync_theme_button()
         self.update()
+
+    def set_app_language(self, lang):
+        if lang == language():
+            return
+        if self.runner.active:
+            self.language_select.blockSignals(True)
+            self.language_select.setCurrentIndex(0 if language() == "en" else 1)
+            self.language_select.blockSignals(False)
+            QMessageBox.information(self, T("Langue"), T("Terminez l’opération en cours avant de changer de langue."))
+            return
+        self.store.settings["language"] = lang
+        self.store.save()
+        set_language(lang)
+        # Recrée la fenêtre principale pour appliquer la langue partout.
+        app = QApplication.instance()
+        new_window = Window(self.store)
+        setattr(app, "_chaostic_window", new_window)
+        new_window.show()
+        self.close()
 
     def set_motion_rate(self):
         fps=self.motion_rate.currentData();self.store.settings['animation_fps']=fps;self.store.save();clock().set_rate(fps)
@@ -645,7 +676,7 @@ class Window(QMainWindow):
         self.stack.setCurrentIndex(index)
         effects.fade_in(self.stack.currentWidget())
         if index==6: self.flow_panel.refresh()
-        self.page_title.setText(["Centre de contrôle", "Vos cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"][index])
+        self.page_title.setText(T(["Centre de contrôle", "Vos cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"][index]))
         for i, item in enumerate(self.nav):
             item.setChecked(i == index)
         self.nav[index].setFocus(Qt.FocusReason.OtherFocusReason)
@@ -659,8 +690,8 @@ class Window(QMainWindow):
         for value, count in zip(self.stats, (len(self.store.targets), sum(availability(t, self.store.settings["executables"], self.store.root)[1] for t in self.tools), len(self.history_rows))):
             effects.count_up(value, count)
         target = self.store.active_target
-        self.active_name.setText(target["label"] if target else "Aucune cible")
-        self.active_host.setText(target["url"] if target else "Ajoutez votre premier environnement.")
+        self.active_name.setText(target["label"] if target else T("Aucune cible"))
+        self.active_host.setText(target["url"] if target else T("Ajoutez votre premier environnement."))
         fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
         rows = [(r["tool"], (r.get("target") or {}).get("label", "Cet ordinateur"), STATUS.get(r["status"], r["status"]), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
         fill_table(self.recent, rows[:3], pill_cols=(2,))
@@ -677,7 +708,7 @@ class Window(QMainWindow):
                 QMessageBox.warning(self, "Cible non enregistrée", str(exc))
                 continue
             self.refresh()
-            self.statusBar().showMessage("Cible enregistrée et sélectionnée.")
+            self.statusBar().showMessage(T("Cible enregistrée et sélectionnée."))
             break
 
     def activate_target(self):
@@ -721,7 +752,7 @@ class Window(QMainWindow):
     def show_tool(self):
         tool = self.selected_tool()
         if not tool:
-            self.tool_name.setText("Aucun outil correspondant")
+            self.tool_name.setText(T("Aucun outil correspondant"))
             self.tool_status.clear()
             self.tool_desc.clear()
             self.tool_note.clear()
@@ -738,7 +769,7 @@ class Window(QMainWindow):
         record = installed(package, self.store.root) if package else None
         self.install_button.setVisible(bool(package) and can_install(package))
         self.install_button.setEnabled(bool(package) and not self.runner.active)
-        self.install_button.setText("Vérifier l’installation" if record else "Installer cet outil")
+        self.install_button.setText(T("Vérifier l’installation") if record else T("Installer cet outil"))
         if record:
             self.tool_note.setText(tool["note"] + "\nVersion installée : " + record["version"])
         elif package and (error := installation_error(package, self.store.root)):
@@ -777,7 +808,7 @@ class Window(QMainWindow):
         if path:
             self.store.settings["python"] = path
             self.store.save()
-            self.python_path.setText("Python : " + path)
+            self.python_path.setText(T("Python : ") + path)
 
     def install_selected(self):
         tool = self.selected_tool()
@@ -794,8 +825,8 @@ class Window(QMainWindow):
         self.console.clear()
         self.terminal_screen=None
         self.input_row.hide()
-        self.run_title.setText("Installation des outils")
-        self.run_info.setText("Téléchargement, vérification et installation · En cours")
+        self.run_title.setText(T("Installation des outils"))
+        self.run_info.setText(T("Téléchargement, vérification et installation · En cours"))
         try:
             self.runner.start("Dépendances natives", ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
             self.run_folder.setEnabled(True)
@@ -930,13 +961,13 @@ class Window(QMainWindow):
         self.python_pack_button.setEnabled(not active)
         self.stop_button.setEnabled(active)
         self.stop_button.setVisible(active)
-        self.stop_button.setText("Arrêter")
+        self.stop_button.setText(T("Arrêter"))
         self.execute_button.setEnabled(not active)
         self.execution_tool.setEnabled(not active)
         self.progress.setVisible(active)
         self.progress.setRange(0, 0 if active else 1)
         self.progress.setValue(0 if active else 1)
-        self.nav[3].setText("  Exécution · en cours" if active else "  Exécution")
+        self.nav[3].setText(T("  Exécution · en cours") if active else T("  Exécution"))
         self.show_tool()
 
     def stop_current(self):
@@ -945,7 +976,7 @@ class Window(QMainWindow):
             answer=QMessageBox.question(self,'Préparation Linux','Interrompre le suivi ? Une activation Windows élevée ou un téléchargement Linux déjà lancé peut continuer en arrière-plan. Attendez sa fin avant de reprendre.',QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)
             if answer!=QMessageBox.StandardButton.Yes:return
         self.stop_button.setEnabled(False)
-        self.stop_button.setText("Arrêt en cours…")
+        self.stop_button.setText(T("Arrêt en cours…"))
         self.runner.stop()
 
     def filter_history(self):

@@ -269,6 +269,41 @@ class Window(QMainWindow):
         self.navigate(0)
         if store.warning:
             self.statusBar().showMessage(store.warning)
+        from desktop.updater import UpdateChecker
+        self.update_checker = UpdateChecker(self)
+        self.update_checker.result.connect(self._on_update_result)
+        QTimer.singleShot(2500, lambda: self.check_updates(manual=False))
+
+    def check_updates(self, manual=False):
+        if manual and hasattr(self, "update_button"):
+            self.update_button.setEnabled(False)
+            self.update_button.setText("Vérification…")
+        self.update_checker.check(manual=manual)
+
+    def _on_update_result(self, available, version, url, manual):
+        if hasattr(self, "update_button"):
+            self.update_button.setEnabled(True)
+            self.update_button.setText("Rechercher les mises à jour")
+        if available and version:
+            message = f"Mise à jour disponible : Desktop {version}."
+            self.statusBar().showMessage(message)
+            if hasattr(self, "update_label"):
+                self.update_label.setText(message + " Ouvrez la page de téléchargement pour l’installer.")
+                self.update_label.setVisible(True)
+            if manual:
+                box = QMessageBox(self)
+                box.setWindowTitle("Mise à jour disponible")
+                box.setText(f"Desktop {version} est disponible (vous avez {VERSION}).")
+                box.setInformativeText("Ouvrir la page de téléchargement ?")
+                box.setStandardButtons(QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
+                box.setDefaultButton(QMessageBox.StandardButton.Open)
+                if box.exec() == QMessageBox.StandardButton.Open:
+                    QDesktopServices.openUrl(QUrl(url))
+        elif manual:
+            if version:
+                QMessageBox.information(self, "À jour", f"Vous utilisez déjà la dernière version (Desktop {VERSION}).")
+            else:
+                QMessageBox.warning(self, "Mise à jour", "Impossible de vérifier les mises à jour pour le moment.")
 
     def focus_search(self):
         self.navigate(2);self.search.setFocus();self.search.selectAll()
@@ -570,7 +605,15 @@ class Window(QMainWindow):
         frame, content = card()
         content.addWidget(label("À propos de cette version", "sectionTitle"))
         content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les attack flows proposent des étapes guidées et configurables. Le pilotage Tor/VPN reste séparé. Le routage est celui de l’environnement choisi.", "muted", True))
-        content.addWidget(button("Ouvrir le dépôt GitHub  »", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
+        self.update_label = label("", "muted", True)
+        self.update_label.setVisible(False)
+        content.addWidget(self.update_label)
+        updates = QHBoxLayout()
+        self.update_button = button("Rechercher les mises à jour", lambda: self.check_updates(manual=True))
+        updates.addWidget(self.update_button)
+        updates.addWidget(button("Ouvrir le dépôt GitHub  »", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
+        updates.addStretch()
+        content.addLayout(updates)
         layout.addWidget(frame)
         layout.addStretch()
 

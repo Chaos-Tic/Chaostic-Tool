@@ -4,9 +4,9 @@
 
 Préparez vos cibles, choisissez vos outils par phase, configurez vos opérations et retrouvez leurs résultats dans une interface claire en français, avec un thème clair ou sombre. L’application possède son installateur et se désinstalle depuis Windows.
 
-**[Télécharger Desktop 0.9.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.9.0)** · **[Guide Windows détaillé](README_WINDOWS.md)** · **[Version Linux en terminal](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Télécharger Desktop 1.0.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0)** · **[Guide Windows détaillé](README_WINDOWS.md)** · **[Version Linux en terminal](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
-![Centre de contrôle de ChaosticTool Desktop 0.9 : interface claire, accent orange, profil de démonstration local](docs/images/windows/desktop-0.9-accueil.png)
+![Centre de contrôle de ChaosticTool Desktop 1.0 : interface claire, accent orange, profil de démonstration local](docs/images/windows/desktop-1.0-accueil.png)
 
 *Application réelle, avec un profil de démonstration isolé. Les outils disponibles dépendent du poste de capture. Les releases ne contiennent ni ce profil ni l’historique du développeur.*
 
@@ -24,16 +24,16 @@ La branche historique `main` s’appelle maintenant **`linux-cli`**. Le renommag
 
 | Votre ordinateur | Installateur | Systèmes visés |
 |---|---|---|
-| Intel ou AMD 64 bits | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v0.9.0/ChaosticTool-Setup-0.9.0-windows-x64.exe) | Windows 10 **1809 ou ultérieur**, Windows 11 |
+| Intel ou AMD 64 bits | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.0/ChaosticTool-Setup-1.0.0-windows-x64.exe) | Windows 10 **1809 ou ultérieur**, Windows 11 |
 
-Cette préversion 0.9.0 est fournie pour **Windows x64**. Une archive ARM64 pourra suivre.
+Cette version 1.0.0 est fournie pour **Windows x64**. Une archive ARM64 pourra suivre.
 
 1. Vérifiez l’architecture dans **Paramètres Windows → Système → Informations système**, puis téléchargez le `.exe` correspondant. Les archives GitHub « Source code » ne sont pas l’installateur.
 2. Lancez l’installation. **Python et Git ne sont pas nécessaires** pour démarrer l’application distribuée.
 3. Ouvrez **ChaosticTool Desktop** depuis le menu Démarrer. **Ouvrir mes fichiers** donne accès à votre espace de données.
 4. Essayez le diagnostic local, puis ajoutez une cible et installez les outils nécessaires à votre usage.
 
-L’installateur et son empreinte SHA-256 figurent dans la [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v0.9.0). Desktop reste une **préversion**, sans signature d’éditeur Windows ; Windows peut afficher un avertissement de réputation. La distribution macOS n’est pas notarisée.
+L’installateur et son empreinte SHA-256 figurent dans la [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0). Desktop 1.0.0 est une **version publique stable**, sans signature d’éditeur Windows ; Windows peut afficher un avertissement de réputation. La distribution macOS n’est pas notarisée.
 
 ### Compatibilité de l’application et des outils
 
@@ -67,7 +67,7 @@ Pour découvrir l’interface sans scan distant, utilisez **Diagnostic local** o
 
 ## Catalogue : 48 outils CLI et 4 diagnostics supplémentaires
 
-![Arsenal classé par phases](docs/images/windows/desktop-0.9-arsenal.png)
+![Arsenal classé par phases](docs/images/windows/desktop-1.0-arsenal.png)
 
 Desktop reprend les **48 outils d’origine**, avec leurs profils graphiques, et ajoute **4 diagnostics**. Le classement par phases reprend celui de la CLI. Les options sont présentées dans des formulaires.
 
@@ -94,7 +94,7 @@ WSL n’est pas nécessaire pour ouvrir Desktop ou utiliser les fonctions native
 
 ## Attack flows : une cible et des étapes explicites
 
-![Sélecteur de cible des attack flows](docs/images/windows/desktop-0.9-flows.png)
+![Sélecteur de cible des attack flows](docs/images/windows/desktop-1.0-flows.png)
 
 Les trois flows d’origine sont disponibles, avec création, édition, import et export de flows personnalisés. Choisissez d’abord **Cible du flow** : la session conserve cette cible même si vous sélectionnez ensuite une autre cible globale.
 
@@ -114,9 +114,9 @@ Les dossiers portent des noms descriptifs pour reconnaître l’outil et le cont
 
 ## Interface claire, thème clair ou sombre
 
-![Thème sombre de ChaosticTool Desktop 0.9](docs/images/windows/desktop-0.9-sombre.png)
+![Thème sombre de ChaosticTool Desktop 1.0](docs/images/windows/desktop-1.0-sombre.png)
 
-Desktop 0.9 adopte une **interface claire et épurée** : fond clair, beaucoup d’air, un seul accent orange, typographie posée. Les cartes se détachent par des ombres douces et s’animent légèrement au survol. Un **thème sombre** complet est disponible : le bouton en haut de la fenêtre bascule clair/sombre et votre choix est mémorisé.
+Desktop 1.0 adopte une **interface claire et épurée** : fond clair, beaucoup d’air, un seul accent orange, typographie posée. Les cartes se détachent par des ombres douces et s’animent légèrement au survol. Un **thème sombre** complet est disponible : le bouton en haut de la fenêtre bascule clair/sombre et votre choix est mémorisé.
 
 Dans **Paramètres → Apparence**, désactivez les animations ou choisissez une cadence cible 60/30 pour l’ambiance. Cette cadence n’est pas une garantie de FPS. Les tableaux et journaux restent stables. Le rendu utilise **Qt/PySide6**, sans moteur de jeu.
 
@@ -129,6 +129,8 @@ Les données sont séparées du programme. Sous Windows, l’emplacement par dé
 ```
 
 L’installateur public n’embarque **ni historique, ni cibles, ni configuration Linux personnelle**. La construction vérifie l’absence de fichiers de profil dans le paquet. Le test de l’application empaquetée vérifie un profil initial vide avant d’exécuter son diagnostic.
+
+Desktop 1.0 vérifie aussi les nouvelles versions et vous prévient : **Paramètres → À propos → Rechercher les mises à jour**. La vérification n'installe rien automatiquement ; elle ouvre la page de téléchargement.
 
 Pour sauvegarder, fermez Desktop et copiez votre dossier de données. Pour mettre à jour, fermez l’application puis exécutez le nouvel installateur : vos données sont conservées. Une réinstallation sur votre PC retrouve donc normalement votre historique ; cet historique n’est pas fourni aux autres utilisateurs.
 
@@ -159,6 +161,6 @@ Pour signaler un problème, indiquez les versions de Desktop et Windows, l’arc
 | [Règles du dépôt](docs/REPOSITORY_RULES.md) | Branches, protection de `linux-cli` et contributions |
 | [Licences tierces](docs/THIRD_PARTY.md) | Dépendances et redistribution |
 
-Le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) construit Windows, Linux et macOS et teste les applications empaquetées. Les sources de cette version correspondent au tag `desktop-v0.9.0`. Le [guide Desktop](docs/DESKTOP.md) décrit l’exécution depuis les sources et la construction des paquets.
+Le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) construit Windows, Linux et macOS et teste les applications empaquetées. Les sources de cette version correspondent au tag `desktop-v1.0.0`. Le [guide Desktop](docs/DESKTOP.md) décrit l’exécution depuis les sources et la construction des paquets.
 
-[Licence MIT](LICENSE) · Interface française · **Documentation révisée pour Desktop 0.9.0**
+[Licence MIT](LICENSE) · Interface française · **Documentation révisée pour Desktop 1.0.0**

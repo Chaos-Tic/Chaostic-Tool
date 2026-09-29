@@ -193,11 +193,36 @@ FR_EN = {
     "Terminez l’opération en cours avant de changer de langue.":
         "Finish the current operation before changing language.",
     "Non vérifié": "Not checked",
+    "\nVersion installée : ": "\nInstalled version: ",
+    "outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux":
+        "tool(s) shown · statuses from native executables and the Linux inventory",
     "Les animations accompagnent vos actions. Les tableaux et journaux restent stables.":
         "Animations accompany your actions. Tables and logs stay stable.",
     "Ambiance lumineuse lente sur l’accueil, transitions et réactions aux interactions. Aucun balayage permanent. Désactivez les effets pour une interface statique.":
         "Slow ambient light on the home screen, transitions and reactions to interactions. No constant sweeping. Disable effects for a static interface.",
 }
+
+
+try:
+    from desktop.i18n_catalog import CATALOG as _CATALOG
+    FR_EN.update(_CATALOG)
+except Exception:
+    pass
+try:
+    from desktop.i18n_ui import UI as _UI
+    FR_EN.update(_UI)
+except Exception:
+    pass
+try:
+    from desktop.i18n_win import WIN as _WIN
+    FR_EN.update(_WIN)
+except Exception:
+    pass
+try:
+    from desktop.i18n_setup import SETUP as _SETUP
+    FR_EN.update(_SETUP)
+except Exception:
+    pass
 
 
 def set_language(lang: str) -> str:

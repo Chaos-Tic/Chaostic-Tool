@@ -2,491 +2,423 @@
 
 # ChaosticTool Desktop · Windows
 
-### Vos outils. Vos cibles. Vos résultats, dans une interface graphique.
+### Your tools. Your targets. Your results, in a graphical interface.
 
 **Windows 10 / 11 · x64 · Version 1.0.0**
 
-**[Télécharger pour Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.0/ChaosticTool-Setup-1.0.0-windows-x64.exe)**
+**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.0/ChaosticTool-Setup-1.0.0-windows-x64.exe)**
 
-[Tous les téléchargements et empreintes](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
-ChaosticTool Desktop rassemble un catalogue d'outils, des formulaires de lancement, une vue d'exécution et un historique local. Vous choisissez une cible lorsque le profil en demande une, configurez l'opération et retrouvez son journal dans l'application.
+ChaosticTool Desktop brings together a tool catalog, launch forms, an execution view and a local history. You choose a target when a profile needs one, configure the operation and find its log inside the application.
 
-![Accueil réel de Desktop 0.8](docs/images/windows/desktop-1.0-accueil.png)
+![ChaosticTool Desktop home screen](docs/images/windows/desktop-1.0-accueil.png)
 
-*L'accueil provient de Desktop 0.8 avec un profil de démonstration isolé. Les autres
-captures marquées 0.6 ou 0.3 illustrent les versions précédentes des formulaires.
-Les nombres d'outils disponibles dépendent du poste de capture ; aucun profil
-de démonstration ni historique personnel n'est fourni dans l'installateur.*
+*The home screen is captured from Desktop 1.0.0 with an isolated demo profile. The
+number of ready tools depends on the machine used for the capture; no demo profile
+or personal history is shipped in the installer.*
 
-> **À savoir avant de commencer**
+> **Before you start**
 >
-> Le catalogue contient **48 outils d'origine et 4 diagnostics supplémentaires**, soit **52 entrées**. Une entrée au catalogue n'est pas une dépendance déjà installée. Certaines opérations nécessitent Linux, des droits particuliers, une clé API, un service ou du matériel adapté. L'application installée ne demande ni Python ni Git pour démarrer.
+> The catalog contains **48 original tools and 4 additional diagnostics**, i.e. **52 entries**. A catalog entry is not an already-installed dependency. Some operations require Linux, special privileges, an API key, a service or suitable hardware. The installed application needs neither Python nor Git to start.
 
-## Dans ce guide
+## The interface language
 
-- [1. Choisir son installation](#installation)
-- [2. Réussir sa première opération](#premiere-operation)
-- [3. Comprendre les écrans et les états](#interface)
-- [4. Installer et configurer les outils](#outils)
-- [5. Choisir entre Windows, WSL et SSH](#environnements)
-- [6. Retrouver et sauvegarder ses données](#donnees)
-- [7. Mettre à jour ou désinstaller](#maintenance)
-- [8. Résoudre un problème](#depannage)
-- [9. Compatibilité, tests et limites](#validation)
-- [10. Développement et références](#references)
+The application starts in **English** by default. You can switch it to **French** at any
+time from **Settings → Appearance → Language**; the choice is saved and applied
+immediately. Every screen, form, dialog and status message follows the selected
+language.
 
-## OPERATION DECK : interface et animations
+## In this guide
 
-Desktop 0.8 adopte une direction Cyberpunk : jaune acide, cyan et rouge signal sur
-fonds sombres, panneaux anguleux et grandes entrées de navigation sur l'accueil.
-Les barres animées en boucle des versions précédentes sont supprimées. La lumière
-du décor d'accueil évolue lentement ; les boutons et transitions réagissent aux
-actions. L'arsenal, l'historique et les paramètres restent calmes au repos.
+- [1. Choose your installation](#installation)
+- [2. Succeed with your first operation](#first-operation)
+- [3. Understand the screens and statuses](#interface)
+- [4. Install and configure the tools](#tools)
+- [5. Choose between Windows, WSL and SSH](#environments)
+- [6. Find and back up your data](#data)
+- [7. Update or uninstall](#maintenance)
+- [8. Troubleshoot](#troubleshooting)
+- [9. Compatibility, tests and limits](#validation)
+- [10. Development and references](#references)
 
-- **Ctrl+K** ouvre la recherche de l'arsenal ; **F6** ouvre Exécution.
-- **Paramètres → OPERATION DECK / Apparence** conserve le choix d'animations et la
-  cadence cible 30/60. Désactiver les effets ne change pas les opérations.
-- Les panneaux masqués et la fenêtre réduite ne sont pas animés.
-- Le journal conserve un fond stable. Une pulsation fixe sur son bord indique une
-  opération active, sans balayage horizontal ou vertical.
-- Les compteurs décrivent les données réelles ; le décor urbain est illustratif.
+## Interface and animations
 
-[Architecture et captures actuelles](docs/NEXUS_VISUALS.md). Les anciennes sections
-de nouveautés ci-dessous décrivent l'historique des versions, pas toutes le rendu actuel.
+Desktop 1.0.0 uses a clean, light design: a white background with an orange accent,
+rounded cards and calm typography, plus an optional dark mode. Home-screen light
+evolves slowly; buttons and transitions react to your actions. The arsenal, history
+and settings stay quiet at rest.
+
+- **Ctrl+K** opens the arsenal search; **F6** opens Execution.
+- **Settings → Appearance** keeps the light/dark theme, the language and the choice
+  of animations with a 30/60 target frame rate. Disabling effects does not change
+  operations.
+- Hidden panels and a minimized window are not animated.
+- The log keeps a stable background. A fixed pulse on its edge marks an active
+  operation, with no horizontal or vertical sweeping.
+- Counters describe real data.
+
+![ChaosticTool Desktop in dark mode](docs/images/windows/desktop-1.0-sombre.png)
 
 <a id="installation"></a>
-## 1. Choisir son installation
+## 1. Choose your installation
 
-### Quel fichier télécharger ?
+### Which file to download?
 
-| Votre ordinateur | Fichier de la version 1.0.0 | Périmètre Windows |
+| Your computer | Version 1.0.0 file | Windows scope |
 |---|---|---|
-| Intel ou AMD 64 bits | `ChaosticTool-Setup-1.0.0-windows-x64.exe` | Windows 10 version 1809+ ou Windows 11 |
-| ARM64, par exemple un PC Snapdragon | Non fourni dans la version 1.0.0 (à venir) | Windows 11 ARM64 |
-| Windows 32 bits, Windows 7 ou Windows 8/8.1 | Aucun paquet compatible | Non pris en charge |
+| Intel or AMD 64-bit | `ChaosticTool-Setup-1.0.0-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
+| ARM64, e.g. a Snapdragon PC | Not shipped in 1.0.0 (planned) | Windows 11 ARM64 |
+| 32-bit Windows, Windows 7 or Windows 8/8.1 | No compatible package | Not supported |
 
-Dans **Paramètres Windows → Système → Informations système**, consultez **Type du système**. Pour connaître la version de Windows 10, ouvrez `winver` depuis le menu Démarrer. La disponibilité d'une archive ARM64 pour l'application ne garantit pas que chaque outil tiers dispose lui aussi d'un binaire ARM64.
+In **Windows Settings → System → About**, check **System type**. To find your Windows 10 version, open `winver` from the Start menu. An ARM64 archive being available for the application does not guarantee that every third-party tool also has an ARM64 binary.
 
-**Application et WSL ont des prérequis distincts.** L'installateur de l'application déclare Windows 10 1809 comme minimum. La procédure WSL utilisée par son bouton de préparation demande Windows 10 **2004 / build 19041 ou ultérieur**, ou Windows 11. Les outils natifs n'ont pas besoin de WSL. [Exigences Microsoft pour cette procédure WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+**The application and WSL have distinct prerequisites.** The application installer declares Windows 10 1809 as its minimum. The WSL procedure used by its preparation button requires Windows 10 **2004 / build 19041 or later**, or Windows 11. Native tools do not need WSL. [Microsoft requirements for this WSL procedure](https://learn.microsoft.com/en-us/windows/wsl/install).
 
-### De quoi avez-vous besoin ?
+### What do you need?
 
-| Élément | Pour l'application | Pour certains outils |
+| Item | For the application | For some tools |
 |---|---|---|
-| Python ou Git préinstallé | Non | Un Python isolé peut être téléchargé automatiquement pour le pack Python |
-| Connexion Internet | Pour télécharger l'installateur ; pas pour le diagnostic local | Pour installer les dépendances et utiliser les services en ligne |
-| Droits administrateur Windows | Pas pour l'installation par utilisateur | Possibles pour WSL, des pilotes ou certaines opérations |
-| Virtualisation | Non | Nécessaire à WSL 2 ; doit être disponible et activée sur le PC |
-| GPU / carte Wi-Fi spécialisée | Non | Selon le profil et l'outil ; leurs pilotes restent à préparer |
-| Espace disque et mémoire | Aucun minimum RAM/disque n'a été certifié pour toutes les configurations | Variable, notamment avec les packs et une distribution Linux |
+| Preinstalled Python or Git | No | An isolated Python can be downloaded automatically for the Python pack |
+| Internet connection | To download the installer; not for the local diagnostic | To install dependencies and use online services |
+| Windows administrator rights | Not for a per-user install | Possibly for WSL, drivers or some operations |
+| Virtualization | No | Required for WSL 2; must be available and enabled on the PC |
+| Dedicated GPU / Wi-Fi card | No | Depending on the profile and tool; their drivers still need preparing |
+| Disk space and memory | No minimum RAM/disk has been certified for every configuration | Variable, especially with the packs and a Linux distribution |
 
-La taille exacte de chaque installateur figure sur la Release. Prévoyez davantage d’espace pour les dépendances, Linux et les résultats des opérations.
+The exact size of each installer is shown on the Release. Plan for more space for dependencies, Linux and operation results.
 
-### Installation pas à pas
+### Step-by-step installation
 
-1. Sur la [Release Desktop 1.0.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0), téléchargez l'installateur de votre architecture. Les fichiers « Source code » s'adressent au développement et ne sont pas l'installateur.
-2. Ouvrez le fichier `.exe`, choisissez la langue de l'assistant et suivez ses étapes.
-3. Conservez le dossier proposé, sauf besoin particulier : `%LOCALAPPDATA%\Programs\ChaosticTool`.
-4. Cochez le raccourci sur le bureau si vous le souhaitez. Le menu Démarrer propose aussi **ChaosticTool Desktop**.
-5. Lancez l'application, puis effectuez le diagnostic décrit ci-dessous.
+1. On the [Desktop 1.0.0 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0), download the installer for your architecture. The “Source code” files are for development and are not the installer.
+2. Open the `.exe` file, choose the wizard language and follow its steps.
+3. Keep the suggested folder unless you have a specific need: `%LOCALAPPDATA%\Programs\ChaosticTool`.
+4. Tick the desktop shortcut if you want one. The Start menu also offers **ChaosticTool Desktop**.
+5. Launch the application, then run the diagnostic described below.
 
-La version n'a pas de signature d'éditeur Windows. SmartScreen ou une politique d'entreprise peut donc afficher un avertissement ou empêcher l'ouverture. Vérifiez la provenance du fichier ; le guide ne demande pas de désactiver vos protections.
+This build has no Windows publisher signature. SmartScreen or a company policy may therefore show a warning or block opening. Check the file's origin; the guide does not ask you to disable your protections.
 
 <details>
-<summary>Vérifier l'empreinte du téléchargement — facultatif, avec PowerShell</summary>
+<summary>Verify the download checksum — optional, with PowerShell</summary>
 
-Téléchargez le fichier `.sha256` correspondant depuis la même Release. Dans PowerShell, adaptez le chemin de votre téléchargement :
+Download the matching `.sha256` file from the same Release. In PowerShell, adapt the path of your download:
 
 ```powershell
 Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-1.0.0-windows-x64.exe"
 ```
 
-Comparez les 64 caractères hexadécimaux obtenus au contenu du fichier `.sha256`. La comparaison vérifie que le téléchargement correspond au fichier publié ; elle ne remplace pas une signature d'éditeur. Vous n'avez pas besoin de cette commande pour utiliser l'interface.
+Compare the 64 hexadecimal characters you get with the contents of the `.sha256` file. The comparison verifies that the download matches the published file; it does not replace a publisher signature. You do not need this command to use the interface.
 
 </details>
 
-<a id="premiere-operation"></a>
-## 2. Réussir sa première opération
+<a id="first-operation"></a>
+## 2. Succeed with your first operation
 
-### Étape A — vérifier l'application sans cible
+### Step A — check the application without a target
 
-Dans **Vue d'ensemble**, cliquez sur **Diagnostic local**. Vous pouvez aussi le rechercher dans **Arsenal d’outils**, puis choisir **Configurer et lancer**.
+In **Control center**, click **Local diagnostic**. You can also search for it in **Tool arsenal**, then choose **Configure and run**.
 
-**Résultat attendu :** l'écran **Exécution** affiche la version, le système et « Moteur de diagnostic opérationnel ». L'état passe à **Terminé**, avec le code de sortie `0`. Ce diagnostic ne contacte aucun serveur et ne nécessite pas d'installer un outil externe.
+**Expected result:** the **Execution** screen shows the version, the system and “Diagnostic engine operational”. The status turns to **Done**, with exit code `0`. This diagnostic contacts no server and does not require installing an external tool.
 
-### Étape B — enregistrer une cible de démonstration
+### Step B — save a demo target
 
-1. Cliquez sur **Ajouter une cible**.
-2. Saisissez l'adresse `http://localhost` et le nom **Démo locale**, puis enregistrez.
-3. Dans **Arsenal d’outils**, recherchez **Résolution DNS**.
-4. Cliquez sur **Configurer et lancer**, choisissez **Adresses IPv4 et IPv6**, puis sélectionnez **Démo locale**.
-5. Cliquez sur **Lancer**.
+1. Click **Add a target**.
+2. Enter the address `http://localhost` and the name **Local demo**, then save.
+3. In **Tool arsenal**, search for **DNS resolution**.
+4. Click **Configure and run**, choose **IPv4 and IPv6 addresses**, then select **Local demo**.
+5. Click **Run**.
 
-**Résultat attendu :** une adresse de boucle locale, généralement `127.0.0.1` et/ou `::1`, apparaît dans **Exécution**. Il n'est pas nécessaire d'avoir un serveur web en fonctionnement : ce profil résout le nom `localhost` et ne fait pas de requête HTTP.
+**Expected result:** a loopback address, usually `127.0.0.1` and/or `::1`, appears in **Execution**. You do not need a running web server: this profile resolves the `localhost` name and makes no HTTP request.
 
-![Résolution réelle de localhost terminée avec les adresses IPv4 127.0.0.1 et IPv6 ::1](docs/images/windows/desktop-0.6-execution.png)
+![Execution screen showing a finished DNS resolution](docs/images/windows/desktop-1.0-execution.png)
 
-*La capture montre le résultat réellement obtenu pour le parcours ci-dessus. L'IPv6 peut ne pas apparaître sur toutes les configurations.*
+*The capture shows the result actually produced for the journey above. IPv6 may not appear on every configuration.*
 
-### Étape C — retrouver le résultat
+### Step C — find the result
 
-Cliquez sur **Ouvrir les résultats**, ou passez par **Historique**, sélectionnez l'opération puis ouvrez son dossier ou exportez le journal. Vous retrouvez l'état final et le texte produit même après avoir fermé l'application.
+Click **Open the results**, or go through **History**, select the operation then open its folder or export the log. You find the final status and the produced text even after closing the application.
 
-Ce parcours confirme le lancement, le traitement d'une cible et la conservation d'un résultat. Il ne valide pas encore WSL ni les dépendances externes.
+This journey confirms launching, handling a target and keeping a result. It does not yet validate WSL or external dependencies.
 
 <a id="interface"></a>
-## 3. Comprendre les écrans et les états
+## 3. Understand the screens and statuses
 
-| Écran | À quoi il sert | Ce qu'il faut regarder |
+| Screen | What it is for | What to look at |
 |---|---|---|
-| **Vue d'ensemble** | Reprendre le travail et lancer le diagnostic | Cible active, outils détectés, opérations récentes |
-| **Cibles** | Enregistrer et sélectionner un domaine, une IP ou une URL | La cible choisie pour votre prochaine opération |
-| **Arsenal d’outils** | Chercher, installer et configurer un outil | État de disponibilité, profils et prérequis |
-| **Exécution** | Choisir un outil, configurer son profil, lancer et suivre l’opération | Bouton Configurer et exécuter, journal, arrêt actif et résultats |
-| **Attack flows** | Préparer un enchaînement guidé compatible avec la CLI | Trois flows fournis, éditeur, import/export JSON et état des étapes |
-| **Historique** | Relire ou exporter une opération précédente | État final et dossier de résultats |
-| **Paramètres** | Configurer Linux, les chemins et accéder aux données | Environnement choisi et dernier inventaire des outils |
+| **Control center** | Resume work and run the diagnostic | Active target, detected tools, recent operations |
+| **Targets** | Save and select a domain, an IP or a URL | The target chosen for your next operation |
+| **Tool arsenal** | Search, install and configure a tool | Availability status, profiles and prerequisites |
+| **Execution** | Choose a tool, configure its profile, launch and follow the operation | Configure and run button, log, active stop and results |
+| **Attack flows** | Prepare a guided, CLI-compatible chain | Three bundled flows, editor, JSON import/export and step states |
+| **History** | Re-read or export a previous operation | Final status and result folder |
+| **Settings** | Configure Linux, paths and access the data | Chosen environment and last tool inventory |
 
-![Catalogue Desktop sous Windows, avec recherche, filtres, packs et fiche de l'outil sélectionné](docs/images/windows/desktop-0.6-outils.png)
+![ChaosticTool Desktop catalog with search, filters, packs and the selected tool details](docs/images/windows/desktop-1.0-arsenal.png)
 
-*Le filtre Scan réseau montre Nmap, RustScan, Masscan et Naabu. Les états correspondent à un profil neuf : leur présence dans le catalogue ne signifie pas que leurs dépendances sont déjà installées.*
+*The Network scan filter shows Nmap, RustScan, Masscan and Naabu. The statuses match a fresh profile: their presence in the catalog does not mean their dependencies are already installed.*
 
-### Que signifient les états des outils ?
+### What do the tool statuses mean?
 
-| État | Signification | Suite logique |
+| Status | Meaning | Logical next step |
 |---|---|---|
-| **Inclus** | Moteur fourni avec l'application | Ouvrir le formulaire et renseigner les paramètres nécessaires |
-| **Prêt** | Exécutable natif détecté | Vérifier les éventuelles clés API, pilotes ou services avant usage |
-| **Prêt · Linux** | Outil trouvé dans le dernier inventaire Linux | Choisir l'environnement Linux dans le formulaire |
-| **À installer** | Programme natif non détecté | Installer l'outil ou sélectionner son exécutable compatible |
-| **Linux à configurer** | Aucun inventaire Linux exploitable pour cet outil | Configurer WSL/SSH puis vérifier la connexion |
-| **À installer · Linux** | Environnement détecté, mais outil absent de son inventaire | Installer le paquet côté Linux puis relancer la détection |
-| **Service requis** | L'outil demande aussi un moteur tiers, notamment Amass | Configurer le service et renseigner son adresse dans le profil |
-| **Échec installation** | Une tentative a échoué | Lire le journal : réseau, archive, dépendance, antivirus… |
+| **Bundled** | Engine shipped with the application | Open the form and fill in the needed parameters |
+| **Ready** | Native executable detected | Check any API keys, drivers or services before use |
+| **Ready · Linux** | Tool found in the last Linux inventory | Choose the Linux environment in the form |
+| **To install** | Native program not detected | Install the tool or select its compatible executable |
+| **Configure Linux** | No usable Linux inventory for this tool | Configure WSL/SSH then check the connection |
+| **To install · Linux** | Environment detected, but tool absent from its inventory | Install the package on Linux then re-run detection |
+| **Service required** | The tool also needs a third-party engine, notably Amass | Configure the service and enter its address in the profile |
+| **Install failed** | An attempt failed | Read the log: network, archive, dependency, antivirus… |
 
-**Le compteur « Outils prêts » n'est pas le nombre total du catalogue.** Il évolue selon les exécutables et l'inventaire Linux. Une clé API valide, les capacités d'un GPU ou le mode moniteur d'une carte Wi-Fi ne sont pas vérifiés par ce compteur.
+**The “Ready tools” counter is not the catalog's total.** It changes with the executables and the Linux inventory. A valid API key, a GPU's capabilities or a Wi-Fi card's monitor mode are not verified by this counter.
 
-### Pendant une opération
+### During an operation
 
-Desktop exécute une opération à la fois. Pour les sessions interactives, utilisez le champ de saisie et **Envoyer** ; **Masquer** cache la saisie et demande son masquage si l'outil la réaffiche. **Ctrl+C** envoie une interruption à la session Linux. **Arrêter** apparaît pendant une opération active ; il déclenche l’arrêt supervisé, affiche « Arrêt en cours… » puis disparaît. Le journal partiel est conservé. Le bouton **Configurer et exécuter** redevient disponible après la fin ou l’arrêt.
+Desktop runs one operation at a time. For interactive sessions, use the input field and **Send**; **Hide** masks the input and requests masking if the tool shows it again. **Ctrl+C** sends an interrupt to the Linux session. **Stop** appears during an active operation; it triggers a supervised stop, shows “Stopping…” then disappears. The partial log is kept. The **Configure and run** button becomes available again after the operation finishes or stops.
 
-| État final | Interprétation |
+| Final status | Interpretation |
 |---|---|
-| **Terminé** | Le processus a renvoyé un succès ; lire le résultat pour en interpréter le contenu |
-| **Échec** | Lancement impossible, erreur de l'outil ou délai dépassé ; consulter le détail et le code de sortie |
-| **Arrêté** | Arrêt demandé depuis l'application |
-| **Interrompu** | Une opération enregistrée était encore en cours lors d'une fermeture précédente |
+| **Done** | The process returned success; read the result to interpret its content |
+| **Failed** | Launch impossible, tool error or timeout; check the detail and the exit code |
+| **Stopped** | Stop requested from the application |
+| **Interrupted** | A saved operation was still running during a previous close |
 
-La sortie visible peut être limitée pour préserver la réactivité. Le journal complet se consulte dans le dossier ou par export. Les opérations ont des délais maximaux : environ 30 secondes pour les diagnostics intégrés, 20 minutes pour un outil standard, 30 minutes pour les installations natives/WSL et une heure pour le pack Linux. Ces limites sont celles de la version 1.0.0.
+Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 1.0.0.
 
-<a id="outils"></a>
-## 4. Installer et configurer les outils
+<a id="tools"></a>
+## 4. Install and configure the tools
 
-### Choisir le bon bouton
+### Choose the right button
 
-| Action dans **Arsenal d’outils** | Contenu / effet |
+| Action in **Tool arsenal** | Content / effect |
 |---|---|
-| **Installer le pack natif** | Subfinder, httpx de ProjectDiscovery, ffuf, Gobuster, Nuclei, Katana, gau, waybackurls, Dalfox et Naabu, selon les archives disponibles pour votre architecture |
-| **Installer les outils Python** | wafw00f, DNSRecon, theHarvester, Shodan, XSStrike, BloodHound Python, Impacket et sqlmap |
-| **Installer cet outil** | Installation individuelle lorsqu'un paquet natif est géré ; certaines fiches proposent d'autres outils comme Hashcat |
-| **Configurer le programme** / sélection de l'exécutable | Utilisation d'un programme déjà installé et compatible avec ce PC |
-| **Installer côté Linux** | Installation de l'outil sélectionné dans l'environnement Linux configuré |
-| **Installer le pack Linux** | Installation des paquets du catalogue disponibles dans les dépôts de cet environnement |
+| **Install the native pack** | Subfinder, ProjectDiscovery's httpx, ffuf, Gobuster, Nuclei, Katana, gau, waybackurls, Dalfox and Naabu, depending on the archives available for your architecture |
+| **Install the Python tools** | wafw00f, DNSRecon, theHarvester, Shodan, XSStrike, BloodHound Python, Impacket and sqlmap |
+| **Install this tool** | Individual install when a native package is managed; some entries offer other tools such as Hashcat |
+| **Configure the program** / executable selection | Use a program already installed and compatible with this PC |
+| **Install on Linux** | Install the selected tool in the configured Linux environment |
+| **Install the Linux pack** | Install the catalog packages available in this environment's repositories |
 
-Les archives sont choisies selon l'OS et l'architecture et contrôlées par SHA-256 avant extraction. Les outils Python disposent de leurs environnements isolés ; un runtime Python adapté peut être téléchargé automatiquement. Les versions principales sont référencées dans le [manifeste des outils](desktop/packages.json), le runtime dans [son manifeste](desktop/runtimes.json). Toutes les dépendances indirectes PyPI ne sont pas figées.
+Archives are chosen by OS and architecture and checked by SHA-256 before extraction. The Python tools have their own isolated environments; a suitable Python runtime can be downloaded automatically. The main versions are referenced in the [tools manifest](desktop/packages.json), the runtime in [its manifest](desktop/runtimes.json). Not every indirect PyPI dependency is pinned.
 
-Une installation de pack peut être **partiellement réussie** : les outils installés restent disponibles, même si d'autres échouent. Le journal nomme les échecs. Nmap utilise son assistant officiel, téléchargé et vérifié depuis l’application sur Windows x64. Certaines dépendances demandent toujours Linux ; la présence d’une fiche n’implique pas un binaire natif sur chaque architecture.
+A pack install can be **partially successful**: installed tools stay available, even if others fail. The log names the failures. Nmap uses its official installer, downloaded and verified from the application on Windows x64. Some dependencies still require Linux; the presence of an entry does not imply a native binary on every architecture.
 
-### Nmap et RustScan : installation et dépendances
+### Nmap and RustScan: installation and dependencies
 
-**Nmap sous Windows x64 :** choisissez Nmap → Installer cet outil. Desktop télécharge l’installateur 7.991 depuis `nmap.org` et compare son SHA-256 à l’empreinte officielle. L’assistant s’ouvre ensuite ; terminez ses étapes et celle de Npcap si nécessaire. Revenez dans Desktop et cliquez sur **Actualiser**. Le téléchargement seul ne marque jamais Nmap « Prêt ». Un Nmap déjà installé peut aussi être sélectionné avec **Choisir l’exécutable…**. Sur ARM64, choisissez une distribution compatible ou le moteur Linux ; l’installateur x64 n’est pas proposé automatiquement.
+**Nmap on Windows x64:** choose Nmap → Install this tool. Desktop downloads the 7.991 installer from `nmap.org` and compares its SHA-256 with the official fingerprint. The wizard then opens; finish its steps and the Npcap step if needed. Return to Desktop and click **Refresh**. The download alone never marks Nmap “Ready”. An already-installed Nmap can also be selected with **Choose the executable…**. On ARM64, choose a compatible distribution or the Linux engine; the x64 installer is not offered automatically.
 
-**RustScan :** l’installation intégrée télécharge RustScan 2.4.1 depuis sa Release officielle, vérifie l’archive et teste `--version`. Elle existe pour Windows x64, Linux x64/ARM64 et macOS Intel/Apple Silicon. Le profil **Port de la cible, sans Nmap** fonctionne seul. Les cinq profils issus de la CLI utilisent aussi Nmap ; Desktop vérifie sa présence et rend son dossier accessible au processus RustScan. Les anciens paramètres `--rate` et `-p 1-65535` sont adaptés aux options actuelles `-b` et `-r` : la taille de lot ne correspond pas à une limite stricte de paquets par seconde.
+**RustScan:** the bundled installation downloads RustScan 2.4.1 from its official Release, verifies the archive and tests `--version`. It exists for Windows x64, Linux x64/ARM64 and macOS Intel/Apple Silicon. The **Target port, without Nmap** profile works on its own. The five CLI profiles also use Nmap; Desktop checks that it is present and makes its folder reachable by the RustScan process. The old `--rate` and `-p 1-65535` parameters are mapped to the current `-b` and `-r` options: the batch size is not a strict packets-per-second limit.
 
-Sources : [Nmap pour Windows](https://nmap.org/book/inst-windows.html), [empreinte de l’installateur](https://nmap.org/dist/sigs/nmap-7.991-setup.exe.digest.txt), [RustScan 2.4.1](https://github.com/bee-san/RustScan/releases/tag/2.4.1).
+Sources: [Nmap for Windows](https://nmap.org/book/inst-windows.html), [installer fingerprint](https://nmap.org/dist/sigs/nmap-7.991-setup.exe.digest.txt), [RustScan 2.4.1](https://github.com/bee-san/RustScan/releases/tag/2.4.1).
 
-### Remplir un profil
+### Fill in a profile
 
-![Formulaire réel Nmap : exécution Windows, profil TCP connect et sélection de la cible](docs/images/windows/desktop-0.6-formulaire.png)
+![Nmap form: Windows execution, TCP connect profile and target selection](docs/images/windows/desktop-1.0-formulaire.png)
 
-1. Choisissez **Exécution** : natif Windows ou environnement Linux configuré, lorsque ces choix existent.
-2. Choisissez le **Profil**. Ses champs et ses besoins peuvent changer.
-3. Sélectionnez une **Cible** seulement si le profil en demande une. Un profil de traitement de fichiers peut être local et ne pas utiliser la cible active.
-4. Sélectionnez vos fichiers avec **Parcourir…**, ou renseignez les paramètres indiqués.
-5. Lisez l'aperçu et les messages sous le formulaire, puis lancez.
+1. Choose **Execution**: native Windows or the configured Linux environment, when those choices exist.
+2. Choose the **Profile**. Its fields and needs can change.
+3. Select a **Target** only if the profile needs one. A file-processing profile can be local and not use the active target.
+4. Select your files with **Browse…**, or fill in the indicated parameters.
+5. Read the preview and the messages under the form, then launch.
 
-La capture montre Nmap et son profil TCP connect sur les 100 ports courants. Les profils CLI sont également disponibles dans le sélecteur : scans complets, services, UDP, scripts NSE, etc. Les prérequis Npcap et privilèges sont indiqués pour les profils concernés. Les formulaires de traitement de fichiers proposent leurs champs et boutons Parcourir selon le profil.
+The capture shows Nmap and its TCP connect profile on the top 100 common ports. The CLI profiles are also available in the selector: full scans, services, UDP, NSE scripts, etc. Npcap and privilege prerequisites are indicated for the relevant profiles. File-processing forms offer their fields and Browse buttons depending on the profile.
 
-Les champs sensibles prévus par les profils — mot de passe, cookie, clé API — sont masqués dans l'aperçu, l'historique de commande et le flux géré par Desktop. **Les fichiers produits et les configurations propres aux outils restent sous leur responsabilité** : ils peuvent conserver des informations sensibles. Par exemple, initialiser Shodan configure sa clé pour ses usages suivants.
+Sensitive fields planned by the profiles — password, cookie, API key — are masked in the preview, the command history and the flow managed by Desktop. **Files produced and tool-specific configurations remain your responsibility**: they may keep sensitive information. For example, initializing Shodan configures its key for its later uses.
 
-<a id="environnements"></a>
-### Classement et attack flows
+### Ordering and attack flows
 
-Le filtre des phases reprend l’ordre et les appartenances de la CLI : **01 OSINT**, **02 Scan réseau**, **03 Énumération Web**, **04 Vulnérabilités**, **05 Exploitation**, **06 Post-exploitation**, **07 Mots de passe**, **08 Windows / Active Directory**, **09 Wi-Fi**, **10 Réseau & MITM**. Un outil commun à plusieurs phases apparaît dans chacune de leurs vues, sans être compté plusieurs fois dans le catalogue. Les quatre utilitaires propres à Desktop ont leur filtre séparé.
+The phase filter follows the CLI's order and memberships: **01 OSINT**, **02 Network scan**, **03 Web enumeration**, **04 Vulnerabilities**, **05 Exploitation**, **06 Post-exploitation**, **07 Passwords**, **08 Windows / Active Directory**, **09 Wi-Fi**, **10 Network & MITM**. A tool shared by several phases appears in each of their views, without being counted several times in the catalog. The four Desktop-specific utilities have their own separate filter.
 
-![Attack flows : étapes du flow Basic, états et actions](docs/images/windows/desktop-0.6-flows.png)
+![Attack flows: steps of the Basic flow, states and actions](docs/images/windows/desktop-1.0-flows.png)
 
-1. Ajoutez puis activez une cible dans **Cibles**.
-2. Ouvrez **Attack flows** et choisissez **Basic**, **Intermediate** ou **Advanced**, partagés avec la CLI.
-3. Sélectionnez une étape puis **Configurer et exécuter l’étape**. Le formulaire utilise précisément son profil CLI ; vous pouvez choisir le moteur et compléter les champs.
-4. Consultez le journal dans **Exécution**. **Retour au flow** ramène à la session ; après une réussite, l’étape suivante est sélectionnée mais ne se lance pas automatiquement.
-5. Une étape en échec ou arrêtée peut être relancée ou passée explicitement. **Résultats du flow** filtre l’historique par son nom. **Nouvelle session** recommence le suivi sans supprimer les anciens résultats.
+1. Add then activate a target in **Targets** (or directly in the flow).
+2. Open **Attack flows** and choose **Basic**, **Intermediate** or **Advanced**, shared with the CLI.
+3. Select a step then **Configure and run the step**. The form uses exactly its CLI profile; you can choose the engine and fill in the fields.
+4. Read the log in **Execution**. **Back to flow** returns to the session; after a success, the next step is selected but does not launch automatically.
+5. A failed or stopped step can be re-run or explicitly skipped. **Flow results** filters the history by its name. **New session** restarts tracking without deleting previous results.
 
-**Créer** ouvre un éditeur : nom, description, choix de l’outil et de son profil, ajout, déplacement et retrait d’étapes. **Modifier / copier** modifie un flow personnel et duplique un flow fourni. **Importer CLI…** accepte le dictionnaire JSON de `custom_flows.json` ; l’ensemble est validé avant enregistrement. **Exporter…** produit le même format. **Supprimer** ne retire que les flows personnalisés et conserve les journaux. La cible est fixée pour la session ; les secrets saisis dans les formulaires ne sont pas stockés dans le fichier de définition.
+**Create** opens an editor: name, description, choice of the tool and its profile, add, move and remove steps. **Edit / copy** edits a personal flow and duplicates a bundled flow. **Import CLI…** accepts the JSON dictionary from `custom_flows.json`; the whole set is validated before saving. **Export…** produces the same format. **Delete** removes only custom flows and keeps the logs. The target is fixed for the session; secrets typed in the forms are not stored in the definition file.
 
-Les journaux restent consultables après fermeture ; cette version ne restaure pas automatiquement une session de flow interrompue. Les fichiers de suivi sont conservés sous `flows/history/`. Les flows réutilisent les mêmes dépendances et limites que les outils individuels : un flow n’installe pas silencieusement un outil manquant.
+Logs stay readable after closing; this version does not automatically restore an interrupted flow session. Tracking files are kept under `flows/history/`. Flows reuse the same dependencies and limits as individual tools: a flow does not silently install a missing tool.
 
-## 5. Choisir entre Windows, WSL et SSH
+**Explicit flow target.** In Attack flows, select **Flow target** or use **Add a target…**. The launch form receives that target, distinct from the global target. Each session keeps its target; changing the target requires creating a new session, keeping the previous one. The selection is locked during execution.
+
+<a id="environments"></a>
+## 5. Choose between Windows, WSL and SSH
 
 ```mermaid
 flowchart TD
-    A[Outil et profil choisis dans Desktop] --> B{Où exécuter ?}
-    B --> C[Natif Windows]
-    B --> D[Distribution WSL sur ce PC]
-    B --> E[Votre machine Linux via SSH]
-    C --> F[Résultats locaux]
+    A[Tool and profile chosen in Desktop] --> B{Where to run?}
+    B --> C[Native Windows]
+    B --> D[WSL distribution on this PC]
+    B --> E[Your Linux machine over SSH]
+    C --> F[Local results]
     D --> F
-    E --> G[Journal dans Desktop et fichiers sur Linux]
+    E --> G[Log in Desktop and files on Linux]
 ```
 
-| Mode | À préparer | Où sont les fichiers d'entrée et de sortie ? |
+| Mode | To prepare | Where are the input and output files? |
 |---|---|---|
-| **Natif Windows** | Programme Windows compatible et ses éventuels prérequis | Sur le PC ; sorties du profil dans son dossier d'opération |
-| **WSL** | WSL, distribution initialisée, Python 3 et outils Linux | Fichiers Windows accessibles dans WSL ; chemins traduits par l'application |
-| **SSH** | Votre Linux, Python 3, OpenSSH côté Windows, clé autorisée et hôte connu | Entrées déjà présentes sur Linux ; sorties sur Linux ; journal conservé dans Desktop |
+| **Native Windows** | Compatible Windows program and its possible prerequisites | On the PC; profile outputs in its operation folder |
+| **WSL** | WSL, initialized distribution, Python 3 and Linux tools | Windows files reachable in WSL; paths translated by the application |
+| **SSH** | Your Linux, Python 3, OpenSSH on Windows, authorized key and known host | Inputs already present on Linux; outputs on Linux; log kept in Desktop |
 
-Le réseau utilisé est celui de l'environnement d'exécution. Une cible `127.0.0.1` désigne donc le PC en natif, l'environnement Linux en WSL ou la machine distante en SSH selon le mode choisi. Vérifiez ce choix avant d'interpréter un résultat.
+The network used is the one of the execution environment. A `127.0.0.1` target therefore means the PC in native mode, the Linux environment in WSL, or the remote machine in SSH, depending on the chosen mode. Check this choice before interpreting a result.
 
-### Préparer WSL et Kali
+### Prepare WSL and Kali
 
-1. Dans **Paramètres**, cliquez sur **Installer WSL et Kali Linux…**. Une demande de droits administrateur peut apparaître.
-2. Lisez la sortie d'installation. Si Windows demande un redémarrage, redémarrez manuellement, puis reprenez la préparation si la distribution n'est pas encore installée.
-3. Ouvrez **Kali Linux** depuis Démarrer et terminez la création du compte Linux. Cette initialisation peut ouvrir une console et demander un nom d'utilisateur et un mot de passe ; elle n'est pas remplacée par le formulaire Desktop. [Procédure officielle Kali](https://www.kali.org/docs/wsl/wsl-preparations/).
-4. Revenez à **Paramètres → Configurer Linux / WSL / SSH**, choisissez **Distribution WSL** et renseignez son nom, généralement `kali-linux`.
-5. Enregistrez. La connexion est vérifiée ; vous pouvez relancer **Vérifier la connexion et les outils**.
-6. Installez un outil côté Linux ou le pack Linux, puis vérifiez son état dans le catalogue.
+1. In **Settings**, click **Install WSL and Kali Linux…**. An administrator prompt may appear.
+2. Read the installation output. If Windows asks for a restart, restart manually, then resume the setup if the distribution is not installed yet.
+3. Open **Kali Linux** from Start and finish creating the Linux account. This initialization can open a console and ask for a username and a password; it is not replaced by the Desktop form. [Official Kali procedure](https://www.kali.org/docs/wsl/wsl-preparations/).
+4. Return to **Settings → Configure Linux / WSL / SSH**, choose **WSL distribution** and enter its name, usually `kali-linux`.
+5. Save. The connection is verified; you can re-run **Check the connection and tools**.
+6. Install a tool on Linux or the Linux pack, then check its status in the catalog.
 
-![Configuration réelle de l'environnement Linux, avec WSL sélectionné et distribution kali-linux](docs/images/windows/desktop-0.3-linux.png)
+![Linux environment configuration, with WSL selected and the kali-linux distribution](docs/images/windows/desktop-1.0-linux.png)
 
-*Les champs SSH restent désactivés en mode WSL. La capture ne représente pas une connexion déjà validée : l'inventaire s'effectue après l'enregistrement.*
+*The SSH fields stay disabled in WSL mode. The capture does not represent an already-validated connection: the inventory runs after saving.*
 
-Le pack Linux utilise `apt` sur Kali/Debian/Ubuntu. Il n'ajoute pas de dépôts Kali à Ubuntu. Un paquet absent est signalé ; le catalogue ne peut pas garantir la présence de tous les outils dans les dépôts de toutes les distributions. Si un programme est déjà installé ailleurs, utilisez **Chemin Linux personnalisé…**, puis relancez l'inventaire.
+The Linux pack uses `apt` on Kali/Debian/Ubuntu. It does not add Kali repositories to Ubuntu. A missing package is reported; the catalog cannot guarantee the presence of every tool in every distribution's repositories. If a program is already installed elsewhere, use **Custom Linux path…**, then re-run the inventory.
 
 <details>
-<summary>Vérifications WSL facultatives dans PowerShell</summary>
+<summary>Optional WSL checks in PowerShell</summary>
 
-Ces commandes consultent l'état de WSL ; elles ne suppriment aucune distribution :
+These commands read the WSL state; they delete no distribution:
 
 ```powershell
 wsl --version
 wsl --list --verbose
 ```
 
-Recopiez le nom de distribution réellement affiché dans les paramètres de Desktop. Le compte et le mot de passe Linux sont distincts du compte Windows. Voir [la préparation du compte Linux chez Microsoft](https://learn.microsoft.com/en-us/windows/wsl/setup/environment).
+Copy the distribution name actually shown into the Desktop settings. The Linux account and password are separate from the Windows account. See [the Linux account preparation at Microsoft](https://learn.microsoft.com/en-us/windows/wsl/setup/environment).
 
 </details>
 
-### Utiliser votre machine Linux en SSH
+### Use your Linux machine over SSH
 
-Choisissez **Machine ou VM Linux en SSH**, renseignez l'hôte, l'utilisateur et le port, puis, si nécessaire, le chemin de votre clé privée et celui du fichier `known_hosts`. Enregistrez et vérifiez la connexion.
+Choose **Linux machine or VM over SSH**, enter the host, the user and the port, then, if needed, the path to your private key and to the `known_hosts` file. Save and check the connection.
 
-Le mode SSH utilise une authentification SSH par clé déjà fonctionnelle et refuse les clés d'hôte inconnues. Il ne fournit pas d'assistant de création de clé, d'acceptation initiale de l'hôte ou de saisie de mot de passe SSH. Une clé chiffrée doit pouvoir être utilisée sans demande interactive par le client SSH, par exemple via votre agent déjà préparé.
+SSH mode uses an already-working key-based SSH authentication and refuses unknown host keys. It does not provide a wizard for key creation, initial host acceptance or SSH password entry. An encrypted key must be usable without an interactive prompt by the SSH client, for example through your already-prepared agent.
 
-En SSH, les champs de fichiers attendent des **chemins Linux absolus**, comme `/home/demo/documents/liste.txt`, et non `C:\…`. Il n'y a pas de transfert automatique. Les fichiers de sortie se trouvent sous `~/.local/share/ChaosticTool/runs/` sur Linux ; le journal textuel de la session est enregistré côté Desktop.
+In SSH, file fields expect **absolute Linux paths**, such as `/home/demo/documents/list.txt`, not `C:\…`. There is no automatic transfer. Output files are found under `~/.local/share/ChaosticTool/runs/` on Linux; the session's text log is saved on the Desktop side.
 
-<a id="donnees"></a>
-## 6. Retrouver et sauvegarder ses données
+<a id="data"></a>
+## 6. Find and back up your data
 
-| Emplacement Windows par défaut | Contenu |
+| Default Windows location | Content |
 |---|---|
-| `%LOCALAPPDATA%\Programs\ChaosticTool` | Application installée et bibliothèques |
-| `%LOCALAPPDATA%\ChaosticTool\Desktop` | Données de votre compte utilisateur |
-| `settings.json` dans le dossier de données | Cibles, sélection active et chemins configurés |
-| `linux.json` / `linux-status.json` | Configuration Linux et dernier inventaire |
-| `tools\` | Outils téléchargés, manifestes et informations d'échec |
-| `flows\custom.json` | Définitions des flows personnels, exportables vers la CLI |
-| `flows\history\*.json` | États des étapes et références aux opérations exécutées |
-| `runs\<opération>\run.json` | Métadonnées : outil, profil, dates, commande masquée et état |
-| `runs\<opération>\output.txt` | Journal textuel de l'opération |
+| `%LOCALAPPDATA%\Programs\ChaosticTool` | Installed application and libraries |
+| `%LOCALAPPDATA%\ChaosticTool\Desktop` | Your user account's data |
+| `settings.json` in the data folder | Targets, active selection and configured paths |
+| `linux.json` / `linux-status.json` | Linux configuration and last inventory |
+| `tools\` | Downloaded tools, manifests and failure information |
+| `flows\custom.json` | Personal flow definitions, exportable to the CLI |
+| `flows\history\*.json` | Step states and references to executed operations |
+| `runs\<operation>\run.json` | Metadata: tool, profile, dates, masked command and status |
+| `runs\<operation>\output.txt` | Text log of the operation |
 
-Dans **Paramètres**, utilisez **Ouvrir le dossier de données** pour retrouver le bon emplacement. Une variable `CHAOSTIC_DESKTOP_HOME` peut modifier ce dossier dans une configuration avancée.
+In **Settings**, use **Open the data folder** to find the right location. A `CHAOSTIC_DESKTOP_HOME` variable can change this folder in an advanced configuration.
 
-Pour sauvegarder : fermez Desktop, puis copiez le dossier de données vers votre stockage de sauvegarde. Les journaux et les fichiers de résultats peuvent contenir des informations sur vos cibles ; traitez-les comme vos autres données de travail.
+To back up: close Desktop, then copy the data folder to your backup storage. Logs and result files can contain information about your targets; treat them like your other working data.
 
-Une copie du dossier ne garantit pas une migration immédiate des dépendances vers un autre PC : certains environnements Python et chemins configurés dépendent de leur emplacement. Sur une nouvelle machine, restaurez vos données utiles et réinstallez/reconfigurez les outils si nécessaire.
+Copying the folder does not guarantee an immediate migration of dependencies to another PC: some Python environments and configured paths depend on their location. On a new machine, restore your useful data and reinstall/reconfigure the tools if needed.
+
+Each user has their own Windows data space in `%LOCALAPPDATA%\ChaosticTool\Desktop`. An update on the same account therefore finds its own history; an install on a new account starts with zero targets and zero operations. No developer history is shipped in the application. The guide's captures are demo examples, not preloaded data.
 
 <a id="maintenance"></a>
-## 7. Mettre à jour ou désinstaller
+## 7. Update or uninstall
 
-Les nouveaux dossiers d’opérations portent un nom lisible, par exemple :
+New operation folders have a readable name, for example:
 
 ```text
-20260928-143012__localhost__nmap__100-ports-tcp-courants__a12b34cd
+20260928-143012__localhost__nmap__top-100-common-tcp-ports__a12b34cd
 ```
 
-Le nom contient l’heure locale, l’hôte, l’outil, le profil et un suffixe unique. Les métadonnées conservent aussi la date UTC. Les paramètres d’URL et les secrets ne sont pas utilisés dans le nom du dossier. Les anciens dossiers restent lisibles dans l’historique. Une recherche permet de filtrer par outil, profil, cible ou nom de flow.
+The name contains the local time, the host, the tool, the profile and a unique suffix. The metadata also keep the UTC date. URL parameters and secrets are not used in the folder name. Old folders stay readable in the history. A search lets you filter by tool, profile, target or flow name.
 
-**Mise à jour :** fermez Desktop, téléchargez l'installateur de la nouvelle version pour votre architecture et lancez-le. Il n'est pas nécessaire de désinstaller la version précédente. Les données restent dans leur dossier séparé. Cette version ne comporte pas de mise à jour automatique de l'application.
+The history combines a text search with Target, Status, Tool and Period lists (24 h, 7 days, 30 days or all dates). The counter shows the number displayed and the total. Resetting the filters brings back all operations. Targets removed from the address book stay filterable as long as their results exist. Selecting a row then **Delete this result…** removes only that operation and its local files. **Clear the history…** also deletes past flow sessions while keeping the custom flow definitions; it is disabled during an operation and refuses symbolic links / junctions in results.
 
-**Désinstallation :** ouvrez **Paramètres Windows → Applications**, sélectionnez **ChaosticTool Desktop**, puis **Désinstaller**. L'application et ses raccourcis sont retirés. Les cibles, journaux et outils téléchargés dans le dossier de données sont conservés.
+**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 1.0.0 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and only opens the download page after you confirm.
 
-**Nettoyage complet :** après sauvegarde et désinstallation, vous pouvez supprimer vous-même `%LOCALAPPDATA%\ChaosticTool\Desktop` si vous souhaitez aussi effacer ces données et dépendances. Une distribution WSL, un programme installé séparément ou les fichiers d'une machine SSH ne sont pas supprimés par le désinstalleur Desktop.
+**Uninstall:** open **Windows Settings → Apps**, select **ChaosticTool Desktop**, then **Uninstall**. The application and its shortcuts are removed. Targets, logs and downloaded tools in the data folder are kept.
 
-<a id="depannage"></a>
-## 8. Résoudre un problème
+**Full cleanup:** after backup and uninstall, you can delete `%LOCALAPPDATA%\ChaosticTool\Desktop` yourself if you also want to erase this data and its dependencies. A WSL distribution, a separately installed program or the files on an SSH machine are not removed by the Desktop uninstaller.
 
-| Symptôme | À vérifier | Action utile |
+<a id="troubleshooting"></a>
+## 8. Troubleshoot
+
+| Symptom | What to check | Useful action |
 |---|---|---|
-| L'installateur ne correspond pas à ce PC | Architecture x64/ARM64 et version Windows | Reprendre le tableau de téléchargement ; ne pas utiliser une archive Linux/macOS |
-| Windows bloque l'ouverture | Provenance, avertissement de réputation ou politique administrateur | Vérifier la Release et son empreinte ; consulter le message exact. Ne pas désactiver globalement les protections |
-| Seulement 6 outils sont prêts | Profil neuf sans dépendances externes | C'est cohérent avec les six fonctions intégrées ; installer les outils souhaités |
-| Le catalogue n'affiche pas les 52 entrées | Recherche, catégorie et **Prêts uniquement** | Effacer la recherche, choisir toutes les catégories et désactiver ce filtre |
-| Un pack se termine en échec | Liste des outils qui ont réellement échoué | Lire **Historique** ; les installations déjà réussies sont conservées |
-| Un antivirus bloque un outil | Historique de protection Windows et journal de l'installation | Identifier le paquet concerné ; Desktop ne crée pas d'exclusion antivirus |
-| « Linux à configurer » | Mode WSL/SSH et dernière vérification | Enregistrer la configuration puis vérifier la connexion |
-| WSL demande un redémarrage | Fonctionnalités Windows activées mais non effectives | Redémarrer, terminer l'initialisation de Kali, puis reprendre la vérification |
-| SSH échoue | Client SSH, hôte, port, utilisateur, clé et `known_hosts` | Rétablir la connexion par clé ; les mots de passe interactifs SSH ne sont pas pris en charge ici |
-| Un fichier est introuvable en SSH | Chemin saisi et emplacement réel | Utiliser son chemin absolu sur Linux ; aucun envoi automatique du fichier local |
-| HTTP renvoie « connexion refusée » | Service web et port de la cible | Vérifier que votre service écoute ; enregistrer l'URL avec son port, par exemple `http://localhost:8080` |
-| Amass indique « Service requis » | Moteur de collecte configuré | Préparer le moteur puis renseigner son URL dans le formulaire |
-| Hashcat démarre mais ne trouve pas de périphérique | GPU / environnement de calcul et pilotes | Consulter la documentation du constructeur et de Hashcat ; le lancement du binaire ne valide pas le GPU |
-| Un outil Wi-Fi ne voit pas d'interface compatible | Matériel réellement accessible depuis Linux | Vérifier interface, pilotes et capacités Linux ; la présence d'une carte Wi-Fi Windows ne suffit pas |
-| L'opération dépasse sa durée maximale | Profil, taille des données et délai affiché | Consulter le journal partiel et les limites de durée de cette version |
-| Le journal affiché est incomplet | Aperçu limité par l'interface | **Exporter le journal…** ou ouvrir `output.txt` dans le dossier d'opération |
+| The installer does not match this PC | x64/ARM64 architecture and Windows version | Re-read the download table; do not use a Linux/macOS archive |
+| Windows blocks opening | Origin, reputation warning or administrator policy | Check the Release and its fingerprint; read the exact message. Do not globally disable protections |
+| Only 6 tools are ready | Fresh profile without external dependencies | This is consistent with the six bundled functions; install the tools you want |
+| The catalog does not show the 52 entries | Search, category and **Ready only** | Clear the search, choose all categories and disable that filter |
+| A pack finishes with a failure | List of tools that actually failed | Read **History**; installs that already succeeded are kept |
+| An antivirus blocks a tool | Windows protection history and install log | Identify the affected package; Desktop does not create an antivirus exclusion |
+| “Configure Linux” | WSL/SSH mode and last check | Save the configuration then check the connection |
+| WSL asks for a restart | Windows features enabled but not effective | Restart, finish Kali's initialization, then resume the check |
+| SSH fails | SSH client, host, port, user, key and `known_hosts` | Restore the key-based connection; interactive SSH passwords are not supported here |
+| A file is missing over SSH | Path entered and real location | Use its absolute path on Linux; the local file is not sent automatically |
+| HTTP returns “connection refused” | Web service and target port | Check that your service is listening; save the URL with its port, e.g. `http://localhost:8080` |
+| Amass shows “Service required” | Configured collection engine | Prepare the engine then enter its URL in the form |
+| Hashcat starts but finds no device | GPU / compute environment and drivers | Read the vendor's and Hashcat's documentation; launching the binary does not validate the GPU |
+| A Wi-Fi tool sees no compatible interface | Hardware actually reachable from Linux | Check the interface, drivers and Linux capabilities; a Windows Wi-Fi card is not enough |
+| The operation exceeds its maximum duration | Profile, data size and displayed timeout | Read the partial log and this version's duration limits |
+| The displayed log is incomplete | Preview limited by the interface | **Export the log…** or open `output.txt` in the operation folder |
 
-### Signaler un bug utilement
+### Report a bug usefully
 
-Dans une [issue GitHub](https://github.com/Chaos-Tic/Chaostic-Tool/issues), indiquez : version Desktop, version/build Windows, architecture, outil et profil, mode natif/WSL/SSH, étapes de reproduction, résultat attendu, message exact et code de sortie. Ajoutez seulement un extrait pertinent du journal, après retrait des secrets et informations privées.
+In a [GitHub issue](https://github.com/Chaos-Tic/Chaostic-Tool/issues), state: Desktop version, Windows version/build, architecture, tool and profile, native/WSL/SSH mode, reproduction steps, expected result, exact message and exit code. Add only a relevant excerpt of the log, after removing secrets and private information.
 
 <a id="validation"></a>
-## 9. Compatibilité, tests et limites
+## 9. Compatibility, tests and limits
 
-Les sources de cette version sont identifiées par le tag `desktop-v1.0.0`. Les résultats de compilation et de tests sont consultables dans le [workflow Desktop](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
+This version's sources are identified by the `desktop-v1.0.0` tag. Build and test results are available in the [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
 
-| Vérification | Portée réelle |
+| Check | Actual scope |
 |---|---|
-| 50 tests automatisés | Formulaires, correspondance de chaque profil CLI, flows, filtres, petite fenêtre, clic Exécuter/Arrêter, persistance, secrets et pont POSIX ; 5 tests POSIX sont ignorés sous Windows |
-| Exécutables des 6 plateformes | Lancement de l'application compilée avec un profil temporaire |
-| Windows x64 / ARM64 en CI | Runners Windows Server 2022 et Windows 11 ARM ; cela ne teste pas chaque version de Windows 10 |
-| Installation Windows locale | Installation, réinstallation, inscription du désinstalleur et conservation des données dans un environnement de test distinct |
-| Python automatique | Téléchargement et lancement d'un runtime isolé sous Windows en simulant l'absence de Python installé |
-| DNS avancé compilé | Réponse vérifiée contre un serveur DNS local de test |
-| Pont Linux/macOS | Inventaire et pseudo-terminal réel, y compris dans les exécutables compilés |
+| 66 automated tests | Forms, matching of each CLI profile, flows, filters, small window, Run/Stop click, persistence, secrets, i18n and the POSIX bridge; 6 POSIX/platform tests are skipped on Windows |
+| Executables for 6 platforms | Launch of the compiled application with a temporary profile |
+| Windows x64 / ARM64 in CI | Windows Server 2022 and Windows 11 ARM runners; this does not test every Windows 10 version |
+| Local Windows install | Install, reinstall, uninstaller registration and data retention in a separate test environment |
+| Automatic Python | Download and launch of an isolated runtime on Windows while simulating the absence of an installed Python |
+| Compiled Advanced DNS | Response verified against a local test DNS server |
+| Linux/macOS bridge | Inventory and a real pseudo-terminal, including in the compiled executables |
 
-**Ce qui n'est pas promis par la version :** toutes les opérations de tous les outils testées sur des cibles réelles ; tous les GPU ou périphériques Wi-Fi ; une distribution native de chaque dépendance sur ARM64 ; une configuration automatique de vos services et clés API ; une signature d'éditeur Windows ; un transfert de fichiers SSH ; la reprise après interruption d'une opération ; des opérations simultanées ; les fonctions Tor/proxychains/VPN guard de la CLI.
+**What the version does not promise:** every operation of every tool tested on real targets; every GPU or Wi-Fi device; a native distribution of each dependency on ARM64; automatic configuration of your services and API keys; a Windows publisher signature; SSH file transfer; recovery after an interrupted operation; simultaneous operations; the CLI's Tor/proxychains/VPN-guard functions.
 
-Le détail des profils par outil se trouve dans le [catalogue de compatibilité](docs/WINDOWS_PORT.md). Utilisez ces fonctions sur vos propres environnements ou dans le cadre d'une autorisation explicite.
+The per-tool profile detail is in the [compatibility catalog](docs/WINDOWS_PORT.md). Use these functions on your own environments or under explicit authorization.
 
 <a id="references"></a>
-## 10. Développement et références
+## 10. Development and references
 
 <details>
-<summary>Construire l'application Windows depuis les sources</summary>
+<summary>Build the Windows application from source</summary>
 
-Pour le développement uniquement, préparez Python 3.14 et Inno Setup 6, puis utilisez un environnement Python dédié :
+For development only, prepare Python 3.14 and Inno Setup 6, then use a dedicated Python environment:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
-.\.venv\Scripts\python.exe scripts/build-desktop.py --iscc "C:\chemin\vers\ISCC.exe"
+.\.venv\Scripts\python.exe scripts/build-desktop.py --iscc "C:\path\to\ISCC.exe"
 .\.venv\Scripts\python.exe scripts/smoke-desktop.py
 ```
 
-Remplacez le chemin du compilateur par son emplacement réel. Le script de build lance les tests, produit l'application dans `dist/ChaosticTool/`, puis l'installateur et son empreinte dans `release/`. Un build est produit sur son architecture cible. Les dépendances de construction sont listées dans [requirements-build.txt](requirements-build.txt).
+Replace the compiler path with its real location. The build script runs the tests, produces the application in `dist/ChaosticTool/`, then the installer and its fingerprint in `release/`. A build is produced on its target architecture. Build dependencies are listed in [requirements-build.txt](requirements-build.txt).
 
 </details>
 
-| Référence | Ce qu'elle documente |
+| Reference | What it documents |
 |---|---|
-| [Guide Desktop multi-systèmes](docs/DESKTOP.md) | Windows, Linux, macOS et stockage |
-| [Manifeste des outils](desktop/packages.json) | Versions et distributions des dépendances gérées |
-| [Manifeste Python](desktop/runtimes.json) | Runtimes isolés et empreintes |
-| [Workflow de compilation](.github/workflows/desktop.yml) | Plateformes et étapes réellement exécutées |
-| [Licences et composants](docs/THIRD_PARTY.md) | Dépendances et notices de redistribution |
-| [Microsoft : installer WSL](https://learn.microsoft.com/en-us/windows/wsl/install) | Préparation et exigences de Windows |
-| [Kali : préparation WSL](https://www.kali.org/docs/wsl/wsl-preparations/) | Installation de la distribution et premier lancement |
-| [Règles du dépôt](docs/REPOSITORY_RULES.md) | Contributions et protection de `linux-cli` |
+| [Multi-system Desktop guide](docs/DESKTOP.md) | Windows, Linux, macOS and storage |
+| [Tools manifest](desktop/packages.json) | Versions and distributions of the managed dependencies |
+| [Python manifest](desktop/runtimes.json) | Isolated runtimes and fingerprints |
+| [Build workflow](.github/workflows/desktop.yml) | Platforms and steps actually run |
+| [Licenses and components](docs/THIRD_PARTY.md) | Dependencies and redistribution notices |
+| [Microsoft: install WSL](https://learn.microsoft.com/en-us/windows/wsl/install) | Windows preparation and requirements |
+| [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |
+| [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of `linux-cli` |
 
-**Guide revu le 28 septembre 2026 pour Desktop 1.0.0.** Les captures doivent être renouvelées lorsque l'interface change ; les tailles, limitations et étapes ci-dessus décrivent cette version.
-
-
-## Nouveautés 0.6 : préparation Linux et animations
-
-L’installateur propose **Préparer WSL et Kali Linux après installation**. Au premier lancement, un écran décrit les téléchargements et les changements ; **Préparer automatiquement** lance les étapes dans l’écran d’exécution. L’installation silencieuse ne lance pas la préparation et ne provoque pas de demande UAC cachée.
-
-1. Détection de WSL ; si nécessaire, activation via la commande officielle Microsoft et validation administrateur Windows.
-2. Installation de `kali-linux` dans le compte Windows courant si elle est absente. Une Kali existante est réutilisée ; aucune distribution n’est supprimée et la distribution par défaut n’est pas changée.
-3. Installation de Python et des certificats, création d’un compte `chaostic-tool` à mot de passe verrouillé, sans accès sudo sans mot de passe.
-4. Installation facultative, cochée par défaut, de Nmap, RustScan, DNS et Whois.
-5. Vérification de la connexion et inventaire réel avant enregistrement de l’environnement dans ChaosticTool. Les opérations ordinaires utilisent le compte dédié ; les profils explicitement privilégiés utilisent l’autorité root WSL du propriétaire Windows.
-
-La préparation requiert Windows 10 version 2004/build 19041 ou supérieur, ou Windows 11, Internet, plusieurs Go libres et la virtualisation. Un BIOS désactivant la virtualisation, une stratégie d’entreprise ou un redémarrage nécessaire ne peuvent pas être contournés automatiquement. Aucun redémarrage n’est forcé. Un état local conserve les échecs et propose la reprise au prochain lancement. Si Kali affiche un écran d’initialisation propre à sa distribution, terminer cette initialisation puis reprendre.
-
-Le journal précise l’étape atteinte. Annuler le suivi ne garantit pas l’arrêt d’une activation Windows élevée ni d’un gestionnaire de paquets Linux déjà lancé ; attendre leur fin avant de reprendre. La désinstallation de ChaosticTool conserve WSL, Kali et leurs données.
-
-**Ce parcours prépare l’environnement, pas la totalité des dépendances de tous les outils.** Les autres paquets restent installables depuis le catalogue. Les fonctions Wi-Fi, les périphériques USB, les pilotes et les outils exigeant des services ou des clés API gardent leurs propres prérequis.
-
-Référence : [installation officielle de WSL](https://learn.microsoft.com/windows/wsl/install).
-
-Le rendu ajoute une grille en perspective animée, une sphère filaire, des impulsions et particules orbitales, une parallaxe au pointeur et des ondes au clic. L’horloge précise vise une mise à jour toutes les 16 ms, avec un déplacement calculé d’après le temps réel ; cela ne garantit pas 60 images/s sur chaque machine. Le mode sans animations reste disponible.
-
-Validation : 50 tests, dont cinq réservés à POSIX. Le parcours WSL est testé avec simulations des commandes, des échecs et de l’inventaire ; il n’a pas été validé ici sur une installation vierge de Windows ni avec un redémarrage réel. Cette limite est distincte des tests de l’installateur et de démarrage de l’application.
-
-
-## Correctif 0.6.1 — redémarrage WSL
-
-Certaines versions de WSL renvoient un code de sortie réussi tout en demandant de réamorcer Windows. La préparation reconnaît désormais ce cas, s'arrête avant toute commande Linux et affiche « Redémarrage Windows requis ». Elle ne peut reprendre sur le même démarrage. Après redémarrage, relancer ChaosticTool puis la préparation.
-
-La présence de Kali est systématiquement vérifiée après la commande d'installation : une réussite sans distribution enregistrée ne déclenche plus Python/apt et ne produit plus l'erreur secondaire WSL_E_DISTRO_NOT_FOUND.
-
-54 tests : neuf tests ciblent la préparation WSL, dont le message français observé sur un PC réel, les codes de redémarrage, l'absence de distribution après succès et le blocage de la reprise avant redémarrage. La validation complète sur Windows vierge avec redémarrage réel reste à effectuer.
-
-
-## Historique et confidentialité — introduits en 0.6.2
-
-Dans **Historique → Vider l’historique…**, confirmer la suppression de toutes les opérations locales, y compris celles masquées par un filtre. Leurs journaux et fichiers de résultats locaux sont supprimés définitivement. Les cibles, réglages, outils, WSL et Kali sont conservés. Les exports copiés ailleurs et les résultats sur Linux/SSH ne sont pas supprimés par cette action. La suppression est désactivée pendant une opération et refuse les liens symboliques/jonctions dans les résultats.
-
-Chaque utilisateur possède son espace de données Windows dans `%LOCALAPPDATA%\ChaosticTool\Desktop`. Une mise à jour sur le même compte retrouve donc son propre historique ; une installation sur un nouveau compte commence avec zéro cible et zéro opération. Aucun historique du développeur n’est fourni dans l’application. Les captures du guide sont des exemples de démonstration, pas des données préchargées.
-
-Avant de créer un installateur ou une archive, le build refuse les fichiers d’état utilisateur dans le bundle (paramètres, environnements Linux, journaux, dossiers de résultats). Les tests du binaire vérifient dans un profil temporaire que le premier démarrage contient zéro historique, zéro cible et aucune configuration Linux ; seul le diagnostic de test ajoute ensuite une opération.
-
-Validation : 64 tests, dont cinq réservés à POSIX et un test de liens qui dépend des permissions de la plateforme. Le bouton est testé avec annulation, confirmation, filtre actif, rafraîchissement et conservation des réglages.
-
-
-### Recherche et suppression ciblée
-
-L’historique combine la recherche textuelle et des listes Cible, État, Outil et Période (24 h, 7 jours, 30 jours ou toutes les dates). Le compteur indique le nombre affiché et le total. Réinitialiser les filtres retrouve toutes les opérations. Les cibles retirées du carnet restent filtrables tant que leurs résultats existent.
-
-Sélectionner une ligne puis **Supprimer ce résultat…** retire uniquement cette opération et ses fichiers locaux. Si elle appartient à un flow, son étape indique que le résultat a été supprimé et reste relançable. **Vider l’historique…** supprime aussi les sessions passées de flows, tout en conservant les définitions de flows personnalisés.
-
-### Cible explicite des attack flows
-
-Dans Attack flows, sélectionner **Cible du flow** ou utiliser **Ajouter une cible…**. Le formulaire de lancement reçoit cette cible, distincte de la cible globale. Chaque session conserve sa cible ; changer de cible demande de créer une nouvelle session, avec conservation de la précédente. La sélection est verrouillée pendant l’exécution. Résultats du flow applique le nom du flow et sa cible aux filtres d’historique. Les étapes locales conservent également l’association à la cible du flow dans leurs métadonnées.
-
-
-## Nouveautés 0.7 — cockpit animé et documentation
-
-Hologramme triangulé avec rotation et profondeur, rubans lumineux sur le fond,
-bordures de panneaux animées et rail d'en-tête. Les paramètres proposent 30/60
-images par seconde comme cadence cible, ainsi que la désactivation des effets.
-Le rendu distribué reste logiciel Qt après évaluation d'un prototype OpenGL qui
-présentait des artefacts sur le poste de validation. [Architecture visuelle](docs/NEXUS_VISUALS.md).
-
-Le [README principal](README.md) couvre désormais le parcours complet de découverte,
-les moteurs, l'historique, les flows, les données et la maintenance, avec de nouvelles
-captures et un GIF du vrai widget. La branche `main` est renommée `linux-cli` ;
-les règles et workflows utilisent ce nom. Desktop reste sur `desktop/windows-app`.
-
-
-## Nouveautés 0.8 — OPERATION DECK
-
-Refonte Cyberpunk de la palette, panneaux anguleux, accueil avec trois grandes
-entrées et décor urbain original. Suppression des rails, bordures et grilles en
-mouvement continu ; ambiance lumineuse lente limitée à l'accueil. Les autres
-écrans n'entretiennent plus d'horloge d'animation au repos. Transitions de pages
-plus marquées (240 ms), survols et clics réactifs, retour d'activité fixe.
-
-Les captures du README principal et son GIF proviennent de cette version.
+**Guide reviewed on 29 September 2026 for Desktop 1.0.0.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.

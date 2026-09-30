@@ -4,7 +4,7 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and a light or dark theme. The application has its own installer and uninstalls from Windows.
 
-**[Download Desktop 1.0.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.0.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.1)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
 ![ChaosticTool Desktop 1.0 control center: clean interface, orange accent, local demo profile](docs/images/windows/desktop-1.0-accueil.png)
 
@@ -24,16 +24,16 @@ The historical `main` branch is now called **`linux-cli`**. The rename does not 
 
 | Your computer | Installer | Target systems |
 |---|---|---|
-| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.0/ChaosticTool-Setup-1.0.0-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
+| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.1/ChaosticTool-Setup-1.0.1-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
 
-This version 1.0.0 is provided for **Windows x64**. An ARM64 archive may follow.
+This version 1.0.1 is provided for **Windows x64**. An ARM64 archive may follow.
 
 1. Check your architecture in **Windows Settings → System → About**, then download the matching `.exe`. The GitHub “Source code” archives are not the installer.
 2. Run the installation. **Python and Git are not needed** to start the distributed application.
 3. Open **ChaosticTool Desktop** from the Start menu. **Open my files** gives access to your data space.
 4. Try the local diagnostic, then add a target and install the tools you need.
 
-The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.0). Desktop 1.0.0 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
+The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.1). Desktop 1.0.1 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
 
 ### Application and tool compatibility
 
@@ -163,6 +163,6 @@ To report a problem, state the Desktop and Windows versions, the architecture, t
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. This version's sources match the `desktop-v1.0.0` tag. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. This version's sources match the `desktop-v1.0.1` tag. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.0.0**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.0.1**

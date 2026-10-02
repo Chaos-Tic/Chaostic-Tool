@@ -1,3 +1,5 @@
+> Historical design archive. For the current interface, see [Desktop design system](DESIGN.md).
+
 # OPERATION DECK 0.8 — direction visuelle
 
 ## Intention

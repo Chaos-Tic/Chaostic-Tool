@@ -1,6 +1,7 @@
 import re
 import os
 import pwd
+import ipaddress
 from urllib.parse import urlparse
 from pathlib import Path
 
@@ -60,6 +61,8 @@ def _normalize_url(url, host, port):
             url = "http://" + url
         return url
     if host:
+        # Literal IPv6 addresses need brackets in an HTTP authority.
+        host = f"[{host}]" if ":" in host and not host.startswith("[") else host
         scheme = "https" if port in ("443", "8443") else "http"
         if port in ("80", "443"):
             return f"{scheme}://{host}"
@@ -74,7 +77,12 @@ def _split_host_input(host):
     if re.match(r"^https?://", host):
         parsed = urlparse(host)
         return parsed.hostname or "", host
-    return host.split("/")[0].split(":")[0], ""
+    authority = host.split("/")[0]
+    try:
+        return str(ipaddress.ip_address(authority)), ""
+    except ValueError:
+        parsed = urlparse("//" + authority)
+        return parsed.hostname or "", ""
 
 
 def set_target(host="", url="", port="80", wordlist=None):
@@ -83,7 +91,7 @@ def set_target(host="", url="", port="80", wordlist=None):
     TARGET["port"] = port.strip() or "80"
     TARGET["url"] = _normalize_url((url.strip() or host_url), TARGET["host"], TARGET["port"])
     if not TARGET["host"] and TARGET["url"]:
-        TARGET["host"] = re.sub(r"^https?://", "", TARGET["url"]).split("/")[0].split(":")[0]
+        TARGET["host"] = urlparse(TARGET["url"]).hostname or ""
     if wordlist:
         TARGET["wordlist"] = wordlist
 

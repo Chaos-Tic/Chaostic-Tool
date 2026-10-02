@@ -14,6 +14,10 @@ _LANG = "en"  # anglais par défaut
 # Dictionnaire FR -> EN. Toute chaîne d'interface enveloppée par T() doit y figurer
 # (sinon repli sur le français). Regroupé par zone pour la maintenance.
 FR_EN = {
+    "OPÉRATION": "OPERATION",
+    "Votre cible. Vos outils. Votre session.": "Your target. Your tools. Your session.",
+    "RECONNAISSANCE / EXÉCUTION / RÉSULTATS": "RECON / EXECUTION / EVIDENCE",
+
     # --- Fenêtre, entête, navigation ---
     "ChaosticTool Desktop": "ChaosticTool Desktop",
     "CHAOSTICTOOL  ·  DESKTOP": "CHAOSTICTOOL  ·  DESKTOP",

@@ -5,7 +5,7 @@ Run from the repo root:
 
 Seeds an isolated data home with a couple of targets and sample history so the
 home and history screens are populated, forces the dark (and light) theme and
-the English language, then grabs each page to docs/images/windows/desktop-1.1-*.
+English by default (CHAOSTIC_CAPTURE_LANGUAGE=fr for French), then grabs each page to docs/images/windows/desktop-1.1.1-*.
 """
 import os, sys, tempfile, json
 from pathlib import Path
@@ -54,7 +54,7 @@ def build_settings(home: Path, theme: str):
             {"id": "t2", "label": "Lab host", "host": "10.0.0.5", "url": "10.0.0.5", "port": 0},
         ],
         "active_target": "t1", "executables": {},
-        "theme": theme, "language": "en", "animations": False, "animation_fps": 60,
+        "theme": theme, "language": os.environ.get("CHAOSTIC_CAPTURE_LANGUAGE", "en"), "animations": False, "animation_fps": 60,
     }), encoding="utf-8")
 
 
@@ -86,8 +86,8 @@ def main():
     win.show()
     QApplication.processEvents()
 
-    win.navigate(0); grab(win, "desktop-1.1-accueil.png")
-    win.navigate(2); grab(win, "desktop-1.1-arsenal.png")
+    win.navigate(0); grab(win, "desktop-1.1.1-accueil.png")
+    win.navigate(2); grab(win, "desktop-1.1.1-arsenal.png")
     # A real local diagnostic illustrates execution without contacting a target.
     from PySide6.QtTest import QTest
     import time
@@ -95,17 +95,17 @@ def main():
     deadline=time.monotonic()+15
     while win.runner.active and time.monotonic()<deadline: QTest.qWait(30)
     if win.runner.active: raise RuntimeError("Diagnostic capture timed out")
-    win.navigate(3); grab(win, "desktop-1.1-execution.png")
-    win.navigate(4); grab(win, "desktop-1.1-historique.png")
-    win.navigate(5); grab(win, "desktop-1.1-linux.png")
-    win.navigate(6); grab(win, "desktop-1.1-flows.png")
+    win.navigate(3); grab(win, "desktop-1.1.1-execution.png")
+    win.navigate(4); grab(win, "desktop-1.1.1-historique.png")
+    win.navigate(5); grab(win, "desktop-1.1.1-linux.png")
+    win.navigate(6); grab(win, "desktop-1.1.1-flows.png")
 
     dlg = TargetDialog(win); dlg.resize(520, 300); dlg.show()
     QApplication.processEvents()
-    dlg.grab().save(str(OUT / "desktop-1.1-formulaire.png")); print("saved formulaire")
+    dlg.grab().save(str(OUT / "desktop-1.1.1-formulaire.png")); print("saved formulaire")
     dlg.close()
 
-    win.navigate(0); win.resize(900,600); grab(win, "desktop-1.1-compact.png")
+    win.navigate(0); win.resize(900,600); grab(win, "desktop-1.1.1-compact.png")
     win.close()
 
     # Light theme home.
@@ -115,7 +115,7 @@ def main():
     win2 = Window(store2)
     win2.resize(*SIZE)
     win2.show()
-    win2.navigate(0); grab(win2, "desktop-1.1-clair.png")
+    win2.navigate(0); grab(win2, "desktop-1.1.1-clair.png")
     win2.close()
 
     print("DONE")

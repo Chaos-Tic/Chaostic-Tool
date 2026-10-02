@@ -4,9 +4,9 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and the CLI-inspired Red Ops theme (dark by default for new profiles, with a light option). The application has its own installer and uninstalls from Windows.
 
-**[Download Desktop 1.1.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.0)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.1.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
-![ChaosticTool Desktop 1.1 control center: Red Ops identity inspired by the CLI, local demo profile](docs/images/windows/desktop-1.1-accueil.png)
+![ChaosticTool Desktop 1.1.1 control center: Red Ops identity inspired by the CLI, local demo profile](docs/images/windows/desktop-1.1.1-accueil.png)
 
 *Real application, with an isolated demo profile. The available tools depend on the machine used for the capture. The releases contain neither this profile nor the developer's history.*
 
@@ -25,16 +25,16 @@ The historical `main` branch is now called **`linux-cli`**. The rename does not 
 
 | Your computer | Installer | Target systems |
 |---|---|---|
-| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.0/ChaosticTool-Setup-1.1.0-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
+| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.1/ChaosticTool-Setup-1.1.1-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
 
-Version 1.1.0 provides Windows x64 and ARM64 installers. Choose the matching architecture from the release assets.
+Version 1.1.1 provides Windows x64 and ARM64 installers. Choose the matching architecture from the release assets.
 
 1. Check your architecture in **Windows Settings → System → About**, then download the matching `.exe`. The GitHub “Source code” archives are not the installer.
 2. Run the installation. **Python and Git are not needed** to start the distributed application.
 3. Open **ChaosticTool Desktop** from the Start menu. **Open my files** gives access to your data space.
 4. Try the local diagnostic, then add a target and install the tools you need.
 
-The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.0). Desktop 1.1.0 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
+The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1). Desktop 1.1.1 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
 
 ### Application and tool compatibility
 
@@ -68,7 +68,7 @@ To explore the interface without a remote scan, use **Local diagnostic** or a `l
 
 ## Catalog: 48 CLI tools and 4 extra diagnostics
 
-![Arsenal ordered by phase](docs/images/windows/desktop-1.1-arsenal.png)
+![Arsenal ordered by phase](docs/images/windows/desktop-1.1.1-arsenal.png)
 
 Desktop reuses the **48 original tools**, with their graphical profiles, and adds **4 diagnostics**. The ordering by phase follows the CLI's. Options are presented in forms.
 
@@ -95,7 +95,7 @@ WSL is not needed to open Desktop or use the native functions. It does not autom
 
 ## Attack flows: one target and explicit steps
 
-![Attack flows target selector](docs/images/windows/desktop-1.1-flows.png)
+![Attack flows target selector](docs/images/windows/desktop-1.1.1-flows.png)
 
 The three original flows are available, with creation, editing, import and export of custom flows. First choose **Flow target**: the session keeps that target even if you later select another global target.
 
@@ -105,7 +105,7 @@ Flow results stay associated with its target, including for local steps. Check t
 
 ## A history under your control
 
-![History with combinable filters and per-result actions](docs/images/windows/desktop-1.1-historique.png)
+![History with combinable filters and per-result actions](docs/images/windows/desktop-1.1.1-historique.png)
 
 Combine the **target, tool, status, period** filters (24 hours, 7 days, 30 days or all) and **text search**. The counter distinguishes the displayed results from the whole kept set. Reset the filters to find the other operations.
 
@@ -117,9 +117,9 @@ Folders have descriptive names to recognize the tool and the context. Output lim
 
 ## Red Ops: the CLI identity on Desktop
 
-![ChaosticTool Desktop 1.1 light theme](docs/images/windows/desktop-1.1-clair.png)
+![ChaosticTool Desktop 1.1.1 light theme](docs/images/windows/desktop-1.1.1-clair.png)
 
-Desktop 1.1 introduces **Red Ops**: charcoal surfaces, the CLI red accent, angular panels, technical typography and a shared app emblem. The active target sits above the counters and shortcuts. New profiles start dark; existing theme preferences are preserved. The light theme uses the same identity, and the top button switches between both palettes.
+Desktop 1.1.1 carries the **original CLI README identity**: the hooded mascot, distressed white/red wordmark, deep black surfaces, numbered navigation and double industrial frames. The active target and local counters share a compact operation panel above the shortcuts. New profiles start dark; existing theme preferences are preserved. The light theme uses the same identity, and the top button switches between both palettes.
 
 In **Settings → Appearance**, disable the animations or choose a 60/30 target frame rate for the ambiance. That rate is not an FPS guarantee. Tables and logs stay stable. Rendering uses **Qt/PySide6**, with no game engine.
 
@@ -167,6 +167,6 @@ See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.0 release is pinned to `desktop-v1.1.0`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.1 release is pinned to `desktop-v1.1.1`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.0**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.1**

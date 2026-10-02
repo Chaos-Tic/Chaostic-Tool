@@ -18,15 +18,28 @@ ChaosticTool is a Rich-powered terminal framework for authorized security testin
 
 ---
 
+## Choose your edition
+
+| Edition | Branch | Start here |
+|---|---|---|
+| Linux terminal | [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli) | CLI installation below; Python 3.11+ |
+| Windows desktop | [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) | [Desktop 1.0.1, Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.1) |
+| Linux desktop | [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) | [Linux GUI setup and development builds](https://github.com/Chaos-Tic/Chaostic-Tool/blob/desktop/linux-app/README_DESKTOP_LINUX.md) |
+
+The CLI and desktop branches have separate entry points and installation paths.
+The repository-root `install.sh` installs the **CLI**. The installer inside a
+Desktop Linux archive installs the **GUI**. macOS is a Desktop build target;
+check release assets before expecting a public installer for your platform.
+
 ## Screenshots
 
 <p align="center">
-  <img width="1896" height="782" alt="image" src="https://github.com/user-attachments/assets/cd667ae3-bab3-4b77-a441-a01f1888d85a" />
+  <img width="1896" height="782" alt="ChaosticTool Linux terminal showing the target context and phase menu" src="https://github.com/user-attachments/assets/cd667ae3-bab3-4b77-a441-a01f1888d85a" />
 </p>
 
 ## What Is Chaostic Tool?
 
-ChaosticTool is a vibe-coded pentesting framework: an operator-first CLI built around real security testing workflows and fast iteration. It brings a broad set of reconnaissance, enumeration, scanning, exploitation-support, post-exploitation, password, wireless, and network tools into one structured terminal experience.
+ChaosticTool is a pentesting framework for authorized assessments: an operator-first CLI built around real security testing workflows and fast iteration. It brings a broad set of reconnaissance, enumeration, scanning, exploitation-support, post-exploitation, password, wireless, and network tools into one structured terminal experience.
 
 The goal is not to hide what the underlying tools do. The goal is to make them faster to launch, easier to organize, safer to route, and cleaner to document during an assessment.
 
@@ -73,7 +86,7 @@ Several integrated tools require elevated privileges, so ChaosticTool is intende
 ## Installation
 
 ```bash
-git clone https://github.com/Chaos-Tic/Chaostic-Tool.git
+git clone --branch linux-cli https://github.com/Chaos-Tic/Chaostic-Tool.git
 cd Chaostic-Tool
 sudo ./install.sh
 sudo chaostictool
@@ -89,6 +102,13 @@ sudo ./install.sh --profile standard     # default: official distro packages onl
 sudo ./install.sh --with-tor             # Tor/proxychains for minimal/standard profiles
 sudo ./install.sh --profile full         # heavy Go/Cargo/pipx/pip/gem/source/AUR installs + Tor routing
 ```
+
+Additional opt-in options are `--with-kali-repo` (apt systems),
+`--with-chaotic-aur` (pacman systems), and `--no-tools`. `./install.sh --help`
+describes every option. Extra repositories change the system package sources;
+they are not needed for the default installation. Prefer a dedicated assessment
+environment when using them. Installs record their changes in
+`/var/lib/chaostictool/manifest` for the uninstaller.
 
 The installer detects `pacman`, `apt`, `dnf`, `zypper`, or `apk`, skips unavailable packages instead of failing the whole run, and links registered user-installed Go, Cargo, pipx, pip, and local binaries into paths visible from root shells.
 
@@ -291,3 +311,23 @@ See releases: https://github.com/Chaos-Tic/Chaostic-Tool/releases
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Development and verification
+
+Use an isolated Linux environment with Python 3.11 or later:
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements.txt
+bash -n install.sh uninstall.sh
+python -m unittest discover -s tests -v
+python scripts/check-docs.py
+```
+
+The tests import every phase, run local child processes, check captured output
+and simulate configuration restoration in temporary folders. They do not install
+pentest tools or scan external targets. Package availability, privileged routing,
+wireless hardware and full installations require separate distro-specific tests.
+
+See [contribution and branch rules](CONTRIBUTING.md).

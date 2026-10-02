@@ -1,0 +1,38 @@
+name: Linux CLI
+on:
+  push:
+    branches: [linux-cli]
+  pull_request:
+    branches: [linux-cli]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cli:
+    name: cli-python-${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r requirements.txt
+      - name: Shell syntax and CLI regression tests
+        run: |
+          bash -n install.sh uninstall.sh
+          python -m compileall -q core modules chaostictool.py
+          python -m unittest discover -s tests -v
+          python scripts/check-docs.py
+  gate:
+    name: cli-tests
+    if: always()
+    needs: cli
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every Python version to pass
+        env:
+          RESULT: ${{ needs.cli.result }}
+        run: test "$RESULT" = success

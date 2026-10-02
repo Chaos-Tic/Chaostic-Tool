@@ -1,4 +1,4 @@
-# ChaosticTool Desktop 0.6
+# ChaosticTool Desktop — cross-system guide
 
 **Sous Windows : [présentation, téléchargement et captures de l’interface](../README_WINDOWS.md).**
 
@@ -6,6 +6,14 @@ Application graphique pour Windows, Linux et macOS. Le catalogue contient les
 48 outils du registre CLI et 4 diagnostics supplémentaires. Tous ont des profils
 exécutables avec formulaires ; leur disponibilité dépend des outils installés,
 du système choisi et des prérequis propres à chaque outil.
+
+## Disponibilité des téléchargements
+
+Au 2 octobre 2026, la release publique Desktop 1.0.1 fournit Windows x64.
+Linux, Windows ARM64 et macOS sont des cibles de compilation ; utilisez les
+artifacts d'un run réussi de la branche correspondante lorsqu'aucun paquet
+public n'est présent. La matrice ci-dessous décrit les formats produits par
+le build, pas une promesse que tous sont publiés dans chaque release.
 
 ## Télécharger et installer
 
@@ -103,6 +111,21 @@ La variable `CHAOSTIC_DESKTOP_HOME` permet un profil séparé. Les secrets saisi
 les formulaires sont masqués dans l'historique et le flux de sortie ; les fichiers
 produits par les outils eux-mêmes peuvent contenir des données sensibles.
 
+## Exécuter depuis les sources
+
+Utiliser Python 3.14 et cloner `desktop/windows-app` sous Windows ou
+`desktop/linux-app` sous Linux. Depuis la racine du clone :
+
+```sh
+python -m venv .venv
+# Linux/macOS : . .venv/bin/activate
+# Windows PowerShell : .venv\Scripts\Activate.ps1
+python -m pip install -r requirements-desktop.txt
+python chaostic_desktop.py
+```
+
+Le `install.sh` à la racine installe la CLI, pas cette interface graphique.
+
 ## Construire et vérifier
 
 Installer Python 3.14 pour le développement, puis `pip install -r requirements-build.txt`.
@@ -113,6 +136,6 @@ Le workflow GitHub compile et teste séparément les six couples OS/architecture
 Un tag `desktop-v*` prépare une Release brouillon avec tous les paquets vérifiés ;
 sa publication rend les fichiers accessibles sans installation d'outils de développement.
 
-## Nouveautés 0.4
+## Fonctionnalités communes
 
 Exécuter et arrêter depuis la même page ; classement selon les dix phases CLI ; noms de dossiers avec cible, outil et profil ; historique recherchable ; trois attack flows, éditeur et import/export JSON. RustScan dispose d’une installation native sur les plateformes publiées en amont, et Nmap de son assistant officiel sous Windows x64. Les 48 outils et tous leurs profils CLI sont contrôlés par les tests de correspondance. Voir le guide Windows pour le fonctionnement des flows et les limites de chaque moteur.

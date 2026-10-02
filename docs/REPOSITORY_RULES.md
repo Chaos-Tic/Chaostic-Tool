@@ -1,56 +1,27 @@
-# Protection de linux-cli et contributions
+# Repository rules and branch maintenance
 
-Vérifié le 28 septembre 2026. Le ruleset [Protect linux-cli](https://github.com/Chaos-Tic/Chaostic-Tool/rules/24086485) est actif et cible uniquement `refs/heads/linux-cli`.
+The repository has three maintained branches: `linux-cli` (default),
+`desktop/windows-app`, and `desktop/linux-app`. Documentation belongs to the
+corresponding edition; other branches are temporary pull-request branches.
 
-## Règles appliquées
+See [CONTRIBUTING](../CONTRIBUTING.md) for branch targets and local validation.
 
-- Suppression de `linux-cli` interdite.
-- Push forcé / réécriture non fast-forward interdits.
-- Modifications introduites par pull request.
-- Discussions de review résolues avant fusion.
-- Branche à jour avec `linux-cli` avant fusion, selon la politique stricte des contrôles requis.
-- Six contrôles GitHub Actions requis : `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `macos-x64` et `macos-arm64`.
-- Les contrôles sont liés à l'application GitHub Actions (identifiant 15368).
-- Aucun acteur configuré pour contourner ce ruleset.
+## Required checks
 
-Aucune approbation d'un autre contributeur n'est obligatoire : le nombre de reviews requises est zéro. Cela permet au propriétaire de fusionner sa propre PR lorsque les conditions sont satisfaites. Les reviews restent possibles. Les administrateurs gardent la capacité de modifier la configuration du ruleset ; cela est distinct d'un contournement autorisé lors d'une fusion.
+- `linux-cli`: `cli-tests`, aggregating the Python 3.11 and 3.14 tests.
+- Both Desktop branches: `windows-x64`, `windows-arm64`, `linux-x64`,
+  `linux-arm64`, `macos-x64`, and `macos-arm64`.
 
-## Parcours de contribution
+The rules require pull requests, passing checks on an up-to-date branch and
+resolved discussions. Deletion and force pushes are blocked. No bypass actors
+or external review approvals are required.
 
-1. Créer ou utiliser une branche de travail.
-2. Y enregistrer les changements et ouvrir une PR vers `linux-cli`.
-3. Attendre les six contrôles ; en cas d'échec, examiner les logs et corriger ou relancer si la cause est transitoire.
-4. Si `linux-cli` a avancé, mettre à jour la branche et laisser les contrôles s'exécuter sur le nouvel état.
-5. Résoudre les discussions éventuelles, sortir la PR du brouillon lorsqu'elle est prête et la fusionner.
+The `release` job is tag-only and must not be a required PR check. A workflow
+rerun preserves published assets and can replace assets in an existing draft.
 
-Le job `release` n'est pas requis pour une PR : il prépare les assets lors d'un tag `desktop-v*`. Exiger ce job sur une PR bloquerait un chemin qui ne publie pas de Release.
+On 2026-10-02 the CLI's obsolete Desktop check requirements were replaced by
+its own gate, and matching protection was added to the Desktop branches.
+The old homepage proposal was incorporated into the CLI. The historical
+Desktop-to-CLI integration PR was retired to keep the editions separate.
 
-Les protections ne fusionnent aucune PR et ne changent pas le contenu de `linux-cli`. Le workflow Desktop est actuellement apporté par la PR Desktop ; après son intégration dans `linux-cli`, il sera disponible pour les nouvelles contributions fondées sur cette branche. Une PR issue de l'ancien `linux-cli` sans ce workflow ne produira pas les six contrôles attendus.
-
-## Maintenir les règles
-
-Si un contrôle est renommé dans le [workflow](../.github/workflows/desktop.yml), mettre aussi à jour son nom dans le ruleset. Ne pas désactiver une plateforme uniquement pour rendre une fusion verte sans analyser la régression.
-
-Les règles s'appliquent à `linux-cli`, pas aux branches de travail ni aux tags. Il n'y a pas de protection des tags ajoutée par ce ruleset.
-
-Références : [règles effectivement configurées](https://github.com/Chaos-Tic/Chaostic-Tool/rules/24086485), [documentation GitHub des rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets).
-
-## Renommage du 28 septembre 2026
-
-La branche `main` a été renommée **`linux-cli`** pour identifier la version Linux
-en terminal. Elle reste la branche par défaut. La branche graphique reste
-`desktop/windows-app`. GitHub a redirigé la PR Desktop existante vers `linux-cli` ;
-elle reste en brouillon. Le ruleset a été renommé et sa cible mise à jour, avec
-les mêmes six contrôles, l'interdiction de suppression et de push forcé.
-
-Pour actualiser un clone dont la branche locale s'appelle encore `main` :
-
-```sh
-git branch -m main linux-cli
-git fetch origin
-git branch -u origin/linux-cli linux-cli
-git remote set-head origin -a
-```
-
-Ne lancez la première commande que si vous avez effectivement une branche locale
-`main` à renommer. Le renommage ne fusionne pas les deux éditions.
+[Live repository rules](https://github.com/Chaos-Tic/Chaostic-Tool/rules).

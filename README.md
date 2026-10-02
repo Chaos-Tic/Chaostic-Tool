@@ -16,7 +16,8 @@ Prepare your targets, choose your tools by phase, configure your operations and 
 |---|---|---|
 | **Desktop / Windows** | Graphical application, forms and results without opening a terminal | Branch [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), this README and the [Windows guide](README_WINDOWS.md) |
 | **Linux CLI** | Terminal experience and CLI-specific functions | Branch [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli), [CLI guide](README_LINUX.md) |
-| **Desktop Linux / macOS** | The same graphical interface on another system | [Cross-system packages and install](docs/DESKTOP.md) |
+| **Desktop / Linux** | Graphical application with distro integration | [Linux branch and guide](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) |
+| **Desktop / macOS** | Shared graphical interface, development build target | [Cross-system packages and install](docs/DESKTOP.md) |
 
 The historical `main` branch is now called **`linux-cli`**. The rename does not merge the editions. This README's captures cover Desktop.
 
@@ -154,6 +155,9 @@ To report a problem, state the Desktop and Windows versions, the architecture, t
 
 ## Documentation and development
 
+See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
+
+
 | Document | Content |
 |---|---|
 | [Windows guide](README_WINDOWS.md) | Install, detailed use, WSL/SSH, troubleshooting and maintenance |
@@ -163,6 +167,6 @@ To report a problem, state the Desktop and Windows versions, the architecture, t
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. This version's sources match the `desktop-v1.0.1` tag. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.0.1 release is pinned to `desktop-v1.0.1`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
 [MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.0.1**

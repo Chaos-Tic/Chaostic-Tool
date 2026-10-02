@@ -256,8 +256,8 @@ while IFS= read -r line; do
         pipx:*)        M_PIPX+=("${line#pipx:}") ;;
         gem:*)         M_GEM+=("${line#gem:}") ;;
         repo:*)        M_REPOS+=("${line#repo:}") ;;
-        torrc:*)       M_FILES+=("/etc/tor/torrc.chaostictool.bak") ;;  # triggers restore
-        proxychains:*) M_FILES+=("${line#proxychains:}.chaostictool.bak 2>/dev/null || true") ;;
+        # Backups are restored below, then removed. Never delete them as files.
+        torrc:*|proxychains:*) ;;
         pkg:*)         M_PKGS+=("${line#pkg:}") ;;
     esac
 done < "$MANIFEST"

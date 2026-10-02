@@ -4,8 +4,8 @@ Run from the repo root:
     QT_QPA_PLATFORM=offscreen PYTHONUTF8=1 python scripts/capture-screens.py [outdir]
 
 Seeds an isolated data home with a couple of targets and sample history so the
-home and history screens are populated, forces the light (and dark) theme and
-the English language, then grabs each page to docs/images/windows/desktop-1.0-*.
+home and history screens are populated, forces the dark (and light) theme and
+the English language, then grabs each page to docs/images/windows/desktop-1.1-*.
 """
 import os, sys, tempfile, json
 from pathlib import Path
@@ -15,7 +15,7 @@ os.environ.setdefault("PYTHONUTF8", "1")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs/images/windows"
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / ("docs/images/linux" if sys.platform.startswith("linux") else "docs/images/windows")
 OUT.mkdir(parents=True, exist_ok=True)
 SIZE = (1360, 860)
 
@@ -77,37 +77,45 @@ def main():
     home = Path(tempfile.mkdtemp(prefix="chaostic-shots-"))
     seed(home)
 
-    # Light theme, English.
-    build_settings(home, "light")
-    thememod.apply_theme(app, "light")
+    # Red Ops default theme, English.
+    build_settings(home, "dark")
+    thememod.apply_theme(app, "dark")
     store = Store(home)
     win = Window(store)
     win.resize(*SIZE)
     win.show()
     QApplication.processEvents()
 
-    win.navigate(0); grab(win, "desktop-1.0-accueil.png")
-    win.navigate(2); grab(win, "desktop-1.0-arsenal.png")
-    win.navigate(3); grab(win, "desktop-1.0-execution.png")
-    win.navigate(4); grab(win, "desktop-1.0-historique.png")
-    win.navigate(5); grab(win, "desktop-1.0-linux.png")
-    win.navigate(6); grab(win, "desktop-1.0-flows.png")
+    win.navigate(0); grab(win, "desktop-1.1-accueil.png")
+    win.navigate(2); grab(win, "desktop-1.1-arsenal.png")
+    # A real local diagnostic illustrates execution without contacting a target.
+    from PySide6.QtTest import QTest
+    import time
+    win.launch("desktop-diagnostic", show_dialog=False)
+    deadline=time.monotonic()+15
+    while win.runner.active and time.monotonic()<deadline: QTest.qWait(30)
+    if win.runner.active: raise RuntimeError("Diagnostic capture timed out")
+    win.navigate(3); grab(win, "desktop-1.1-execution.png")
+    win.navigate(4); grab(win, "desktop-1.1-historique.png")
+    win.navigate(5); grab(win, "desktop-1.1-linux.png")
+    win.navigate(6); grab(win, "desktop-1.1-flows.png")
 
     dlg = TargetDialog(win); dlg.resize(520, 300); dlg.show()
     QApplication.processEvents()
-    dlg.grab().save(str(OUT / "desktop-1.0-formulaire.png")); print("saved formulaire")
+    dlg.grab().save(str(OUT / "desktop-1.1-formulaire.png")); print("saved formulaire")
     dlg.close()
 
+    win.navigate(0); win.resize(900,600); grab(win, "desktop-1.1-compact.png")
     win.close()
 
-    # Dark theme home.
-    build_settings(home, "dark")
-    thememod.apply_theme(app, "dark")
+    # Light theme home.
+    build_settings(home, "light")
+    thememod.apply_theme(app, "light")
     store2 = Store(home)
     win2 = Window(store2)
     win2.resize(*SIZE)
     win2.show()
-    win2.navigate(0); grab(win2, "desktop-1.0-sombre.png")
+    win2.navigate(0); grab(win2, "desktop-1.1-clair.png")
     win2.close()
 
     print("DONE")

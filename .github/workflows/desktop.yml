@@ -1,10 +1,10 @@
 name: Desktop Windows Linux macOS
 on:
   push:
-    branches: [linux-cli, desktop/windows-app]
+    branches: [desktop/windows-app, desktop/linux-app]
     tags: ['desktop-v*']
   pull_request:
-    branches: [linux-cli]
+    branches: [desktop/windows-app, desktop/linux-app]
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,6 +55,11 @@ jobs:
           $setup = Start-Process $setupPath -ArgumentList '/VERYSILENT', '/CURRENTUSER', '/NOICONS', '/TASKS=""', ('/DIR="' + $compilerRoot + '"') -WindowStyle Hidden -PassThru -Wait
           if ($setup.ExitCode -ne 0) { throw "Compiler setup failed: $($setup.ExitCode)" }
           "ISCC_PATH=$compilerRoot\ISCC.exe" >> $env:GITHUB_ENV
+      - name: Check local documentation links
+        run: python scripts/check-docs.py
+      - name: Check CLI shell syntax
+        if: runner.os == 'Linux'
+        run: bash -n install.sh uninstall.sh packaging/linux/install.sh packaging/linux/uninstall.sh
       - name: Test and build distributable application
         run: python scripts/build-desktop.py
       - name: Test packaged application
@@ -89,5 +94,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "ChaosticTool ${GITHUB_REF_NAME#desktop-v}" --generate-notes --draft
-          find packages -type f -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+          # Preserve immutable public assets and resume an existing draft.
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft > release-state.json; then
+            if [ "$(jq -r .isDraft release-state.json)" != "true" ]; then
+              echo "::notice::Release already published; keeping its existing assets unchanged."
+              exit 0
+            fi
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "ChaosticTool ${GITHUB_REF_NAME#desktop-v}" --generate-notes --draft --verify-tag
+          fi
+          find packages -type f -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber

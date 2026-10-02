@@ -9,12 +9,12 @@ du système choisi et des prérequis propres à chaque outil.
 
 ## Disponibilité des téléchargements
 
-La [release Desktop 1.1.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.0)
+La [release Desktop 1.1.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1)
 regroupe Windows, Linux et macOS, en x64 et ARM64, avec une empreinte SHA-256
 par paquet. Les six paquets proviennent du même tag, créé depuis la branche
 `desktop/linux-app` qui contient les intégrations Linux et le socle multiplateforme.
-Les deux branches Desktop partagent la nouvelle identité Red Ops : anthracite,
-rouge, typographie technique et icône commune. Un nouveau profil démarre en sombre ;
+Les deux branches Desktop partagent la nouvelle identité Red Ops : noir profond,
+rouge, personnage et lettrage du README CLI, cadres industriels et navigation numérotée. Un nouveau profil démarre en sombre ;
 le thème déjà enregistré reste inchangé. Voir le [système visuel](DESIGN.md).
 
 ## Télécharger et installer

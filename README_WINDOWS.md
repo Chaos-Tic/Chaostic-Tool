@@ -4,19 +4,19 @@
 
 ### Your tools. Your targets. Your results, in a graphical interface.
 
-**Windows 10 / 11 · x64 and ARM64 · Version 1.1.0**
+**Windows 10 / 11 · x64 and ARM64 · Version 1.1.1**
 
-**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.0/ChaosticTool-Setup-1.1.0-windows-x64.exe)**
+**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.1/ChaosticTool-Setup-1.1.1-windows-x64.exe)**
 
-[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
 ChaosticTool Desktop brings together a tool catalog, launch forms, an execution view and a local history. You choose a target when a profile needs one, configure the operation and find its log inside the application.
 
-![ChaosticTool Desktop home screen](docs/images/windows/desktop-1.1-accueil.png)
+![ChaosticTool Desktop home screen](docs/images/windows/desktop-1.1.1-accueil.png)
 
-*The home screen is captured from Desktop 1.1.0 with an isolated demo profile. The
+*The home screen is captured from Desktop 1.1.1 with an isolated demo profile. The
 number of ready tools depends on the machine used for the capture; no demo profile
 or personal history is shipped in the installer.*
 
@@ -46,11 +46,12 @@ keeps the language emitted by the corresponding tool.
 
 ## Interface and animations
 
-Desktop 1.1.0 introduces **Red Ops**, inspired by the Linux CLI: charcoal surfaces,
-red accents, angular panels, technical typography and a shared application emblem.
+Desktop 1.1.1 introduces **Red Ops**, inspired by the Linux CLI: charcoal surfaces,
+red accents, industrial frames, technical typography and the original README artwork.
 New profiles start in dark mode; existing saved preferences are respected. The
-light theme carries the same identity. The active target is prominent, the home
-emblem hides at compact widths, and the interface stays still when idle.
+light theme carries the same identity. The original README artwork anchors the home screen and sidebar. The hooded mascot,
+white/red wordmark, cut frames and numbered navigation carry through the workspaces.
+The brand panel adapts to compact windows, and the interface stays still when idle.
 
 - **Ctrl+K** opens the arsenal search; **F6** opens Execution.
 - **Settings → Appearance** keeps the light/dark theme, the language and the choice
@@ -61,17 +62,17 @@ emblem hides at compact widths, and the interface stays still when idle.
   operation, with no horizontal or vertical sweeping.
 - Counters describe real data.
 
-![Red Ops light theme](docs/images/windows/desktop-1.1-clair.png)
+![Red Ops light theme](docs/images/windows/desktop-1.1.1-clair.png)
 
 <a id="installation"></a>
 ## 1. Choose your installation
 
 ### Which file to download?
 
-| Your computer | Version 1.1.0 file | Windows scope |
+| Your computer | Version 1.1.1 file | Windows scope |
 |---|---|---|
-| Intel or AMD 64-bit | `ChaosticTool-Setup-1.1.0-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
-| ARM64, e.g. a Snapdragon PC | `ChaosticTool-Setup-1.1.0-windows-arm64.exe` | Windows 11 ARM64 |
+| Intel or AMD 64-bit | `ChaosticTool-Setup-1.1.1-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
+| ARM64, e.g. a Snapdragon PC | `ChaosticTool-Setup-1.1.1-windows-arm64.exe` | Windows 11 ARM64 |
 | 32-bit Windows, Windows 7 or Windows 8/8.1 | No compatible package | Not supported |
 
 In **Windows Settings → System → About**, check **System type**. To find your Windows 10 version, open `winver` from the Start menu. An ARM64 archive being available for the application does not guarantee that every third-party tool also has an ARM64 binary.
@@ -93,7 +94,7 @@ The exact size of each installer is shown on the Release. Plan for more space fo
 
 ### Step-by-step installation
 
-1. On the [Desktop 1.1.0 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.0), download the installer for your architecture. The “Source code” files are for development and are not the installer.
+1. On the [Desktop 1.1.1 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1), download the installer for your architecture. The “Source code” files are for development and are not the installer.
 2. Open the `.exe` file, choose the wizard language and follow its steps.
 3. Keep the suggested folder unless you have a specific need: `%LOCALAPPDATA%\Programs\ChaosticTool`.
 4. Tick the desktop shortcut if you want one. The Start menu also offers **ChaosticTool Desktop**.
@@ -107,7 +108,7 @@ This build has no Windows publisher signature. SmartScreen or a company policy m
 Download the matching `.sha256` file from the same Release. In PowerShell, adapt the path of your download:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-1.1.0-windows-x64.exe"
+Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-1.1.1-windows-x64.exe"
 ```
 
 Compare the 64 hexadecimal characters you get with the contents of the `.sha256` file. The comparison verifies that the download matches the published file; it does not replace a publisher signature. You do not need this command to use the interface.
@@ -133,7 +134,7 @@ In **Control center**, click **Local diagnostic**. You can also search for it in
 
 **Expected result:** a loopback address, usually `127.0.0.1` and/or `::1`, appears in **Execution**. You do not need a running web server: this profile resolves the `localhost` name and makes no HTTP request.
 
-![Execution screen showing a finished DNS resolution](docs/images/windows/desktop-1.1-execution.png)
+![Execution screen showing a finished DNS resolution](docs/images/windows/desktop-1.1.1-execution.png)
 
 *The capture shows the result actually produced for the journey above. IPv6 may not appear on every configuration.*
 
@@ -156,7 +157,7 @@ This journey confirms launching, handling a target and keeping a result. It does
 | **History** | Re-read or export a previous operation | Final status and result folder |
 | **Settings** | Configure Linux, paths and access the data | Chosen environment and last tool inventory |
 
-![ChaosticTool Desktop catalog with search, filters, packs and the selected tool details](docs/images/windows/desktop-1.1-arsenal.png)
+![ChaosticTool Desktop catalog with search, filters, packs and the selected tool details](docs/images/windows/desktop-1.1.1-arsenal.png)
 
 *The Network scan filter shows Nmap, RustScan, Masscan and Naabu. The statuses match a fresh profile: their presence in the catalog does not mean their dependencies are already installed.*
 
@@ -186,7 +187,7 @@ Desktop runs one operation at a time. For interactive sessions, use the input fi
 | **Stopped** | Stop requested from the application |
 | **Interrupted** | A saved operation was still running during a previous close |
 
-Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 1.1.0.
+Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 1.1.1.
 
 <a id="tools"></a>
 ## 4. Install and configure the tools
@@ -216,7 +217,7 @@ Sources: [Nmap for Windows](https://nmap.org/book/inst-windows.html), [installer
 
 ### Fill in a profile
 
-![Nmap form: Windows execution, TCP connect profile and target selection](docs/images/windows/desktop-1.1-formulaire.png)
+![Nmap form: Windows execution, TCP connect profile and target selection](docs/images/windows/desktop-1.1.1-formulaire.png)
 
 1. Choose **Execution**: native Windows or the configured Linux environment, when those choices exist.
 2. Choose the **Profile**. Its fields and needs can change.
@@ -232,7 +233,7 @@ Sensitive fields planned by the profiles — password, cookie, API key — are m
 
 The phase filter follows the CLI's order and memberships: **01 OSINT**, **02 Network scan**, **03 Web enumeration**, **04 Vulnerabilities**, **05 Exploitation**, **06 Post-exploitation**, **07 Passwords**, **08 Windows / Active Directory**, **09 Wi-Fi**, **10 Network & MITM**. A tool shared by several phases appears in each of their views, without being counted several times in the catalog. The four Desktop-specific utilities have their own separate filter.
 
-![Attack flows: steps of the Basic flow, states and actions](docs/images/windows/desktop-1.1-flows.png)
+![Attack flows: steps of the Basic flow, states and actions](docs/images/windows/desktop-1.1.1-flows.png)
 
 1. Add then activate a target in **Targets** (or directly in the flow).
 2. Open **Attack flows** and choose **Basic**, **Intermediate** or **Advanced**, shared with the CLI.
@@ -277,7 +278,7 @@ The network used is the one of the execution environment. A `127.0.0.1` target t
 5. Save. The connection is verified; you can re-run **Check the connection and tools**.
 6. Install a tool on Linux or the Linux pack, then check its status in the catalog.
 
-![Linux environment configuration, with WSL selected and the kali-linux distribution](docs/images/windows/desktop-1.1-linux.png)
+![Linux environment configuration, with WSL selected and the kali-linux distribution](docs/images/windows/desktop-1.1.1-linux.png)
 
 *The SSH fields stay disabled in WSL mode. The capture does not represent an already-validated connection: the inventory runs after saving.*
 
@@ -341,7 +342,7 @@ The name contains the local time, the host, the tool, the profile and a unique s
 
 The history combines a text search with Target, Status, Tool and Period lists (24 h, 7 days, 30 days or all dates). The counter shows the number displayed and the total. Resetting the filters brings back all operations. Targets removed from the address book stay filterable as long as their results exist. Selecting a row then **Delete this result…** removes only that operation and its local files. **Clear the history…** also deletes past flow sessions while keeping the custom flow definitions; it is disabled during an operation and refuses symbolic links / junctions in results.
 
-**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 1.1.0 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and only opens the download page after you confirm.
+**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 1.1.1 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and only opens the download page after you confirm.
 
 **Uninstall:** open **Windows Settings → Apps**, select **ChaosticTool Desktop**, then **Uninstall**. The application and its shortcuts are removed. Targets, logs and downloaded tools in the data folder are kept.
 
@@ -376,7 +377,7 @@ In a [GitHub issue](https://github.com/Chaos-Tic/Chaostic-Tool/issues), state: D
 <a id="validation"></a>
 ## 9. Compatibility, tests and limits
 
-This version's sources are identified by the `desktop-v1.1.0` tag. Build and test results are available in the [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
+This version's sources are identified by the `desktop-v1.1.1` tag. Build and test results are available in the [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
 
 | Check | Actual scope |
 |---|---|
@@ -422,4 +423,4 @@ Replace the compiler path with its real location. The build script runs the test
 | [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |
 | [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of `linux-cli` |
 
-**Guide reviewed on 29 September 2026 for Desktop 1.1.0.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.
+**Guide reviewed on 3 October 2026 for Desktop 1.1.1.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.

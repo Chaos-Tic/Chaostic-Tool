@@ -54,6 +54,8 @@ def main():
             QTimer.singleShot(400,window.setup_wsl)
     # Deterministic smoke test for the packaged application, with isolated data.
     if "--smoke-test" in sys.argv:
+        assert not window.hero.art.isNull(), "Packaged README artwork is missing"
+        assert not window.brand_panel.art.isNull(), "Packaged brand artwork is missing"
         result_file = root / "smoke-result.json"
         def done(result):
             from desktop.storage import write_json

@@ -75,11 +75,21 @@ La machine Linux doit disposer de Python 3. Le mode SSH utilise le client OpenSS
 une clé déjà autorisée et une clé d'hôte déjà approuvée dans `known_hosts` ; aucune
 acceptation aveugle de l'identité du serveur n'est effectuée.
 
-Le bouton **Installer le pack Linux** utilise apt sur Kali/Debian/Ubuntu et affiche
-explicitement les paquets absents des dépôts. Il n'ajoute aucun dépôt Kali à Ubuntu.
-Sur Arch ou une autre distribution, installer les outils avec son gestionnaire de
-paquets puis relancer la détection ; un chemin personnalisé peut être renseigné.
+Le bouton **Installer le pack Linux** détecte le gestionnaire de paquets du système
+d'exécution : apt sur Kali/Debian/Ubuntu/Parrot, pacman sur Arch/Manjaro, dnf sur
+Fedora. Il installe les paquets disponibles dans les dépôts déjà configurés et
+signale les outils manquants ; il n'ajoute aucun dépôt ni ne compile de paquet AUR.
+Sur Arch, les bases de paquets doivent être à jour ; le bouton ne lance pas de mise
+à niveau globale. Les autres outils peuvent être installés manuellement, puis
+détectés à nouveau ; un chemin personnalisé peut être renseigné.
 Le compte doit avoir les droits sudo lorsque le paquet ou le profil les nécessite.
+
+Sur Linux, lancer l'interface avec le compte utilisateur habituel. Les profils
+natifs interactifs ou nécessitant des privilèges passent automatiquement par un
+pseudo-terminal local. Le mot de passe sudo se saisit dans **Exécution**, avec
+l'option de saisie secrète. Ces profils natifs restent sur cet ordinateur même
+si l'environnement Linux configuré séparément utilise SSH. WinPEAS est indiqué
+comme propre à Windows et ne peut pas être lancé sur Linux.
 
 Les commandes interactives utilisent un vrai pseudo-terminal Linux, avec saisie
 intégrée, masquage des secrets, Ctrl+C, arrêt et limite de durée. En WSL les chemins

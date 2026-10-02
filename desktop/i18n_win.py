@@ -90,6 +90,8 @@ WIN = {
     "Installateur": "Installer",
     "Installation des paquets Linux": "Installing Linux packages",
     "Paquets Kali/Debian": "Kali/Debian packages",
+    "Paquets Linux": "Linux packages",
+    "Windows uniquement": "Windows only",
     "Installation Linux": "Linux installation",
     "Environnement Linux": "Linux environment",
     "Inventaire": "Inventory",

@@ -65,23 +65,20 @@ def status_badge(text, color):
     box.setSpacing(9)
     dot = QLabel()
     dot.setFixedSize(8, 8)
-    dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
+    dot.setObjectName("statusDot")
     effects.glow(dot, color, blur=10, alpha=210)
     caption = QLabel(text)
-    caption.setStyleSheet(f"color: {color}; font-family: '{theme.BODY}'; font-size: 10px; font-weight: 700; letter-spacing: 1px; background: transparent;")
+    caption.setObjectName("statusCaption")
     box.addWidget(dot)
     box.addWidget(caption)
-    tint = QColor(color)
-    holder.setStyleSheet(f"QWidget#hbadge {{ background: rgba({tint.red()},{tint.green()},{tint.blue()},0.10); border: 1px solid rgba({tint.red()},{tint.green()},{tint.blue()},0.40); border-radius: 12px; }}")
     return holder
 
 
 def card():
     frame = CircuitCard()
     frame.setObjectName("card")
-    effects.card_shadow(frame)
     layout = QVBoxLayout(frame)
-    layout.setContentsMargins(22, 20, 22, 20)
+    layout.setContentsMargins(18, 14, 18, 14)
     layout.setSpacing(12)
     return frame, layout
 
@@ -169,7 +166,7 @@ class Window(QMainWindow):
         super().__init__()
         self.store = store
         # Applique le thème et la langue enregistrés avant de construire l'UI.
-        theme.set_mode(QApplication.instance(), store.settings.get("theme", "light"))
+        theme.set_mode(QApplication.instance(), store.settings.get("theme", "dark"))
         set_language(store.settings.get("language", "en"))
         self.tools = catalog()
         self.tool_by_key = {t["key"]: t for t in self.tools}
@@ -195,11 +192,11 @@ class Window(QMainWindow):
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(12, 18, 12, 16)
         brand = QHBoxLayout()
-        mark = QLabel("C")
+        mark = QLabel()
         mark.setFixedSize(34, 34)
         mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mark.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #ea580c,stop:1 #fb8c3c);"
-                           "border-radius:9px; color:#ffffff; font-weight:800; font-size:15px;")
+        mark.setPixmap(QIcon(str(Path(__file__).parent / "assets/icon.svg")).pixmap(34, 34))
+        mark.setAccessibleName("ChaosticTool")
         brand.addWidget(mark)
         text = label("ChaosticTool")
         brand_font = QFont(theme.BODY, 14)
@@ -209,8 +206,8 @@ class Window(QMainWindow):
         brand.addWidget(text)
         brand.addStretch()
         side.addLayout(brand)
-        side.addSpacing(24)
-        side.addWidget(label("OPERATOR / LOCAL", "eyebrow"))
+        side.addSpacing(18)
+        side.addWidget(label("RED OPS / DESKTOP", "eyebrow"))
         side.addSpacing(8)
         names = ["Centre de contrôle", "Cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"]
         symbols = ["overview", "target", "tools", "run", "history", "settings", "flow"]
@@ -238,7 +235,7 @@ class Window(QMainWindow):
         heading = QHBoxLayout()
         title_area = QVBoxLayout()
         title_area.setSpacing(6)
-        title_area.addWidget(label("CHAOSTICTOOL  ·  DESKTOP", "eyebrow"))
+        title_area.addWidget(label("CHAOSTICTOOL  /  RED OPS", "eyebrow"))
         self.page_title = label("", "pageTitle")
         title_area.addWidget(self.page_title)
         heading.addLayout(title_area)
@@ -247,7 +244,7 @@ class Window(QMainWindow):
         self._sync_theme_button()
         heading.addWidget(self.theme_button)
         heading.addSpacing(10)
-        heading.addWidget(status_badge(platform.system(), "#16a34a"))
+        heading.addWidget(status_badge(platform.system(), theme.COLORS["GOOD"]))
         heading.addSpacing(14)
         heading.addWidget(button("+  Ajouter une cible", self.add_target, "primary"))
         main.addLayout(heading)
@@ -323,7 +320,7 @@ class Window(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(20)
+        layout.setSpacing(14)
         scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(widget); self.stack.addWidget(scroll)
         return layout
@@ -338,7 +335,6 @@ class Window(QMainWindow):
         for text,index in [('01  /  CIBLES\nPRÉPARER',1),('02  /  ARSENAL\nSÉLECTIONNER',2),('03  /  HISTORIQUE\nCONSULTER',4)]:
             entry=button(text,lambda checked=False,n=index:self.navigate(n),'mission')
             missions.addWidget(entry,1)
-        layout.addLayout(missions)
         stats = QHBoxLayout()
         stats.setSpacing(16)
         self.stats = []
@@ -358,11 +354,12 @@ class Window(QMainWindow):
         target_text=QVBoxLayout();target_text.setSpacing(5)
         target_text.addWidget(label("CIBLE ACTIVE / PROCHAINE OPÉRATION","eyebrow"))
         self.active_name=label("Aucune cible","sectionTitle",True)
-        self.active_host=label("Ajoutez votre premier environnement.","muted",True)
+        self.active_host=label("Ajoutez votre premier environnement.","sessionHost",True)
         target_text.addWidget(self.active_name);target_text.addWidget(self.active_host)
         target_layout.addLayout(target_text,1)
         target_layout.addWidget(button("Diagnostic local",lambda:self.launch("desktop-diagnostic")))
-        layout.addWidget(target_bar)
+        layout.insertWidget(1,target_bar)
+        layout.addLayout(missions)
         top = QHBoxLayout()
         top.addWidget(label("JOURNAL DES OPÉRATIONS", "sectionTitle"))
         top.addStretch()
@@ -645,6 +642,9 @@ class Window(QMainWindow):
         self.store.settings["theme"] = new_mode
         self.store.save()
         self._sync_theme_button()
+        for item, symbol in zip(self.nav, ("overview", "target", "tools", "run", "history", "settings", "flow")):
+            item.setIcon(nav_icon(symbol))
+        self.refresh()
         self.update()
 
     def set_app_language(self, lang):

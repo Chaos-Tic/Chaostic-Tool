@@ -13,7 +13,9 @@ PATHS = {
 }
 
 
-def icon(name, color="#a4afc2"):
+def icon(name, color=None):
+    from desktop import theme
+    color = color or theme.COLORS["MUTED"]
     data = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="{color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">{PATHS[name]}</g></svg>'
     renderer = QSvgRenderer(QByteArray(data.encode()))
     pixmap = QPixmap(64, 64)

@@ -4,6 +4,18 @@ The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
 execution and distro package installation. The CLI remains on `linux-cli`;
 the Windows edition remains on `desktop/windows-app`.
 
+## Desktop 1.1.0 downloads
+
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.0/ChaosticTool-1.1.0-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.0/ChaosticTool-1.1.0-linux-arm64.tar.gz).
+The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
+or `sh install.sh` from its folder to add the application to your menu.
+
+The Red Ops interface inherits the CLI's charcoal/red palette and technical
+typography. New profiles use dark mode; existing theme preferences are preserved.
+
+![Red Ops on Linux, rendered offscreen with a temporary demo profile](docs/images/linux/desktop-1.1-accueil.png)
+
 ## Run from source
 
 Use Python 3.14 and a desktop session with the Qt graphics libraries installed.

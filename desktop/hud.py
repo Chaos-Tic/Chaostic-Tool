@@ -2,11 +2,11 @@
 import math,weakref,time
 from shiboken6 import isValid
 from PySide6.QtCore import Qt,QTimer,QObject,QEvent,QPointF,QRectF
-from PySide6.QtGui import QColor,QPainter,QPen,QLinearGradient,QRadialGradient,QFont,QPainterPath,QCursor
+from PySide6.QtGui import QColor,QPainter,QPen,QLinearGradient,QRadialGradient,QFont,QPainterPath,QCursor,QPixmap
 from PySide6.QtWidgets import QWidget,QApplication,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QFrame
 from desktop import theme
 from pathlib import Path
-from PySide6.QtSvg import QSvgRenderer
+from desktop.identity import ARTWORK, panel, hatch
 
 class MotionClock(QObject):
     def __init__(self,app):
@@ -55,55 +55,41 @@ class GridBackground(QWidget):
         p=QPainter(self);p.fillRect(self.rect(),QColor(theme.COLORS['background']))
 
 class Hero(MotionPanel):
+    """Original CLI artwork with a functional action dock; no ambient animation."""
     def __init__(self,parent=None,on_tools=None,on_flows=None):
-        super().__init__(parent);self.motion_active=False;self.setMinimumHeight(230);self.parallax=QPointF()
-        row=QHBoxLayout(self);row.setContentsMargins(24,20,24,20);row.setSpacing(18)
-        box=QVBoxLayout();box.setSpacing(12);row.addLayout(box,1)
+        super().__init__(parent);self.motion_active=False
+        self.art=QPixmap(str(ARTWORK));self.banner_height=240
+        self.setAccessibleName('ChaosticTool — Red Ops Control Surface')
+        self.setMinimumHeight(250)
+        box=QVBoxLayout(self);box.setContentsMargins(18,0,18,12)
+        box.addStretch()
+        dock=QHBoxLayout();dock.setSpacing(10)
         from desktop.i18n import T
-        tag=QLabel('RED OPS  /  CONTROL SURFACE');tag.setObjectName('heroTag');box.addWidget(tag)
-        self.title=QLabel('CHAOSTIC TOOL');self.title.setObjectName('heroTitle');box.addWidget(self.title)
-        desc=QLabel(T('Votre cible. Vos outils. Votre session.'));desc.setObjectName('heroDesc');desc.setWordWrap(True);box.addWidget(desc)
-        phases=QLabel(T('RECONNAISSANCE / EXÉCUTION / RÉSULTATS'));phases.setObjectName('eyebrow');box.addWidget(phases)
-        actions=QHBoxLayout()
-        for text,fn,kind in [(T('Ouvrir l’arsenal'),on_tools,'primary'),(T('Attack flows'),on_flows,'ghost')]:
+        self.caption=QLabel(T('VOTRE CIBLE. VOS OUTILS. VOTRE SESSION.'))
+        self.caption.setObjectName('brandCaption');dock.addWidget(self.caption)
+        dock.addStretch()
+        for text,fn,kind in [(T('Ouvrir l’arsenal'),on_tools,'primary'),(T('Attack flows'),on_flows,'brandAction')]:
             from desktop.effects import GamingButton
-            b=GamingButton(text);b.setObjectName(kind);b.setCursor(Qt.CursorShape.PointingHandCursor)
-            if fn:b.clicked.connect(fn)
-            actions.addWidget(b)
-        actions.addStretch();box.addLayout(actions)
-        self.emblem=BrandEmblem(self);row.addWidget(self.emblem)
+            button=GamingButton(text);button.setObjectName(kind)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            if fn:button.clicked.connect(fn)
+            dock.addWidget(button)
+        box.addLayout(dock)
+
     def resizeEvent(self,event):
         super().resizeEvent(event)
-        self.emblem.setVisible(self.width() >= 850)
-        clock().sync()
+        self.banner_height=min(242,int(self.width()/4))
+        self.setFixedHeight(self.banner_height+64)
+        self.caption.setVisible(self.width()>=850)
 
     def paintEvent(self,event):
-        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        r=QRectF(1,1,self.width()-2,self.height()-2)
-        path=QPainterPath();path.moveTo(r.left()+14,r.top());path.lineTo(r.right(),r.top())
-        path.lineTo(r.right(),r.bottom()-14);path.lineTo(r.right()-14,r.bottom())
-        path.lineTo(r.left(),r.bottom());path.lineTo(r.left(),r.top()+14);path.closeSubpath()
-        p.fillPath(path,QColor(theme.COLORS['surface']))
-        p.setPen(QPen(QColor(theme.COLORS['border']),1));p.drawPath(path)
-        p.setPen(QPen(QColor(theme.COLORS['accent']),3))
-        p.drawLine(16,2,105,2);p.drawLine(self.width()-105,self.height()-2,self.width()-16,self.height()-2)
-
-
-class BrandEmblem(QWidget):
-    """Static vector mark; no fake telemetry, background timers or raster scaling."""
-    def __init__(self,parent=None):
-        super().__init__(parent);self.setFixedSize(240,185)
-        self.renderer=QSvgRenderer(str(Path(__file__).parent/'assets/icon.svg'),self)
-        self.setAccessibleName('ChaosticTool Red Ops')
-    def paintEvent(self,event):
-        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setPen(QPen(QColor(theme.COLORS['border']),1))
-        for x in range(0,self.width(),20):p.drawLine(x,0,x,self.height())
-        for y in range(0,self.height(),20):p.drawLine(0,y,self.width(),y)
-        self.renderer.render(p,QRectF(50,12,152,152))
-        p.setPen(QColor(theme.COLORS['muted']));p.setFont(QFont(theme.MONO,9))
-        from desktop import VERSION
-        p.drawText(QRectF(0,166,self.width(),18),Qt.AlignmentFlag.AlignCenter,'DESKTOP  /  '+VERSION)
+        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        p.fillRect(self.rect(),QColor('#030303'))
+        width=self.banner_height*4
+        p.drawPixmap(QRectF((self.width()-width)/2,0,width,self.banner_height),self.art,QRectF(self.art.rect()))
+        p.setPen(QPen(QColor('#413030'),1))
+        p.drawLine(18,self.banner_height+2,self.width()-18,self.banner_height+2)
+        hatch(p,19,self.height()-4,3,'#a7232a')
 
 class ScanOverlay(MotionPanel):
     def __init__(self,parent=None):
@@ -119,19 +105,17 @@ class ScanOverlay(MotionPanel):
 
 
 class CircuitCard(QFrame):
-    """Static panel corners; no perpetual animation or shared-clock registration."""
+    """Double industrial frame shared by every work panel."""
     def paintEvent(self,event):
-        super().paintEvent(event)
-        p=QPainter(self);p.setPen(QPen(QColor(theme.COLORS['accent_line']),1))
-        for x,sign in ((10,1),(self.width()-10,-1)):
-            p.drawLine(x,5,x+sign*16,5);p.drawLine(x,5,x,11)
+        p=QPainter(self)
+        panel(p,QRectF(self.rect()).adjusted(1,1,-1,-1),self.property('role')=='target')
 
 
 class HUDRail(QWidget):
     def __init__(self,parent=None):
-        super().__init__(parent);self.setFixedHeight(6)
+        super().__init__(parent);self.setFixedHeight(12)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
     def paintEvent(self,event):
         p=QPainter(self);p.setPen(QPen(QColor(theme.COLORS['border']),1))
-        p.drawLine(0,2,self.width(),2)
-        p.setPen(QPen(QColor(theme.COLORS['accent']),2));p.drawLine(0,2,54,2)
+        p.drawLine(0,5,self.width(),5)
+        p.setPen(QPen(QColor(theme.COLORS['accent']),2));p.drawLine(0,5,90,5);hatch(p,self.width()-46,3,4)

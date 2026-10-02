@@ -14,6 +14,10 @@ _LANG = "en"  # anglais par défaut
 # Dictionnaire FR -> EN. Toute chaîne d'interface enveloppée par T() doit y figurer
 # (sinon repli sur le français). Regroupé par zone pour la maintenance.
 FR_EN = {
+    "VOTRE CIBLE. VOS OUTILS. VOTRE SESSION.":"YOUR TARGET. YOUR TOOLS. YOUR SESSION.",
+    "ÉTAT LOCAL":"LOCAL STATE",
+    "// ESPACES DE TRAVAIL":"// WORKSPACES",
+    "SORTIE DE L’OPÉRATION":"OPERATION OUTPUT",
     "OPÉRATION": "OPERATION",
     "Votre cible. Vos outils. Votre session.": "Your target. Your tools. Your session.",
     "RECONNAISSANCE / EXÉCUTION / RÉSULTATS": "RECON / EXECUTION / EVIDENCE",

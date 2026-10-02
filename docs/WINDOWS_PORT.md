@@ -1,4 +1,4 @@
-# Catalogue Desktop 0.6 et compatibilité
+# Catalogue Desktop et compatibilité
 
 Les 48 outils CLI et leurs 137 profils sont référencés. Les quatre utilitaires Desktop portent le catalogue à 52 entrées.
 

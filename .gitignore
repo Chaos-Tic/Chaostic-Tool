@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv*/
+build/
+dist/
+release/
+*.spec.local
+targets/*
+!targets/.gitkeep
+custom_flows.json
+.pytest_cache/
+
+/Installer ChaosticTool.lnk
+
+/Lancer ChaosticTool.lnk
+
+/Prévisualiser interface jeu.lnk
+
+audit-tests.log

@@ -14,12 +14,12 @@ Prepare your targets, choose your tools by phase, configure your operations and 
 
 | Edition | Use | Documentation |
 |---|---|---|
-| **Desktop / Windows** | Graphical application, forms and results without opening a terminal | Branch [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), this README and the [Windows guide](README_WINDOWS.md) |
+| **Desktop / Windows** | Graphical application, forms and results without opening a terminal | Branch [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), the [Windows guide](README_WINDOWS.md) |
 | **Linux CLI** | Terminal experience and CLI-specific functions | Branch [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli), [CLI guide](README_LINUX.md) |
 | **Desktop / Linux** | Graphical application with local Linux execution | Branch [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app), [Linux GUI guide](README_DESKTOP_LINUX.md) |
 | **Desktop / macOS** | The shared graphical interface on macOS | [Cross-system packages and install](docs/DESKTOP.md) |
 
-The historical `main` branch is now called **`linux-cli`**. The rename does not merge the editions. This README's captures cover Desktop.
+The historical `main` branch is now called **`linux-cli`**. The rename does not merge the editions. The first screenshot shows Linux; the following screenshots illustrate the shared interface captured on Windows.
 
 ## Download and install
 
@@ -85,15 +85,16 @@ Desktop reuses the **48 original tools**, with their graphical profiles, and add
 
 Managed portable archives are verified by SHA-256; managed Python tools use isolated environments. Some functions depend on services or specific hardware. **Tor/proxychains and VPN guard** remain specific to the CLI edition.
 
-## Prepare WSL and Kali Linux
+## Prepare Linux tools
 
-In **Settings → Install WSL and Kali Linux…**, Desktop detects the environment, offers WSL/Kali preparation and configures the Linux components it manages. Enabling Windows features may require an administrator elevation.
+In **Settings → Linux environment**, select **Linux on this computer** and
+verify the inventory. Install the selected tools from the arsenal. The Linux
+pack supports apt, pacman and dnf using your configured repositories. Privileged
+profiles request sudo in Execution; run the GUI as your ordinary user.
 
-**If Windows asks for a restart, restart the PC before resuming.** A finished download does not mean the distribution is usable. Desktop keeps the preparation step and distinguishes a required restart from a ready environment. An unfinished preparation can be resumed at the next launch.
-
-The dedicated Linux account `chaostic-tool` is used for ordinary operations. Profiles that explicitly request privileges are handled separately. Your default WSL distribution is not replaced.
-
-WSL is not needed to open Desktop or use the native functions. It does not automatically grant access to low-level Wi-Fi functions: interfaces, drivers and hardware must be available in the chosen environment. [Detailed preparation and troubleshooting](README_WINDOWS.md).
+Wireless and GPU tools require suitable hardware and drivers. See the
+[Linux setup guide](README_DESKTOP_LINUX.md) for local execution, SSH and builds.
+WSL preparation applies only to the [Windows edition](README_WINDOWS.md).
 
 ## Attack flows: one target and explicit steps
 
@@ -127,38 +128,43 @@ In **Settings → Appearance**, disable the animations or choose a 60/30 target 
 
 ## Personal data, updates and uninstall
 
-Data is separate from the program. On Windows, the default location is:
+Data is separate from the program. On Linux, the default location is:
 
 ```text
-%LOCALAPPDATA%\ChaosticTool\Desktop
+$XDG_DATA_HOME/ChaosticTool/Desktop
+# Default: ~/.local/share/ChaosticTool/Desktop
 ```
 
 The public installer bundles **no history, no targets and no personal Linux configuration**. The build checks for the absence of profile files in the package. The packaged-application test verifies an empty initial profile before running its diagnostic.
 
 Desktop 1.0 also checks for new versions and notifies you: **Settings → About → Check for updates**. The check installs nothing automatically; it opens the download page.
 
-To back up, close Desktop and copy your data folder. To update, close the application then run the new installer: your data is kept. A reinstall on your PC therefore normally finds your history; that history is not shared with other users.
+To back up, close Desktop and copy your data folder. To update, close the application then install the new Linux bundle: your data is kept. A reinstall on your PC therefore normally finds your history; that history is not shared with other users.
 
-Uninstall from **Windows Settings → Apps → ChaosticTool Desktop → Uninstall**. Personal data is kept. Desktop does not remove your WSL or SSH environments when it uninstalls. [Maintenance and backups](README_WINDOWS.md#maintenance).
+Run `sh "${XDG_DATA_HOME:-$HOME/.local/share}/ChaosticTool/application/uninstall.sh"` to remove the installed application and its menu entry. Personal data and SSH environments are kept. [Linux installation and removal](README_DESKTOP_LINUX.md).
 
 ## Quick troubleshooting
 
 | Symptom | Check |
 |---|---|
 | Tool present but unavailable | Check the engine, dependencies and Linux inventory; refresh detection |
-| WSL restart requested | Restart Windows then resume the setup before a Linux launch |
-| `WSL_E_DISTRO_NOT_FOUND` | Distribution unavailable: resume the setup after enabling/restarting |
+| Qt platform plugin error | Install the graphics libraries listed in the Linux guide |
+| Missing Linux tool | Verify the selected engine and refresh its inventory |
 | Wrong target in a flow | Check **Flow target** and the session, independent from the global target |
 | Result seemingly gone | Reset the filters and check the data folder in use |
 | Animations too costly | Choose 30 fps or disable the animations |
 | Application error | Check the operation log and, if present, `desktop-errors.log` in the data folder |
 
-To report a problem, state the Desktop and Windows versions, the architecture, the engine, the reproduction steps and the exact message. Remove secrets and private information from shared logs.
+To report a problem, state the Desktop version, Linux distribution and desktop session, the architecture, the engine, the reproduction steps and the exact message. Remove secrets and private information from shared logs.
 
 ## Documentation and development
 
+See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
+
+
 | Document | Content |
 |---|---|
+| [Linux GUI guide](README_DESKTOP_LINUX.md) | Linux setup, local tools and builds |
 | [Windows guide](README_WINDOWS.md) | Install, detailed use, WSL/SSH, troubleshooting and maintenance |
 | [Cross-system Desktop](docs/DESKTOP.md) | Linux/macOS, architectures and packages |
 | [Catalog and compatibility](docs/WINDOWS_PORT.md) | Tools, engines and limits |
@@ -166,6 +172,6 @@ To report a problem, state the Desktop and Windows versions, the architecture, t
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. This version's sources match the `desktop-v1.0.1` tag. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.0.1 release is pinned to `desktop-v1.0.1`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
 [MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.0.1**

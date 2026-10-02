@@ -170,7 +170,10 @@ def catalog():
             item['presets']=[dict(p) for p in item['presets']]
             for index,original in enumerate(TOOLS[key]['presets']):
                 existing=next((p for p in item['presets'] if p['label']==original['label']),None)
-                if existing is not None: existing['cli_index']=index
+                if existing is not None:
+                    existing['cli_index']=index
+                    existing['requires_root']=bool(original.get('requires_root',TOOLS[key].get('requires_root')))
+                    existing['interactive']=bool(TOOLS[key].get('interactive'))
                 else: item['presets'].append(cli_native_profile(key,index))
         else:
             item.update(mode='linux',presets=item['linux_presets'],note='Exécution Linux intégrée. Configurez et vérifiez Linux local, WSL ou SSH dans les paramètres.')
@@ -183,6 +186,7 @@ def catalog():
 
 
 def native_command(tool,configured=None,root=None):
+    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool.get('package') and not configured and can_install(tool['package']):
         try:
             binary=tool['binary'] if tool['key'] in ('secretsdump.py','psexec.py','GetUserSPNs.py') else None
@@ -201,6 +205,7 @@ def native_command(tool,configured=None,root=None):
 
 
 def find_executable(tool, configured=None, root=None):
+    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool["mode"] != "native":
         return None
     candidates = []
@@ -225,6 +230,7 @@ def find_executable(tool, configured=None, root=None):
 
 
 def availability(tool,settings,root=None):
+    if tool['key']=='winpeas' and os.name!='nt': return 'Windows uniquement',False
     if tool['mode']=='builtin': return 'Inclus',True
     if tool['mode']=='native' and native_command(tool,settings.get(tool['key']),root):
         return ('Service requis',False) if tool['key']=='amass' else ('Prêt',True)

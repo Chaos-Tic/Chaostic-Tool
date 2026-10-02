@@ -10,18 +10,10 @@ import sys
 from pathlib import Path
 from desktop.storage import data_root,write_json,now
 from desktop.i18n import T
+from desktop.linux_install import validate_tools
 
 BRIDGE=Path(__file__).parent/'linux_bridge.py'
 NO_WINDOW=0x08000000 if os.name=='nt' else 0
-KALI_PACKAGES={
- 'whois':'whois','dig':'dnsutils','subfinder':'subfinder','amass':'amass','dnsrecon':'dnsrecon','theharvester':'theharvester','shodan':'python3-shodan',
- 'nmap':'nmap','rustscan':'rustscan','masscan':'masscan','naabu':'naabu','gobuster':'gobuster','ffuf':'ffuf','httpx':'httpx-toolkit','wafw00f':'wafw00f','whatweb':'whatweb',
- 'katana':'katana','gau':'getallurls','waybackurls':'waybackurls','nikto':'nikto','nuclei':'nuclei','wpscan':'wpscan','testssl.sh':'testssl.sh','sslscan':'sslscan',
- 'sqlmap':'sqlmap','xsstrike':'xsstrike','dalfox':'dalfox','msfconsole':'metasploit-framework','msfvenom':'metasploit-framework','linpeas.sh':'peass',
- 'secretsdump.py':'impacket-scripts','psexec.py':'impacket-scripts','GetUserSPNs.py':'impacket-scripts','crackmapexec':'netexec','bloodhound-python':'bloodhound.py',
- 'hashcat':'hashcat','john':'john','hydra':'hydra','airmon-ng':'aircrack-ng','airodump-ng':'aircrack-ng','aircrack-ng':'aircrack-ng','reaver':'reaver','wifite':'wifite',
- 'bettercap':'bettercap','ettercap':'ettercap-text-only','tcpdump':'tcpdump','responder':'responder',
-}
 
 def get_config(root=None):
     try: return json.loads((Path(root or data_root())/'linux.json').read_text(encoding='utf-8'))
@@ -93,8 +85,8 @@ def inspect_backend(request):
         write_json(root/'linux-status.json',{'config':config,'error':str(exc),'checked':now(),'tools':{}})
         raise
 
-def execution_plan(argv,preset,root,directory,fields=None):
-    config=get_config(root)
+def execution_plan(argv,preset,root,directory,fields=None,local=False):
+    config={'backend':'local'} if local else get_config(root)
     backend=config.get('backend','local' if sys.platform.startswith('linux') else '')
     # Managed WSL has no shared sudo password. Elevate only explicitly privileged
     # profiles using the Windows account's existing WSL root authority.
@@ -111,7 +103,6 @@ def execution_plan(argv,preset,root,directory,fields=None):
     return command,{'op':'run','argv':mapped,'cwd':cwd,'elevate':bool(preset.get('requires_root')),'timeout':1200}
 
 def install_plan(keys):
-    packages=sorted({KALI_PACKAGES[k] for k in keys if k in KALI_PACKAGES})
-    if not packages: raise ValueError('Aucun paquet Linux pour cette sélection.')
-    # apt is not a shell: package names come exclusively from this fixed map.
-    return ['python3','-u','-c',(Path(__file__).parent/'linux_install.py').read_text(encoding='utf-8'),*packages]
+    tools = validate_tools(keys)
+    # Resolve distro package names on the target, never on the GUI host.
+    return ['python3', '-u', '-c', (Path(__file__).parent / 'linux_install.py').read_text(encoding='utf-8'), *tools]

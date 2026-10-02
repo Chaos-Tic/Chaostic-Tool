@@ -101,7 +101,7 @@ class Runner(QObject):
     def active(self):
         return self.proc is not None
 
-    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False, metadata=None, environment_extra=None):
+    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False, metadata=None, environment_extra=None, local_bridge=False):
         if self.active:
             raise RuntimeError("Une opération est déjà en cours.")
         display=[redact(arg,redactions) for arg in (command or ['builtin',worker])]
@@ -122,7 +122,7 @@ class Runner(QObject):
         elif bridge:
             try:
                 from desktop.backends import execution_plan
-                command,request=execution_plan(command,{'requires_root':elevate},self.store.root,directory,fields)
+                command,request=execution_plan(command,{'requires_root':elevate},self.store.root,directory,fields,local=local_bridge)
                 request['timeout']=max(1,timeout_ms//1000)
                 self.initial_input=(json.dumps(request)+'\n').encode('utf-8')
             except Exception as exc:

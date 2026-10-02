@@ -1,43 +1,46 @@
 # ChaosticTool Desktop
 
-**Your graphical operations center for Windows 10 and Windows 11.**
+**Your graphical operations center for Linux desktops.**
 
-Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and a light or dark theme. The application has its own installer and uninstalls from Windows.
+Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and a light or dark theme. Run local Linux tools with integrated output, interactive input and sudo when a profile requires it.
 
-**[Download Desktop 1.0.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.1)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
-![ChaosticTool Desktop 1.0 control center: clean interface, orange accent, local demo profile](docs/images/windows/desktop-1.0-accueil.png)
+![ChaosticTool Desktop on Linux: control center in a Wayland session](docs/images/linux/desktop-linux.png)
 
-*Real application, with an isolated demo profile. The available tools depend on the machine used for the capture. The releases contain neither this profile nor the developer's history.*
+*The application running in a Linux Wayland session with an empty temporary profile. Tool availability depends on the system. The bundle contains no targets or user history.*
 
-## Two editions, one repository
+## CLI and Desktop, one repository
 
 | Edition | Use | Documentation |
 |---|---|---|
 | **Desktop / Windows** | Graphical application, forms and results without opening a terminal | Branch [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), this README and the [Windows guide](README_WINDOWS.md) |
 | **Linux CLI** | Terminal experience and CLI-specific functions | Branch [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli), [CLI guide](README_LINUX.md) |
-| **Desktop Linux / macOS** | The same graphical interface on another system | [Cross-system packages and install](docs/DESKTOP.md) |
+| **Desktop / Linux** | Graphical application with local Linux execution | Branch [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app), [Linux GUI guide](README_DESKTOP_LINUX.md) |
+| **Desktop / macOS** | The shared graphical interface on macOS | [Cross-system packages and install](docs/DESKTOP.md) |
 
 The historical `main` branch is now called **`linux-cli`**. The rename does not merge the editions. This README's captures cover Desktop.
 
 ## Download and install
 
-| Your computer | Installer | Target systems |
+| Linux desktop | Tool package manager | Distribution |
 |---|---|---|
-| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.0.1/ChaosticTool-Setup-1.0.1-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
+| Debian / Ubuntu / Kali / Parrot | apt | Portable `.tar.gz` and user installer |
+| Arch / Manjaro | pacman | Portable `.tar.gz` and user installer |
+| Fedora | dnf | Portable `.tar.gz` and user installer |
 
-This version 1.0.1 is provided for **Windows x64**. An ARM64 archive may follow.
+The `desktop/linux-app` branch develops the Linux edition. CI is configured to build Linux x64 and ARM64 alongside Windows and macOS. A workflow configuration is not proof that all six builds have passed; download artifacts from a successful run for this branch. See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
 
-1. Check your architecture in **Windows Settings → System → About**, then download the matching `.exe`. The GitHub “Source code” archives are not the installer.
-2. Run the installation. **Python and Git are not needed** to start the distributed application.
-3. Open **ChaosticTool Desktop** from the Start menu. **Open my files** gives access to your data space.
-4. Try the local diagnostic, then add a target and install the tools you need.
+1. Extract a Linux bundle for your architecture. The GitHub “Source code” archives do not contain a built application.
+2. Run `./ChaosticTool` from its folder, or `sh install.sh` to add it to the applications menu. Launch the GUI as your normal user.
+3. Choose **Settings → Linux environment → Linux on this computer**, then verify the connection to detect installed tools.
+4. Try the local diagnostic, then add a target and install the tools you need. The Linux pack uses your configured distro repositories and reports missing packages.
 
-The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.0.1). Desktop 1.0.1 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
+The Linux build produces an archive and its SHA-256 fingerprint in `release/`. Published release assets are separate from development artifacts. For the existing Windows release, use the [Windows guide](README_WINDOWS.md).
 
 ### Application and tool compatibility
 
-The interface is packaged for the system above; 32-bit Windows is not supported. Tool dependencies are separate: some run natively, others require Linux, a service, an API key, a driver or special rights. WSL 2 also depends on virtualization and the machine's policies.
+Linux bundles target glibc desktops, not Alpine/musl. Tool dependencies are separate: some require a service, an API key, a GPU or Wi-Fi driver, or special rights. Native interactive and privileged profiles use a local pseudo-terminal; Windows-only WinPEAS is unavailable on Linux. Tor/proxychains and VPN guard remain CLI features.
 
 The build is tested automatically. This does not validate every GPU, antivirus, Wi-Fi adapter and external tool on every machine. See the [tool matrix](docs/WINDOWS_PORT.md) for functional limits.
 

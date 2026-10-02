@@ -8,6 +8,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -174,8 +175,10 @@ class DesktopTests(unittest.TestCase):
             QTest.mouseClick(nav, __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.MouseButton.LeftButton)
             self.assertEqual(window.stack.currentIndex(), index)
         window.navigate(2)
-        window.only_ready.setChecked(True)
-        window.search.setText("certificat")
+        # System tools vary between Linux desktops; test the bundled filter alone.
+        with patch("desktop.catalog.native_command", return_value=None):
+            window.only_ready.setChecked(True)
+            window.search.setText("certificat")
         self.assertEqual([t["key"] for t in window.filtered_tools], ["desktop-tls"])
         result = wait_run(window.runner, lambda: window.launch("desktop-diagnostic", show_dialog=False))
         self.assertEqual(result["status"], "success")

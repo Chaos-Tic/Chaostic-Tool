@@ -1,23 +1,23 @@
 # Desktop design system
 
-The UI preserves ChaosticTool's red identity in a quiet dark workspace. All
-reusable visual styles live in `desktop/theme.py`.
+The current Desktop interface uses an orange accent, a light default theme and
+a persistent dark theme. `desktop/theme.py` is the source of truth.
 
-| Token | Value | Use |
-| --- | --- | --- |
-| background | #0c1017 | Main workspace |
-| sidebar | #10151e | Navigation |
-| surface | #141b26 | Cards and alternating rows |
-| border | #293344 | Component boundaries |
-| text | #f0f3f9 | Primary content |
-| muted | #a4afc2 | Secondary content |
-| red | #ff4d64 | Brand and running state |
-| green | #73deb0 | Ready and success, always paired with text |
+| Token | Light | Dark |
+|---|---|---|
+| Background | `#edf0f4` | `#0f1216` |
+| Surface | `#ffffff` | `#171b21` |
+| Text | `#12141a` | `#e7eaf0` |
+| Muted text | `#5b6472` | `#98a1af` |
+| Accent | `#ea580c` | `#f97316` |
+| Success | `#16a34a` | `#34d399` |
 
-Navigation, buttons, fields and tables have keyboard focus states. The desktop
-uses system text controls, selectable logs and table selection. Labels are plain
-text, including user-provided target names and tool output. No HTML interpretation
-or terminal escape execution is used. Font: Segoe UI, 10 pt body, 29 px page title.
-Spacing: 8, 12, 16, 20, 24, 30 px. Components include default, hover, pressed,
-focused, disabled, empty, running and error states. Do not claim detection means
-an external tool has been tested. Do not display mock metrics as real activity.
+Use standard Qt controls, readable logs, visible keyboard focus and text labels
+alongside status colors. Segoe UI and Consolas are requested with platform font
+fallbacks. English is the default language; French is selectable in Settings.
+Ctrl+K opens search and F6 opens Execution.
+
+Animations can be disabled. Ambient refresh settings are targets, not GPU frame
+rate guarantees. Counts and execution indicators must reflect actual state.
+The [NEXUS notes](NEXUS.md) and [Operation Deck notes](NEXUS_VISUALS.md) are
+historical design explorations, not the current visual specification.

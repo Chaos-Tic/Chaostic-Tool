@@ -1,9 +1,9 @@
 name: Linux CLI
 on:
   push:
-    branches: [linux-cli, docs/homepage-two-editions]
+    branches: [linux-cli]
   pull_request:
-    branches: [linux-cli, docs/homepage-two-editions]
+    branches: [linux-cli]
   workflow_dispatch:
 permissions:
   contents: read

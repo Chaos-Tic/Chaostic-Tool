@@ -1,38 +1,44 @@
 # Contributing
 
-## Choose the correct base branch
+## Three maintained branches
 
 | Change | Pull request target |
 |---|---|
-| Terminal CLI, root installer and CLI guide | `linux-cli` |
+| Terminal CLI, root installer and CLI guide | `linux-cli` (default branch) |
 | Windows graphical application | `desktop/windows-app` |
 | Linux graphical application and distro support | `desktop/linux-app` |
 
-`docs/homepage-two-editions` is a documentation proposal for the CLI homepage,
-not a separate edition. Its original Desktop 1.0.0 link is obsolete; the updated
-CLI homepage includes the three maintained editions.
+The homepage is maintained in the README of each edition. It does not need a
+permanent documentation branch. Use short-lived branches for changes and remove
+them after their pull requests are merged.
 
-Keep common fixes synchronized with focused commits. Do not merge the entire
-Desktop application into the CLI merely to satisfy unrelated build checks.
-Never commit targets, run logs, personal configuration, virtual environments,
-builds or downloaded binaries. Use isolated demo profiles for screenshots.
+Keep common fixes synchronized with focused commits. The Desktop editions share
+code, but their platform-specific changes should be reviewed on the matching
+branch. Never commit targets, run logs, personal configuration, virtual
+environments, builds or downloaded binaries. Use isolated demo profiles for
+screenshots.
 
 ## Validation
 
-Run the commands in the branch's README. Desktop changes also require
-`python -m unittest discover -s tests -v` with `QT_QPA_PLATFORM=offscreen`,
-then `python scripts/check-docs.py`. Build and smoke-test on each target OS
-before publishing. POSIX tests skipped on Windows must run on Linux.
+CLI changes run on Python 3.11 and 3.14 and require the aggregate `cli-tests` gate.
+Desktop changes require six platform checks: `windows-x64`, `windows-arm64`,
+`linux-x64`, `linux-arm64`, `macos-x64` and `macos-arm64`.
 
-## Current GitHub protection mismatch
+Run the commands in the edition's README. For Desktop, install
+`requirements-build.txt`, set `QT_QPA_PLATFORM=offscreen`, run
+`python -m unittest discover -s tests -v`, then `python scripts/check-docs.py`.
+Build with `python scripts/build-desktop.py` and check the packaged application
+with `python scripts/smoke-desktop.py`. POSIX tests skipped on Windows must run
+on Linux. Unit tests do not certify every external tool or hardware device.
 
-Verified on 2026-10-02: the `Protect linux-cli` ruleset still requires the six
-Desktop build jobs, although the CLI branch has no Desktop application. The
-homepage PR #2 therefore has no checks and is blocked. The CLI workflow in this
-change introduces `cli-tests`; a maintainer must replace the six Desktop checks
-with that gate for `linux-cli` before merging CLI-only contributions.
+## Pull requests and protection
 
-Keep the existing pull-request requirement, resolved discussions, strict
-up-to-date policy, deletion protection and force-push protection. Desktop PRs
-should use the six-platform workflow on their own base branches. Repository
-settings are separate from files: adding this document does not change a ruleset.
+The three maintained branches require pull requests, passing checks, an up-to-date
+branch and resolved review discussions. Deletion and force pushes are blocked.
+No bypass actors or external review approvals are required. Keep the names of
+required checks aligned with the workflows when editing them.
+
+Release publication is tag-only and is not a required PR check. Already-public
+release assets must remain unchanged; failed draft publication can be resumed.
+GitHub repository rules are separate from these files: a workflow rename may also
+require a ruleset update.

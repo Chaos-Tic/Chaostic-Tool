@@ -3,22 +3,24 @@ from PySide6.QtCore import Qt,QVariantAnimation,QPropertyAnimation,QEasingCurve,
 from PySide6.QtGui import QColor,QPainter,QPen
 from PySide6.QtWidgets import QLabel,QPushButton,QGraphicsOpacityEffect,QGraphicsDropShadowEffect,QSizePolicy
 
-READY='#16a34a';LINUX='#0891b2';PENDING='#b45309';FAIL='#dc2626';RUNNING='#ea580c';MUTED='#5b6472'
+READY='#16a34a';LINUX='#0891b2';PENDING='#b45309';FAIL='#dc2626';RUNNING='#e3324f';MUTED='#5b6472'
 
 def status_color(text):
+    from desktop import theme
+    colors=theme.COLORS
     value=text.casefold()
-    if any(w in value for w in ('échec','arrêté','interrompu','invalide')):return FAIL
-    if 'en cours' in value:return RUNNING
-    if any(w in value for w in ('inclus','détecté','prêt','terminé','active')):return LINUX if 'linux' in value else READY
-    if any(w in value for w in ('installer','requis','configurer','à faire','passé')):return PENDING
-    return MUTED
+    if any(w in value for w in ('échec','arrêté','interrompu','invalide')):return colors['DANGER']
+    if 'en cours' in value:return colors['ACCENT']
+    if any(w in value for w in ('inclus','détecté','prêt','terminé','active')):return colors['INFO'] if 'linux' in value else colors['GOOD']
+    if any(w in value for w in ('installer','requis','configurer','à faire','passé')):return colors['WARNING']
+    return colors['MUTED']
 
 def status_pill(text,parent=None):
     from desktop.i18n import T
     pill=QLabel(T(str(text)),parent);pill.setTextFormat(Qt.TextFormat.PlainText)
     c=QColor(status_color(text));pill.setFixedHeight(24)
     pill.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed)
-    pill.setStyleSheet(f'color:{c.name()}; background:rgba({c.red()},{c.green()},{c.blue()},26); border:1px solid rgba({c.red()},{c.green()},{c.blue()},90); border-radius:8px; padding:2px 12px; font-size:12px; font-weight:600;')
+    pill.setStyleSheet(f'color:{c.name()}; background:rgba({c.red()},{c.green()},{c.blue()},26); border:1px solid rgba({c.red()},{c.green()},{c.blue()},90); border-radius:4px; padding:2px 12px; font-size:12px; font-weight:600;')
     pill.setToolTip(str(text));pill.setAccessibleName(str(text));pill.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
     return pill
 
@@ -85,15 +87,15 @@ class GamingButton(QPushButton):
         if not self.isEnabled():return
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         from PySide6.QtGui import QPainterPath
-        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),10,10);p.setClipPath(path)
+        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),4,4);p.setClipPath(path)
         primary=self.objectName() in ('primary','mission')
         if self.ripple<1:
             p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(QColor(255,255,255,int(60*(1-self.ripple))) if primary else QColor(234,88,12,int(40*(1-self.ripple))))
+            p.setBrush(QColor(255,255,255,int(60*(1-self.ripple))) if primary else QColor(227,50,79,int(40*(1-self.ripple))))
             radius=self.width()*self.ripple;p.drawEllipse(self.ripple_center,radius,radius)
         if self.hover<=0:return
-        c=QColor('#ffffff' if primary else '#ea580c');c.setAlpha(int(130*self.hover))
-        p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),10,10)
+        c=QColor('#ffffff' if primary else '#e3324f');c.setAlpha(int(130*self.hover))
+        p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),4,4)
 
 def cancel(widget,name):
     animation=getattr(widget,name,None)

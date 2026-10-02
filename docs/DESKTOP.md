@@ -9,11 +9,13 @@ du système choisi et des prérequis propres à chaque outil.
 
 ## Disponibilité des téléchargements
 
-Au 2 octobre 2026, la release publique Desktop 1.0.1 fournit Windows x64.
-Linux, Windows ARM64 et macOS sont des cibles de compilation ; utilisez les
-artifacts d'un run réussi de la branche correspondante lorsqu'aucun paquet
-public n'est présent. La matrice ci-dessous décrit les formats produits par
-le build, pas une promesse que tous sont publiés dans chaque release.
+La [release Desktop 1.1.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.0)
+regroupe Windows, Linux et macOS, en x64 et ARM64, avec une empreinte SHA-256
+par paquet. Les six paquets proviennent du même tag, créé depuis la branche
+`desktop/linux-app` qui contient les intégrations Linux et le socle multiplateforme.
+Les deux branches Desktop partagent la nouvelle identité Red Ops : anthracite,
+rouge, typographie technique et icône commune. Un nouveau profil démarre en sombre ;
+le thème déjà enregistré reste inchangé. Voir le [système visuel](DESIGN.md).
 
 ## Télécharger et installer
 

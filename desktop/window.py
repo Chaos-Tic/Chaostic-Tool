@@ -19,9 +19,9 @@ from PySide6.QtWidgets import (
 from core.phases import PHASES
 from desktop.flow_panel import FlowPanel
 from desktop import VERSION
-from desktop.icons import icon as nav_icon
 from desktop import effects
 from desktop import theme
+from desktop.identity import BrandPanel, RailButton
 from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
@@ -188,54 +188,41 @@ class Window(QMainWindow):
         self.setCentralWidget(root)
         sidebar = QWidget()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(210)
+        sidebar.setFixedWidth(230)
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(12, 18, 12, 16)
-        brand = QHBoxLayout()
-        mark = QLabel()
-        mark.setFixedSize(34, 34)
-        mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mark.setPixmap(QIcon(str(Path(__file__).parent / "assets/icon.svg")).pixmap(34, 34))
-        mark.setAccessibleName("ChaosticTool")
-        brand.addWidget(mark)
-        text = label("ChaosticTool")
-        brand_font = QFont(theme.BODY, 14)
-        brand_font.setWeight(QFont.Weight.Bold)
-        text.setFont(brand_font)
-        # Pas de couleur en dur : suit le texte du thème (clair ou sombre).
-        brand.addWidget(text)
-        brand.addStretch()
-        side.addLayout(brand)
-        side.addSpacing(18)
-        side.addWidget(label("RED OPS / DESKTOP", "eyebrow"))
+        side.setSpacing(5)
+        self.brand_panel = BrandPanel()
+        side.addWidget(self.brand_panel)
         side.addSpacing(8)
+        side.addWidget(label("// ESPACES DE TRAVAIL", "sidebarMeta"))
+        side.addSpacing(5)
         names = ["Centre de contrôle", "Cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"]
-        symbols = ["overview", "target", "tools", "run", "history", "settings", "flow"]
         # self.nav stays ordered by stack index (nav[i] -> page i); only the on-screen
         # order is customised so Attack flows sits next to Exécution.
         self.nav = [None] * len(names)
         for index, name in enumerate(names):
-            item = button(f"  {name}", lambda checked=False, n=index: self.navigate(n), "nav")
-            item.setIcon(nav_icon(symbols[index]))
-            item.setIconSize(QSize(18, 18))
+            item = RailButton(T(name), f"{(0,1,2,3,5,6,4)[index]:02d}")
+            item.clicked.connect(lambda checked=False, n=index: self.navigate(n))
             item.setCheckable(True)
             self.nav[index] = item
         for stack_index in (0, 1, 2, 3, 6, 4, 5):
             side.addWidget(self.nav[stack_index])
         side.addStretch()
-        side.addWidget(label(platform.system().upper()+" DESKTOP", "eyebrow"))
-        side.addWidget(label(f"DECK  /  {VERSION}", "muted"))
+        side.addWidget(label(platform.system().upper()+" / LOCAL", "sidebarMeta"))
+        side.addWidget(label(f"DESKTOP  /  {VERSION}", "sidebarMeta"))
         side.addSpacing(8)
         side.addWidget(button("Ouvrir mes fichiers", self.open_data))
         outer.addWidget(sidebar)
         body = GridBackground()
         main = QVBoxLayout(body)
-        main.setContentsMargins(20, 18, 20, 16)
-        main.setSpacing(14)
+        main.setContentsMargins(22, 18, 22, 16)
+        main.setSpacing(10)
         heading = QHBoxLayout()
         title_area = QVBoxLayout()
         title_area.setSpacing(6)
-        title_area.addWidget(label("CHAOSTICTOOL  /  RED OPS", "eyebrow"))
+        self.header_kicker=label("RED OPS CONTROL SURFACE  /  DESKTOP", "eyebrow")
+        title_area.addWidget(self.header_kicker)
         self.page_title = label("", "pageTitle")
         title_area.addWidget(self.page_title)
         heading.addLayout(title_area)
@@ -335,30 +322,29 @@ class Window(QMainWindow):
         for text,index in [('01  /  CIBLES\nPRÉPARER',1),('02  /  ARSENAL\nSÉLECTIONNER',2),('03  /  HISTORIQUE\nCONSULTER',4)]:
             entry=button(text,lambda checked=False,n=index:self.navigate(n),'mission')
             missions.addWidget(entry,1)
-        stats = QHBoxLayout()
-        stats.setSpacing(16)
-        self.stats = []
-        for (caption, detail), tint in zip((("CIBLES", "Environnements enregistrés"), ("ARSENAL PRÊT", "Outils inclus ou détectés"), ("OPÉRATIONS", "Journaux conservés localement")), (effects.LINUX, effects.READY, effects.RUNNING)):
-            frame, content = card()
-            content.addWidget(label(caption, "eyebrow"))
-            value = label("0", "number")
-            value.setStyleSheet(f"color: {tint};")
-            effects.glow(value, tint, blur=24, alpha=140)
-            self.stats.append(value)
-            content.addWidget(value)
-            content.addWidget(label(detail, "muted", True))
-            stats.addWidget(frame)
-        layout.addLayout(stats)
-        target_bar=QFrame();target_bar.setObjectName('card')
-        target_layout=QHBoxLayout(target_bar);target_layout.setContentsMargins(20,14,20,14)
-        target_text=QVBoxLayout();target_text.setSpacing(5)
-        target_text.addWidget(label("CIBLE ACTIVE / PROCHAINE OPÉRATION","eyebrow"))
-        self.active_name=label("Aucune cible","sectionTitle",True)
+        operation = QHBoxLayout(); operation.setSpacing(12)
+        target_bar, target_layout = card(); target_bar.setProperty('role','target')
+        target_layout.addWidget(label("CIBLE ACTIVE / PROCHAINE OPÉRATION","eyebrow"))
+        self.active_name=label("Aucune cible","targetTitle",True)
         self.active_host=label("Ajoutez votre premier environnement.","sessionHost",True)
-        target_text.addWidget(self.active_name);target_text.addWidget(self.active_host)
-        target_layout.addLayout(target_text,1)
-        target_layout.addWidget(button("Diagnostic local",lambda:self.launch("desktop-diagnostic")))
-        layout.insertWidget(1,target_bar)
+        target_layout.addWidget(self.active_name);target_layout.addWidget(self.active_host)
+        target_layout.addStretch()
+        target_actions=QHBoxLayout()
+        target_actions.addWidget(button("Diagnostic local",lambda:self.launch("desktop-diagnostic")))
+        target_actions.addStretch();target_layout.addLayout(target_actions)
+        operation.addWidget(target_bar,3)
+        summary, summary_layout=card()
+        summary_layout.setSpacing(4)
+        summary_layout.addWidget(label("ÉTAT LOCAL", "eyebrow"))
+        self.stats=[]
+        for index,(caption,detail) in enumerate((("CIBLES","Environnements enregistrés"),("ARSENAL PRÊT","Outils inclus ou détectés"),("OPÉRATIONS","Journaux conservés localement"))):
+            row=QHBoxLayout()
+            title=label(caption,"metricLabel");title.setToolTip(T(detail));row.addWidget(title)
+            row.addStretch()
+            value=label("0","metricValue");self.stats.append(value);row.addWidget(value)
+            summary_layout.addLayout(row)
+        operation.addWidget(summary,2)
+        layout.addLayout(operation)
         layout.addLayout(missions)
         top = QHBoxLayout()
         top.addWidget(label("JOURNAL DES OPÉRATIONS", "sectionTitle"))
@@ -490,12 +476,16 @@ class Window(QMainWindow):
         self.console.setAccessibleName("Journal de l’opération")
         self.console.document().setMaximumBlockCount(5000)
         self.console.setPlaceholderText(T("Aucune opération lancée.\n\nChoisissez un outil dans la boîte à outils pour commencer."))
-        console_wrap = QWidget()
+        console_wrap = CircuitCard()
+        self.console.setObjectName("operationConsole")
         console_grid = QGridLayout(console_wrap)
-        console_grid.setContentsMargins(0, 0, 0, 0)
-        console_grid.addWidget(self.console, 0, 0)
+        console_grid.setContentsMargins(14, 14, 14, 14)
+        console_grid.setVerticalSpacing(12)
+        console_grid.addWidget(label("SORTIE DE L’OPÉRATION", "eyebrow"), 0, 0)
+        console_grid.addWidget(self.console, 1, 0)
+        console_grid.setRowStretch(1, 1)
         self.scan = ScanOverlay(console_wrap)
-        console_grid.addWidget(self.scan, 0, 0)
+        console_grid.addWidget(self.scan, 1, 0)
         layout.addWidget(console_wrap, 1)
         self.input_row=QWidget(); entry=QHBoxLayout(self.input_row); entry.setContentsMargins(0,0,0,0)
         self.terminal_input=QLineEdit(); self.terminal_input.setPlaceholderText(T("Saisie pour la session interactive…"))
@@ -642,8 +632,6 @@ class Window(QMainWindow):
         self.store.settings["theme"] = new_mode
         self.store.save()
         self._sync_theme_button()
-        for item, symbol in zip(self.nav, ("overview", "target", "tools", "run", "history", "settings", "flow")):
-            item.setIcon(nav_icon(symbol))
         self.refresh()
         self.update()
 
@@ -1041,6 +1029,8 @@ class Window(QMainWindow):
         self.statusBar().showMessage(T('Résultat local supprimé.'))
 
     def resizeEvent(self,event):
+        if hasattr(self,'brand_panel'): self.brand_panel.set_compact(event.size().height()<740)
+        if hasattr(self,'header_kicker'): self.header_kicker.setText('RED OPS / DESKTOP' if event.size().width()<1120 else 'RED OPS CONTROL SURFACE  /  DESKTOP')
         super().resizeEvent(event)
         if hasattr(self,'tools_split'):
             orientation=Qt.Orientation.Vertical if self.width()<1100 else Qt.Orientation.Horizontal

@@ -143,6 +143,8 @@ def run_tool(cmd, output_path=None, interactive=False):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             start_new_session=True,
             env=_build_env(),
         )
@@ -177,6 +179,10 @@ def run_tool(cmd, output_path=None, interactive=False):
                             lines.append(line)
                             progress.advance(task_id, 1)
                             break
+            # Tools may exit without a trailing newline (including binary output).
+            if buf:
+                progress.console.print(Text.from_ansi(buf), end="")
+                lines.append(buf)
         proc.wait()
     except KeyboardInterrupt:
         _stop_process(proc)
@@ -184,13 +190,15 @@ def run_tool(cmd, output_path=None, interactive=False):
 
     saved = False
     if output_path and lines:
-        Path(output_path).write_text("".join(lines))
+        Path(output_path).write_text("".join(lines), encoding="utf-8")
         _chown_to_sudo_user(output_path)
         saved = True
 
     rc = proc.returncode if proc.returncode is not None else 130
     console.print(_result_panel(rc, output_path, saved))
     _forget_process(proc)
+    if proc.stdout is not None:
+        proc.stdout.close()
     return rc
 
 

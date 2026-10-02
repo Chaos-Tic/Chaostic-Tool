@@ -1,19 +1,27 @@
 # Repository rules and branch maintenance
 
-See [CONTRIBUTING](../CONTRIBUTING.md) for branch targets, validation and the
-current mismatch between CLI protection and Desktop build checks.
+The repository has three maintained branches: `linux-cli` (default),
+`desktop/windows-app`, and `desktop/linux-app`. Documentation belongs to the
+corresponding edition; other branches are temporary pull-request branches.
 
-As verified on 2026-10-02, `linux-cli` is the default branch. `main` no longer
-exists remotely. The active ruleset prevents deletion and force pushes, requires
-pull requests and resolved discussions, and currently requires six Desktop jobs.
-No bypass actors are configured and no external approval is required.
+See [CONTRIBUTING](../CONTRIBUTING.md) for branch targets and local validation.
 
-The Desktop branches are independent editions; contributions should target the
-matching branch. The old Desktop PR #1 targets `linux-cli` and is an integration
-proposal, not the normal route for Desktop maintenance.
+## Required checks
 
-The `release` job is tag-only and must not be a required PR check. A release
-workflow rerun must preserve already-published assets. Draft assets may be
-replaced when resuming a failed build publication.
+- `linux-cli`: `cli-tests`, aggregating the Python 3.11 and 3.14 tests.
+- Both Desktop branches: `windows-x64`, `windows-arm64`, `linux-x64`,
+  `linux-arm64`, `macos-x64`, and `macos-arm64`.
 
-[Live ruleset](https://github.com/Chaos-Tic/Chaostic-Tool/rules/24086485).
+The rules require pull requests, passing checks on an up-to-date branch and
+resolved discussions. Deletion and force pushes are blocked. No bypass actors
+or external review approvals are required.
+
+The `release` job is tag-only and must not be a required PR check. A workflow
+rerun preserves published assets and can replace assets in an existing draft.
+
+On 2026-10-02 the CLI's obsolete Desktop check requirements were replaced by
+its own gate, and matching protection was added to the Desktop branches.
+The old homepage proposal was incorporated into the CLI. The historical
+Desktop-to-CLI integration PR was retired to keep the editions separate.
+
+[Live repository rules](https://github.com/Chaos-Tic/Chaostic-Tool/rules).

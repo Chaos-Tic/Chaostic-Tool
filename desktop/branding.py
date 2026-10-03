@@ -1,4 +1,4 @@
-"""One source rectangle for the original CLI mascot across UI and platform icons."""
+"""Original CLI mascot rectangle for the UI and stable Windows app identity."""
 MASCOT_RECT = (130, 100, 250, 250)
 
 # Stable across upgrades, and shared with the Windows Start menu/Desktop links.

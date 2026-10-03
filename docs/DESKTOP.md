@@ -9,7 +9,7 @@ du système choisi et des prérequis propres à chaque outil.
 
 ## Disponibilité des téléchargements
 
-La [release Desktop 1.1.4](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.4)
+La [release Desktop 1.1.5](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5)
 regroupe Windows, Linux et macOS, en x64 et ARM64, avec une empreinte SHA-256
 par paquet. Les six paquets proviennent du même tag, créé depuis la branche
 `desktop/linux-app` qui contient les intégrations Linux et le socle multiplateforme.

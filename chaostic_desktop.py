@@ -10,6 +10,9 @@ def main():
         from desktop.workers import main as worker_main
         return worker_main(sys.argv[2:])
 
+    from desktop.branding import configure_windows_identity
+    configure_windows_identity()
+
     from PySide6.QtCore import QLockFile, QTimer
     from PySide6.QtWidgets import QApplication, QMessageBox
     from desktop.storage import Store, data_root
@@ -36,6 +39,9 @@ def main():
     if '--smoke-test' in sys.argv:
         from desktop.storage import write_json
         from desktop.backends import get_config
+        if sys.platform == 'win32':
+            from desktop.branding import current_windows_identity
+            write_json(root/'smoke-windows-identity.json', {'app_id':current_windows_identity()})
         write_json(root/'smoke-initial-state.json',{
             'history':len(store.history()),'targets':len(store.targets),
             'configured_linux':bool(get_config(root))})

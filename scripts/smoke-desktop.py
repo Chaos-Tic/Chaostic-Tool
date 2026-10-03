@@ -24,7 +24,7 @@ if sys.platform == 'win32':
             icons = {pe.get_data(language.data.struct.OffsetToData, language.data.struct.Size)
                      for kind in pe.DIRECTORY_ENTRY_RESOURCE.entries if kind.id == 3
                      for entry in kind.directory.entries for language in entry.directory.entries}
-        assert expected <= icons, f'Stale or missing Red Ops icon in {binary.name}'
+        assert expected <= icons, f'Stale or missing application icon in {binary.name}'
 
 with tempfile.TemporaryDirectory() as directory:
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen', CHAOSTIC_DESKTOP_HOME=directory)

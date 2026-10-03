@@ -80,7 +80,9 @@ jobs:
             $shortcutPath = Join-Path $shortcutFolder 'ChaosticTool Desktop.lnk'
             if (-not (Test-Path -LiteralPath $shortcutPath)) { throw 'Installed shortcut is missing' }
             $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
-            $shellFolder = (New-Object -ComObject Shell.Application).Namespace($shortcutFolder)
+            $shell = New-Object -ComObject Shell.Application
+              $shellFolder = $shell.Namespace([string]$shortcutFolder)
+              if ($null -eq $shellFolder) { throw "Cannot inspect shortcut folder: $shortcutFolder" }
             $item = $shellFolder.ParseName('ChaosticTool Desktop.lnk')
             if ($item.ExtendedProperty('System.AppUserModel.ID') -ne $appId) { throw 'Shortcut taskbar identity mismatch' }
             $expectedIcon = (Resolve-Path -LiteralPath (Join-Path $destination '_internal/desktop/assets/icon.ico')).Path

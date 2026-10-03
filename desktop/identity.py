@@ -10,6 +10,7 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QWidget, QPushButton
 
 from desktop import theme
+from desktop.branding import MASCOT_RECT
 
 ARTWORK = Path(__file__).parent / "assets" / "red-ops-banner.png"
 
@@ -70,7 +71,7 @@ class BrandPanel(QWidget):
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         side = 47 if self.compact else 105
         p.drawPixmap(QRectF((self.width()-side)/2, 0, side, side), self.art,
-                     QRectF(130, 100, 250, 250))
+                     QRectF(*MASCOT_RECT))
         width = self.width()-4
         height = width*190/1265
         p.drawPixmap(QRectF(2, side+2, width, height), self.art,

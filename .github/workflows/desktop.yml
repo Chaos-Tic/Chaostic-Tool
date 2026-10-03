@@ -70,10 +70,11 @@ jobs:
         run: |
           $appId = python -c "from desktop.branding import WINDOWS_APP_ID; print(WINDOWS_APP_ID)"
           $destination = Join-Path $env:RUNNER_TEMP 'ChaosticTool-taskbar-check'
-          $group = 'ChaosticTool-taskbar-CI'
+          # The installer disables the group page, so Inno ignores /GROUP.
+          $group = 'ChaosticTool'
           $installer = Get-ChildItem release/ChaosticTool-Setup-*.exe | Select-Object -First 1
           $setupLog = Join-Path $env:RUNNER_TEMP 'chaostic-installer.log'
-          $setupArgs = @(('/LOG="' + $setupLog + '"'), '/VERYSILENT', '/CURRENTUSER', '/NORESTART', '/NOCLOSEAPPLICATIONS', '/TASKS=""', ('/DIR="' + $destination + '"'), ('/GROUP="' + $group + '"'))
+          $setupArgs = @(('/LOG="' + $setupLog + '"'), '/VERYSILENT', '/CURRENTUSER', '/NORESTART', '/NOCLOSEAPPLICATIONS', '/TASKS=""', ('/DIR="' + $destination + '"'))
           $setup = Start-Process -FilePath $installer.FullName -ArgumentList $setupArgs -WindowStyle Hidden -Wait -PassThru
           if ($setup.ExitCode -ne 0) { throw "Installer failed: $($setup.ExitCode)" }
           try {

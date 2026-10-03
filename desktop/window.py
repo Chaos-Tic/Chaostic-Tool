@@ -918,7 +918,7 @@ class Window(QMainWindow):
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
             self.run_title.setText(T('Installation des paquets Linux'))
-            self.runner.start(T('Dépendances Linux'),T('Paquets Linux'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,timeout_ms=3_600_000)
+            self.runner.start(T('Dépendances Linux'),T('Paquets Linux'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
             self.navigate(3)
         except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 

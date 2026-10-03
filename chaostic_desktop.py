@@ -52,8 +52,14 @@ def main():
         except (OSError,ValueError): pending=False
         if '--setup-wsl' in sys.argv or pending:
             QTimer.singleShot(400,window.setup_wsl)
+    if sys.platform.startswith('linux') and '--smoke-test' not in sys.argv:
+        from desktop.backends import get_config
+        if get_config(root).get('backend','local')=='local':
+            QTimer.singleShot(400,window.check_backend)
     # Deterministic smoke test for the packaged application, with isolated data.
     if "--smoke-test" in sys.argv:
+        import py7zr
+        assert callable(py7zr.SevenZipFile), 'Packaged 7z support is missing'
         assert not window.hero.art.isNull(), "Packaged README artwork is missing"
         assert not window.brand_panel.art.isNull(), "Packaged brand artwork is missing"
         result_file = root / "smoke-result.json"

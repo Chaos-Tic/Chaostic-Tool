@@ -36,7 +36,7 @@ MinVersion=10.0.17763
 OutputDir={#ReleaseDir}
 OutputBaseFilename=ChaosticTool-Setup-{#AppVersion}-windows-{#AppArch}
 SetupIconFile=..\..\desktop\assets\icon.ico
-UninstallDisplayIcon={app}\ChaosticTool.exe
+UninstallDisplayIcon={app}\_internal\desktop\assets\icon.ico
 UninstallDisplayName=ChaosticTool Desktop
 LicenseFile=..\..\LICENSE
 Compression=lzma2
@@ -58,8 +58,8 @@ Name: "desktopicon"; Description: "Créer un raccourci sur le bureau"; Flags: un
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\ChaosticTool Desktop"; Filename: "{app}\ChaosticTool.exe"
-Name: "{autodesktop}\ChaosticTool Desktop"; Filename: "{app}\ChaosticTool.exe"; Tasks: desktopicon
+Name: "{group}\ChaosticTool Desktop"; Filename: "{app}\ChaosticTool.exe"; IconFilename: "{app}\_internal\desktop\assets\icon.ico"; AppUserModelID: "ChaosTic.ChaosticTool.Desktop"
+Name: "{autodesktop}\ChaosticTool Desktop"; Filename: "{app}\ChaosticTool.exe"; IconFilename: "{app}\_internal\desktop\assets\icon.ico"; AppUserModelID: "ChaosTic.ChaosticTool.Desktop"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\ChaosticTool.exe"; Parameters: "--setup-wsl"; Description: "Préparer automatiquement Linux"; Tasks: preparewsl; Flags: nowait postinstall skipifsilent

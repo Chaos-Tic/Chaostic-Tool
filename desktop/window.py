@@ -177,7 +177,7 @@ class Window(QMainWindow):
         self.runner.completed.connect(self.run_completed)
         self.runner.activeChanged.connect(self.active_changed)
         self.setWindowTitle(T("ChaosticTool Desktop"))
-        self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/icon.svg")))
+        self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/icon.png")))
         self.setMinimumSize(900, 600)
         screen=QApplication.primaryScreen().availableGeometry()
         self.resize(min(1440,screen.width()),min(920,screen.height()))

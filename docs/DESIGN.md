@@ -51,12 +51,13 @@ preferences, targets and results are preserved. No idle animation is introduced.
 `tests/test_redops.py` checks palette contrast, saved themes, compact layout,
 active-target persistence and French keyboard navigation. Packaged smoke tests
 assert that the original artwork is available before running the local diagnostic.
-`scripts/make-icon.py` regenerates PNG/ICO and macOS ICNS from the original
-hooded mascot in `red-ops-banner.png`, using the same source rectangle as the
-sidebar (`desktop/branding.py`). The application, Windows installer and shortcuts,
-Linux launcher and macOS bundle share that artwork. The former lightning-only
-vector is retired. Regenerate icons before building; never substitute an older
-ICO or overwrite an already published release to refresh its icon.
+`scripts/make-icon.py` regenerates PNG/ICO and macOS ICNS from `desktop/assets/icon.svg`.
+Desktop 1.1.5 restores the red lightning/crosshair icon used in 1.1.2, following
+the owner's visual preference. The application, Windows installer and shortcuts,
+Linux launcher and macOS bundle use this vector icon. The original hooded mascot
+and wordmark remain in the home screen and sidebar, sourced from `red-ops-banner.png`.
+The Windows identity fix introduced in 1.1.4 is retained. Regenerate icons before
+building; never overwrite an already published release to change its icon.
 
 `scripts/capture-screens.py` uses a temporary demo profile and a real local
 diagnostic. Screenshots use Qt offscreen rendering on the named OS. Set
@@ -77,7 +78,7 @@ Packaged Windows smoke tests read the real process AppUserModelID. CI also
 installs the generated Windows package into a temporary directory and checks
 the Start menu shortcut's AppUserModelID, target and icon resource, then uninstalls
 it. An old already-running process must be closed normally and relaunched to
-receive a new startup identity; an installer must not interrupt active operations.
+receive a new startup identity. Finish active operations before updating.
 
 References: [Microsoft AppUserModelIDs](https://learn.microsoft.com/en-us/windows/win32/shell/appids)
 and [Inno Setup shortcut properties](https://jrsoftware.org/ishelp/topic_iconssection.htm).

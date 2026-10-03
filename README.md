@@ -23,12 +23,12 @@ ChaosticTool is a Rich-powered terminal framework for authorized security testin
 | Edition | Branch | Start here |
 |---|---|---|
 | Linux terminal | [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli) | CLI installation below; Python 3.11+ |
-| Windows desktop | [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) | [Desktop 1.1.2, Windows x64 / ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.2) |
-| Linux desktop | [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) | [Desktop 1.1.2 downloads](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.2) · [Linux GUI setup](https://github.com/Chaos-Tic/Chaostic-Tool/blob/desktop/linux-app/README_DESKTOP_LINUX.md) |
+| Windows desktop | [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) | [Desktop 1.1.3, Windows x64 / ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.3) |
+| Linux desktop | [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) | [Desktop 1.1.3 downloads](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.3) · [Linux GUI setup](https://github.com/Chaos-Tic/Chaostic-Tool/blob/desktop/linux-app/README_DESKTOP_LINUX.md) |
 
 The CLI and desktop branches have separate entry points and installation paths.
 The repository-root `install.sh` installs the **CLI**. The installer inside a
-Desktop Linux archive installs the **GUI**. Desktop 1.1.2 also includes macOS
+Desktop Linux archive installs the **GUI**. Desktop 1.1.3 also includes macOS
 packages for Intel and Apple Silicon. All Desktop editions share the CLI-inspired
 Red Ops identity: the original README mascot and wordmark, deep black surfaces,
 red accents, numbered navigation and industrial frames.

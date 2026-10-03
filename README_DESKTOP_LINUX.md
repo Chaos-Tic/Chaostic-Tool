@@ -4,10 +4,10 @@ The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
 execution and distro package installation. The CLI remains on `linux-cli`;
 the Windows edition remains on `desktop/windows-app`.
 
-## Desktop 1.1.3 downloads
+## Desktop 1.1.4 downloads
 
-Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.3/ChaosticTool-1.1.3-linux-x64.tar.gz)
-or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.3/ChaosticTool-1.1.3-linux-arm64.tar.gz).
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.4/ChaosticTool-1.1.4-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.4/ChaosticTool-1.1.4-linux-arm64.tar.gz).
 The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
 or `sh install.sh` from its folder to add the application to your menu.
 

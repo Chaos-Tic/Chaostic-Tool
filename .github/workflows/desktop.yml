@@ -64,6 +64,39 @@ jobs:
         run: python scripts/build-desktop.py
       - name: Test packaged application
         run: python scripts/smoke-desktop.py
+      - name: Check Windows shortcut identity
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $appId = python -c "from desktop.branding import WINDOWS_APP_ID; print(WINDOWS_APP_ID)"
+          $destination = Join-Path $env:RUNNER_TEMP 'ChaosticTool-taskbar-check'
+          # The installer disables the group page, so Inno ignores /GROUP.
+          $group = 'ChaosticTool'
+          $installer = Get-ChildItem release/ChaosticTool-Setup-*.exe | Select-Object -First 1
+          $setupLog = Join-Path $env:RUNNER_TEMP 'chaostic-installer.log'
+          $setupArgs = @(('/LOG="' + $setupLog + '"'), '/VERYSILENT', '/CURRENTUSER', '/NORESTART', '/NOCLOSEAPPLICATIONS', '/TASKS=""', ('/DIR="' + $destination + '"'))
+          $setup = Start-Process -FilePath $installer.FullName -ArgumentList $setupArgs -WindowStyle Hidden -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw "Installer failed: $($setup.ExitCode)" }
+          try {
+            $shortcutFolder = (Resolve-Path -LiteralPath (Join-Path $env:APPDATA "Microsoft/Windows/Start Menu/Programs/$group")).Path
+            $shortcutPath = Join-Path $shortcutFolder 'ChaosticTool Desktop.lnk'
+            if (-not (Test-Path -LiteralPath $shortcutPath)) { throw 'Installed shortcut is missing' }
+            $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
+            $shell = New-Object -ComObject Shell.Application
+            $shellFolder = $shell.Namespace([string]$shortcutFolder)
+            if ($null -eq $shellFolder) { throw "Cannot inspect shortcut folder: $shortcutFolder" }
+            $item = $shellFolder.ParseName('ChaosticTool Desktop.lnk')
+            if ($item.ExtendedProperty('System.AppUserModel.ID') -ne $appId) { throw 'Shortcut taskbar identity mismatch' }
+            $expectedIcon = (Resolve-Path -LiteralPath (Join-Path $destination '_internal/desktop/assets/icon.ico')).Path
+            if (($shortcut.IconLocation -split ',')[0] -ne $expectedIcon -or -not (Test-Path -LiteralPath $expectedIcon)) { throw 'Shortcut icon resource mismatch' }
+            if ($shortcut.TargetPath -ne (Join-Path $destination 'ChaosticTool.exe')) { throw 'Shortcut target mismatch' }
+          } catch {
+            Get-Content -LiteralPath $setupLog
+            throw
+          } finally {
+            $uninstall = Start-Process -FilePath (Join-Path $destination 'unins000.exe') -ArgumentList '/VERYSILENT', '/NORESTART' -WindowStyle Hidden -Wait -PassThru
+            if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed: $($uninstall.ExitCode)" }
+          }
       - name: Check Linux installation and removal
         if: runner.os == 'Linux'
         run: |

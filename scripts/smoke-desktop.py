@@ -33,6 +33,10 @@ with tempfile.TemporaryDirectory() as directory:
     expected_icon = QImage(str(root/'desktop/assets/icon.png')).convertToFormat(QImage.Format.Format_ARGB32)
     actual_icon = QImage(str(Path(directory)/'smoke-icon.png')).convertToFormat(QImage.Format.Format_ARGB32)
     assert not actual_icon.isNull() and actual_icon == expected_icon, 'Window icon differs from packaged branding'
+    if sys.platform == 'win32':
+        from desktop.branding import WINDOWS_APP_ID
+        identity = json.loads((Path(directory)/'smoke-windows-identity.json').read_text(encoding='utf-8'))
+        assert identity['app_id'] == WINDOWS_APP_ID, identity
     initial=json.loads((Path(directory)/'smoke-initial-state.json').read_text(encoding='utf-8'))
     assert initial=={'history':0,'targets':0,'configured_linux':False},initial
     assert len(list((Path(directory)/'runs').glob('*/run.json')))==1, 'Unexpected seeded run history'

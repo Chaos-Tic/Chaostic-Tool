@@ -101,7 +101,7 @@ class Runner(QObject):
     def active(self):
         return self.proc is not None
 
-    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False, metadata=None, environment_extra=None, local_bridge=False):
+    def start(self, tool, preset, target, command=None, worker=None, timeout_ms=1_200_000, bridge=False, fields=None, redactions=(), elevate=False, metadata=None, environment_extra=None, local_bridge=False, linux_install_keys=None):
         if self.active:
             raise RuntimeError("Une opération est déjà en cours.")
         display=[redact(arg,redactions) for arg in (command or ['builtin',worker])]
@@ -123,6 +123,9 @@ class Runner(QObject):
             try:
                 from desktop.backends import execution_plan
                 command,request=execution_plan(command,{'requires_root':elevate},self.store.root,directory,fields,local=local_bridge)
+                if linux_install_keys:
+                    from desktop.backends import install_choices
+                    request['skip_installed']=install_choices(linux_install_keys)
                 request['timeout']=max(1,timeout_ms//1000)
                 self.initial_input=(json.dumps(request)+'\n').encode('utf-8')
             except Exception as exc:
@@ -133,6 +136,8 @@ class Runner(QObject):
         self.proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.proc.setWorkingDirectory(str(directory))
         environment = QProcessEnvironment.systemEnvironment()
+        from desktop.tool_paths import tool_search_path
+        environment.insert('PATH',tool_search_path())
         environment.insert("PYTHONUTF8", "1")
         environment.insert("PYTHONUNBUFFERED", "1")
         environment.insert("NO_COLOR", "1")

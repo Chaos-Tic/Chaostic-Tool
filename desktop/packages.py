@@ -179,6 +179,12 @@ def _safe_member(name, root):
     return destination
 
 
+def _is_7z_archive(archive):
+    # TAR/ZIP installation must not depend on the optional 7z parser.
+    with Path(archive).open('rb') as source:
+        return source.read(6) == b"7z\xbc\xaf\x27\x1c"
+
+
 def extract_archive(archive, root, helper_root=None):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -198,7 +204,7 @@ def extract_archive(archive, root, helper_root=None):
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     with source.open(member) as src, destination.open("wb") as dst:
                         shutil.copyfileobj(src, dst)
-    elif __import__('py7zr').is_7zfile(archive):
+    elif _is_7z_archive(archive):
         import py7zr
         with py7zr.SevenZipFile(archive,'r') as source:
             for member in source.list():

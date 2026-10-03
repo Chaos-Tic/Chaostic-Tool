@@ -13,6 +13,9 @@ from desktop.i18n import T
 from desktop.linux_install import validate_tools
 
 BRIDGE=Path(__file__).parent/'linux_bridge.py'
+def bridge_source():
+    return (BRIDGE.parent/'tool_paths.py').read_text(encoding='utf-8')+'\n'+BRIDGE.read_text(encoding='utf-8')
+
 NO_WINDOW=0x08000000 if os.name=='nt' else 0
 
 def get_config(root=None):
@@ -50,7 +53,7 @@ def bridge_command(config):
     if backend=='wsl':
         distro=config.get('distro','')
         if not distro or any(ord(c)<32 for c in distro): raise ValueError('Sélectionnez une distribution WSL.')
-        return ['wsl.exe','--distribution',distro,*(['--user',config['wsl_user']] if config.get('wsl_user') else []),'--exec','python3','-u','-c',BRIDGE.read_text(encoding='utf-8')]
+        return ['wsl.exe','--distribution',distro,*(['--user',config['wsl_user']] if config.get('wsl_user') else []),'--exec','python3','-u','-c',bridge_source()]
     if backend=='ssh':
         host=config.get('host',''); user=config.get('user','')
         if not re.fullmatch(r'[A-Za-z0-9_.:-]+',host) or host.startswith('-') or not re.fullmatch(r'[A-Za-z0-9_.-]+',user) or user.startswith('-'): raise ValueError('Hôte ou utilisateur SSH invalide.')
@@ -59,10 +62,10 @@ def bridge_command(config):
         command=[shutil.which('ssh') or 'ssh','-T','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ConnectTimeout=10','-p',str(port)]
         if config.get('identity'): command+=['-i',str(Path(config['identity']).expanduser())]
         if config.get('known_hosts'): command+=['-o','UserKnownHostsFile='+str(Path(config['known_hosts']).expanduser())]
-        return [*command,user+'@'+host,shlex.join(['python3','-u','-c',BRIDGE.read_text(encoding='utf-8')])]
+        return [*command,user+'@'+host,shlex.join(['python3','-u','-c',bridge_source()])]
     if backend=='local' and os.name!='nt':
         if getattr(sys,'frozen',False): return [sys.executable,'--linux-bridge']
-        return [sys.executable,'-u',str(BRIDGE)]
+        return [sys.executable,'-u','-c',bridge_source()]
     raise ValueError('Configurez un environnement Linux dans les paramètres : WSL sous Windows, Linux local ou une machine SSH.')
 
 def inspect_backend(request):
@@ -106,3 +109,10 @@ def install_plan(keys):
     tools = validate_tools(keys)
     # Resolve distro package names on the target, never on the GUI host.
     return ['python3', '-u', '-c', (Path(__file__).parent / 'linux_install.py').read_text(encoding='utf-8'), *tools]
+
+
+def install_choices(keys):
+    from core.tools import TOOLS
+    return {key: {'candidates': [TOOLS[key]['binary'], *TOOLS[key].get('binary_alternatives', [])],
+                  'markers': TOOLS[key].get('help_contains_any', [])}
+            for key in validate_tools(keys)}

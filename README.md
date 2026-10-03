@@ -4,7 +4,7 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and the CLI-inspired Red Ops theme (dark by default for new profiles, with a light option). Run local Linux tools with integrated output, interactive input and sudo when a profile requires it.
 
-**[Download Desktop 1.1.1](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1)** · **[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.1.2](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.2)** · **[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
 ![ChaosticTool Desktop 1.1 on Linux: Red Ops control center](docs/images/linux/desktop-1.1.1-accueil.png)
 
@@ -29,7 +29,7 @@ The historical `main` branch is now called **`linux-cli`**. The rename does not 
 | Arch / Manjaro | pacman | Portable `.tar.gz` and user installer |
 | Fedora | dnf | Portable `.tar.gz` and user installer |
 
-Desktop 1.1.1 provides Linux x64 and ARM64 archives and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1). See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
+Desktop 1.1.2 provides Linux x64 and ARM64 archives and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.2). See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
 
 1. Extract a Linux bundle for your architecture. The GitHub “Source code” archives do not contain a built application.
 2. Run `./ChaosticTool` from its folder, or `sh install.sh` to add it to the applications menu. Launch the GUI as your normal user.
@@ -120,9 +120,9 @@ Folders have descriptive names to recognize the tool and the context. Output lim
 
 ## Red Ops: the CLI identity on Desktop
 
-![ChaosticTool Desktop 1.1.1 light theme](docs/images/linux/desktop-1.1.1-clair.png)
+![ChaosticTool Desktop 1.1.2 light theme](docs/images/linux/desktop-1.1.1-clair.png)
 
-Desktop 1.1.1 carries the **original CLI README identity**: the hooded mascot, distressed white/red wordmark, deep black surfaces, numbered navigation and double industrial frames. The active target and local counters share a compact operation panel above the shortcuts. New profiles start dark; existing theme preferences are preserved. The light theme uses the same identity, and the top button switches between both palettes.
+Desktop 1.1.2 carries the **original CLI README identity**: the hooded mascot, distressed white/red wordmark, deep black surfaces, numbered navigation and double industrial frames. The active target and local counters share a compact operation panel above the shortcuts. New profiles start dark; existing theme preferences are preserved. The light theme uses the same identity, and the top button switches between both palettes.
 
 In **Settings → Appearance**, disable the animations or choose a 60/30 target frame rate for the ambiance. That rate is not an FPS guarantee. Tables and logs stay stable. Rendering uses **Qt/PySide6**, with no game engine.
 
@@ -172,6 +172,6 @@ See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.1 release is pinned to `desktop-v1.1.1`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.2 release is pinned to `desktop-v1.1.2`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.1**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.2**

@@ -4,10 +4,10 @@ The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
 execution and distro package installation. The CLI remains on `linux-cli`;
 the Windows edition remains on `desktop/windows-app`.
 
-## Desktop 1.1.1 downloads
+## Desktop 1.1.2 downloads
 
-Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.1/ChaosticTool-1.1.1-linux-x64.tar.gz)
-or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.1/ChaosticTool-1.1.1-linux-arm64.tar.gz).
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.2/ChaosticTool-1.1.2-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.2/ChaosticTool-1.1.2-linux-arm64.tar.gz).
 The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
 or `sh install.sh` from its folder to add the application to your menu.
 
@@ -42,6 +42,8 @@ when entering a password. The GUI does not need to run as root.
 
 ## Detect and install tools
 
+The local Linux inventory is refreshed automatically at startup. For a manual refresh:
+
 1. Open **Settings → Linux environment** and select **Linux on this computer**.
 2. Verify the connection to inventory installed tools and network interfaces.
 3. In the arsenal, install a selected tool on Linux or choose the Linux pack.
@@ -51,8 +53,28 @@ when entering a password. The GUI does not need to run as root.
 | Distribution family | Installer |
 |---|---|
 | Debian, Ubuntu, Kali, Parrot | apt |
-| Arch, Manjaro | pacman |
+| Arch, EndeavourOS, Manjaro | pacman |
 | Fedora | dnf |
+
+The Desktop reuses executable tools installed by the CLI for the same user.
+Detection includes `~/.local/bin`, `~/go/bin`, `~/.local/share/go/bin`,
+`~/.cargo/bin`, and custom `GOBIN`, `GOPATH`, `CARGO_HOME`, `PIPX_BIN_DIR`
+locations. Alternative executable names (including Impacket and httpx-toolkit)
+are recognized. Python entry points retain their own interpreter. Configured
+SSH/WSL environments are inspected on their own host, not on the desktop host.
+Before requesting sudo, the Linux pack checks again and skips tools already
+available, including tools installed outside the distro package manager.
+
+**EndeavourOS / Arch:** use the native portable/Python packs for tools offered
+there, and the Linux pack for official distro packages. This does not enable
+Kali repositories or AUR helpers. The CLI full profile can supply other tools;
+refresh the inventory after installing them with the same user account.
+
+**`No module named py7zr` in older bundles:** upgrade to Desktop 1.1.2.
+TAR and ZIP extraction no longer loads the 7z parser; 7z support is explicitly
+included and checked in packaged builds. A system-wide `pip install` is not
+needed to repair the bundled application. Source installations should install
+all of `requirements-desktop.txt` into their virtual environment.
 
 The pack uses explicit package names and checks the configured repositories.
 It reports incomplete selections and confirms installed packages. It adds no

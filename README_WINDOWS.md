@@ -4,11 +4,11 @@
 
 ### Your tools. Your targets. Your results, in a graphical interface.
 
-**Windows 10 / 11 · x64 and ARM64 · Version 1.1.1**
+**Windows 10 / 11 · x64 and ARM64 · Version 1.1.2**
 
-**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.1/ChaosticTool-Setup-1.1.1-windows-x64.exe)**
+**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.2/ChaosticTool-Setup-1.1.2-windows-x64.exe)**
 
-[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.2) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
@@ -16,7 +16,7 @@ ChaosticTool Desktop brings together a tool catalog, launch forms, an execution 
 
 ![ChaosticTool Desktop home screen](docs/images/windows/desktop-1.1.1-accueil.png)
 
-*The home screen is captured from Desktop 1.1.1 with an isolated demo profile. The
+*The home screen is captured from Desktop 1.1.2 with an isolated demo profile. The
 number of ready tools depends on the machine used for the capture; no demo profile
 or personal history is shipped in the installer.*
 
@@ -46,7 +46,7 @@ keeps the language emitted by the corresponding tool.
 
 ## Interface and animations
 
-Desktop 1.1.1 introduces **Red Ops**, inspired by the Linux CLI: charcoal surfaces,
+Desktop 1.1.2 introduces **Red Ops**, inspired by the Linux CLI: charcoal surfaces,
 red accents, industrial frames, technical typography and the original README artwork.
 New profiles start in dark mode; existing saved preferences are respected. The
 light theme carries the same identity. The original README artwork anchors the home screen and sidebar. The hooded mascot,
@@ -69,10 +69,10 @@ The brand panel adapts to compact windows, and the interface stays still when id
 
 ### Which file to download?
 
-| Your computer | Version 1.1.1 file | Windows scope |
+| Your computer | Version 1.1.2 file | Windows scope |
 |---|---|---|
-| Intel or AMD 64-bit | `ChaosticTool-Setup-1.1.1-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
-| ARM64, e.g. a Snapdragon PC | `ChaosticTool-Setup-1.1.1-windows-arm64.exe` | Windows 11 ARM64 |
+| Intel or AMD 64-bit | `ChaosticTool-Setup-1.1.2-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
+| ARM64, e.g. a Snapdragon PC | `ChaosticTool-Setup-1.1.2-windows-arm64.exe` | Windows 11 ARM64 |
 | 32-bit Windows, Windows 7 or Windows 8/8.1 | No compatible package | Not supported |
 
 In **Windows Settings → System → About**, check **System type**. To find your Windows 10 version, open `winver` from the Start menu. An ARM64 archive being available for the application does not guarantee that every third-party tool also has an ARM64 binary.
@@ -94,7 +94,7 @@ The exact size of each installer is shown on the Release. Plan for more space fo
 
 ### Step-by-step installation
 
-1. On the [Desktop 1.1.1 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.1), download the installer for your architecture. The “Source code” files are for development and are not the installer.
+1. On the [Desktop 1.1.2 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.2), download the installer for your architecture. The “Source code” files are for development and are not the installer.
 2. Open the `.exe` file, choose the wizard language and follow its steps.
 3. Keep the suggested folder unless you have a specific need: `%LOCALAPPDATA%\Programs\ChaosticTool`.
 4. Tick the desktop shortcut if you want one. The Start menu also offers **ChaosticTool Desktop**.
@@ -108,7 +108,7 @@ This build has no Windows publisher signature. SmartScreen or a company policy m
 Download the matching `.sha256` file from the same Release. In PowerShell, adapt the path of your download:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-1.1.1-windows-x64.exe"
+Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-1.1.2-windows-x64.exe"
 ```
 
 Compare the 64 hexadecimal characters you get with the contents of the `.sha256` file. The comparison verifies that the download matches the published file; it does not replace a publisher signature. You do not need this command to use the interface.
@@ -187,7 +187,7 @@ Desktop runs one operation at a time. For interactive sessions, use the input fi
 | **Stopped** | Stop requested from the application |
 | **Interrupted** | A saved operation was still running during a previous close |
 
-Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 1.1.1.
+Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 1.1.2.
 
 <a id="tools"></a>
 ## 4. Install and configure the tools
@@ -342,7 +342,7 @@ The name contains the local time, the host, the tool, the profile and a unique s
 
 The history combines a text search with Target, Status, Tool and Period lists (24 h, 7 days, 30 days or all dates). The counter shows the number displayed and the total. Resetting the filters brings back all operations. Targets removed from the address book stay filterable as long as their results exist. Selecting a row then **Delete this result…** removes only that operation and its local files. **Clear the history…** also deletes past flow sessions while keeping the custom flow definitions; it is disabled during an operation and refuses symbolic links / junctions in results.
 
-**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 1.1.1 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and only opens the download page after you confirm.
+**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 1.1.2 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and only opens the download page after you confirm.
 
 **Uninstall:** open **Windows Settings → Apps**, select **ChaosticTool Desktop**, then **Uninstall**. The application and its shortcuts are removed. Targets, logs and downloaded tools in the data folder are kept.
 
@@ -377,7 +377,7 @@ In a [GitHub issue](https://github.com/Chaos-Tic/Chaostic-Tool/issues), state: D
 <a id="validation"></a>
 ## 9. Compatibility, tests and limits
 
-This version's sources are identified by the `desktop-v1.1.1` tag. Build and test results are available in the [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
+This version's sources are identified by the `desktop-v1.1.2` tag. Build and test results are available in the [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
 
 | Check | Actual scope |
 |---|---|
@@ -423,4 +423,4 @@ Replace the compiler path with its real location. The build script runs the test
 | [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |
 | [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of `linux-cli` |
 
-**Guide reviewed on 3 October 2026 for Desktop 1.1.1.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.
+**Guide reviewed on 3 October 2026 for Desktop 1.1.2.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.

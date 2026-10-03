@@ -18,21 +18,18 @@ import time
 def emit(value):
     print(json.dumps(value,ensure_ascii=False),flush=True)
 
+if 'resolve_tool' not in globals():
+    try:
+        from desktop.tool_paths import resolve_tool, tool_search_path
+    except ModuleNotFoundError:
+        from tool_paths import resolve_tool, tool_search_path
+
+
 def inventory(request):
     found={}
     for key,candidates in request.get('tools',{}).items():
-        for name in candidates:
-            path=shutil.which(name)
-            if path:
-                markers=request.get('markers',{}).get(key,[])
-                if markers:
-                    try:
-                        probe=subprocess.run([path,'--help'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=5)
-                        help_text=probe.stdout.decode('utf-8',errors='replace').lower()
-                        if probe.returncode or not any(marker.lower() in help_text for marker in markers): continue
-                    except (OSError,subprocess.TimeoutExpired): continue
-                found[key]=path
-                break
+        path=resolve_tool(candidates,request.get('markers',{}).get(key,[]))
+        if path: found[key]=path
     interfaces=[]
     if Path('/sys/class/net').is_dir(): interfaces=sorted(p.name for p in Path('/sys/class/net').iterdir())
     emit({'tools':found,'interfaces':interfaces,'uid':os.geteuid(),'python':sys.version.split()[0],
@@ -50,6 +47,19 @@ def stop_group(pid):
 def run(request):
     argv=request['argv']
     if not argv or not all(isinstance(x,str) and '\0' not in x for x in argv): raise ValueError('Invalid argument vector')
+    choices=request.get('skip_installed',{})
+    if choices:
+        keys=list(choices)
+        if argv[-len(keys):]!=keys: raise ValueError('Invalid installation selection')
+        missing=[]
+        for key,spec in choices.items():
+            path=resolve_tool(spec['candidates'],spec.get('markers',[]))
+            if path: print('Déjà disponible : '+key+' — '+path,flush=True)
+            else: missing.append(key)
+        if not missing:
+            print('Tous les outils sélectionnés sont déjà disponibles.',flush=True)
+            return 0
+        argv=[*argv[:-len(keys)],*missing]
     directory=request.get('cwd')
     if directory:
         directory=Path(directory).expanduser()
@@ -63,7 +73,7 @@ def run(request):
     if pid==0:
         try:
             os.chdir(directory)
-            os.environ.update(TERM='xterm-256color',PYTHONUNBUFFERED='1',NO_COLOR='1')
+            os.environ.update(PATH=tool_search_path(),TERM='xterm-256color',PYTHONUNBUFFERED='1',NO_COLOR='1')
             os.execvp(argv[0],argv)
         except BaseException as exc:
             print(str(exc),flush=True)

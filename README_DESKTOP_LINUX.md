@@ -4,10 +4,10 @@ The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
 execution and distro package installation. The CLI remains on `linux-cli`;
 the Windows edition remains on `desktop/windows-app`.
 
-## Desktop 1.1.2 downloads
+## Desktop 1.1.3 downloads
 
-Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.2/ChaosticTool-1.1.2-linux-x64.tar.gz)
-or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.2/ChaosticTool-1.1.2-linux-arm64.tar.gz).
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.3/ChaosticTool-1.1.3-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.3/ChaosticTool-1.1.3-linux-arm64.tar.gz).
 The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
 or `sh install.sh` from its folder to add the application to your menu.
 
@@ -70,7 +70,7 @@ there, and the Linux pack for official distro packages. This does not enable
 Kali repositories or AUR helpers. The CLI full profile can supply other tools;
 refresh the inventory after installing them with the same user account.
 
-**`No module named py7zr` in older bundles:** upgrade to Desktop 1.1.2.
+**`No module named py7zr` in older bundles:** upgrade to Desktop 1.1.2 or later.
 TAR and ZIP extraction no longer loads the 7z parser; 7z support is explicitly
 included and checked in packaged builds. A system-wide `pip install` is not
 needed to repair the bundled application. Source installations should install

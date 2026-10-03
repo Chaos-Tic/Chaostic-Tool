@@ -175,7 +175,7 @@ class DesktopTests(unittest.TestCase):
             QTest.mouseClick(nav, __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.MouseButton.LeftButton)
             self.assertEqual(window.stack.currentIndex(), index)
         window.navigate(2)
-        # System tools vary between hosts; test the bundled filter alone.
+        # System tools vary between Linux desktops; test the bundled filter alone.
         with patch("desktop.catalog.native_command", return_value=None):
             window.only_ready.setChecked(True)
             window.search.setText("certificat")

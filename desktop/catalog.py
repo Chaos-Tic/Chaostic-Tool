@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 from core.tools import TOOLS
 from core.phases import PHASES
+from desktop.tool_paths import resolve_tool
 from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python, installed
 from desktop.profiles import normalized, validate_field, placeholders
 from desktop.backends import linux_status, get_config
@@ -170,7 +171,10 @@ def catalog():
             item['presets']=[dict(p) for p in item['presets']]
             for index,original in enumerate(TOOLS[key]['presets']):
                 existing=next((p for p in item['presets'] if p['label']==original['label']),None)
-                if existing is not None: existing['cli_index']=index
+                if existing is not None:
+                    existing['cli_index']=index
+                    existing['requires_root']=bool(original.get('requires_root',TOOLS[key].get('requires_root')))
+                    existing['interactive']=bool(TOOLS[key].get('interactive'))
                 else: item['presets'].append(cli_native_profile(key,index))
         else:
             item.update(mode='linux',presets=item['linux_presets'],note='Exécution Linux intégrée. Configurez et vérifiez Linux local, WSL ou SSH dans les paramètres.')
@@ -183,6 +187,7 @@ def catalog():
 
 
 def native_command(tool,configured=None,root=None):
+    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool.get('package') and not configured and can_install(tool['package']):
         try:
             binary=tool['binary'] if tool['key'] in ('secretsdump.py','psexec.py','GetUserSPNs.py') else None
@@ -191,7 +196,7 @@ def native_command(tool,configured=None,root=None):
         except (KeyError,ValueError): pass
     path=find_executable(tool,configured,root)
     if not path: return None
-    if Path(path).suffix=='.py':
+    if Path(path).suffix=='.py' and os.name=='nt':
         python=find_python()
         if not python and (runtime := installed('python-runtime',root)):
             candidate=runtime['path']/runtime['executable']
@@ -201,6 +206,7 @@ def native_command(tool,configured=None,root=None):
 
 
 def find_executable(tool, configured=None, root=None):
+    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool["mode"] != "native":
         return None
     candidates = []
@@ -210,7 +216,7 @@ def find_executable(tool, configured=None, root=None):
         if tool.get('package') and can_install(tool['package']) and (command := managed_command(tool['package'], binary=tool['binary'] if tool['key'].endswith('.py') else None, root=root)):
             return command[-1]
         binary = tool["binary"]
-        found = shutil.which(binary)
+        found = resolve_tool([binary,*tool.get('binary_alternatives',[])],tool.get('help_contains_any',[]))
         if found:
             candidates.append(found)
         if tool["key"] == "nmap" and os.name == "nt":
@@ -219,12 +225,13 @@ def find_executable(tool, configured=None, root=None):
                     candidates.append(str(Path(base) / "Nmap" / "nmap.exe"))
     for value in candidates:
         path = Path(value)
-        if path.is_file() and (os.name != "nt" or path.suffix.lower() in (".exe", ".py")):
-            return str(path.resolve())
+        if path.is_file() and ((os.name != "nt" and os.access(path,os.X_OK)) or (os.name == "nt" and path.suffix.lower() in (".exe", ".py"))):
+            return os.path.abspath(path)
     return None
 
 
 def availability(tool,settings,root=None):
+    if tool['key']=='winpeas' and os.name!='nt': return 'Windows uniquement',False
     if tool['mode']=='builtin': return 'Inclus',True
     if tool['mode']=='native' and native_command(tool,settings.get(tool['key']),root):
         return ('Service requis',False) if tool['key']=='amass' else ('Prêt',True)

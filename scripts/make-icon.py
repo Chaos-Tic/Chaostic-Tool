@@ -1,22 +1,29 @@
-"""Render the repository-owned vector icon into the Windows icon container."""
+"""Build platform icons from the original CLI/Red Ops mascot, without redrawing it."""
 import struct
 import sys
 from pathlib import Path
 
 from PySide6.QtCore import QBuffer, QIODevice, Qt
-from PySide6.QtGui import QGuiApplication, QImage, QPainter
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtGui import QGuiApplication, QImage
+
 
 app = QGuiApplication.instance() or QGuiApplication(sys.argv)
 assets = Path(__file__).resolve().parent.parent / "desktop/assets"
-renderer = QSvgRenderer(str(assets / "icon.svg"))
+sys.path.insert(0, str(assets.parent.parent))
+from desktop.branding import MASCOT_RECT
+artwork = QImage(str(assets / "red-ops-banner.png"))
+if artwork.isNull():
+    raise RuntimeError("Original Red Ops artwork is missing")
+mascot = artwork.copy(*MASCOT_RECT)
+
+
+def render_icon(size):
+    return mascot.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio,
+                         Qt.TransformationMode.SmoothTransformation)
+
 images = []
 for size in (16, 24, 32, 48, 64, 128, 256):
-    image = QImage(size, size, QImage.Format.Format_ARGB32)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    renderer.render(painter)
-    painter.end()
+    image = render_icon(size)
     buffer = QBuffer()
     buffer.open(QIODevice.OpenModeFlag.WriteOnly)
     image.save(buffer, "PNG")
@@ -38,11 +45,7 @@ if sys.platform == 'darwin':
     for size in (16, 32, 128, 256, 512):
         for scale in (1, 2):
             side = size * scale
-            image = QImage(side, side, QImage.Format.Format_ARGB32)
-            image.fill(Qt.GlobalColor.transparent)
-            painter = QPainter(image)
-            renderer.render(painter)
-            painter.end()
+            image = render_icon(side)
             suffix = '@2x' if scale == 2 else ''
             image.save(str(iconset / f'icon_{size}x{size}{suffix}.png'))
     subprocess.run(['iconutil', '-c', 'icns', str(iconset), '-o', str(assets/'icon.icns')], check=True)

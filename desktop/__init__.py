@@ -1,3 +1,3 @@
 """Native desktop companion to the original Linux CLI."""
 
-VERSION = "1.1.3"
+VERSION = "1.1.4"

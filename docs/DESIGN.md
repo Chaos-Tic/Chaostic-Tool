@@ -51,7 +51,12 @@ preferences, targets and results are preserved. No idle animation is introduced.
 `tests/test_redops.py` checks palette contrast, saved themes, compact layout,
 active-target persistence and French keyboard navigation. Packaged smoke tests
 assert that the original artwork is available before running the local diagnostic.
-`scripts/make-icon.py` regenerates PNG/ICO and macOS ICNS from the vector icon.
+`scripts/make-icon.py` regenerates PNG/ICO and macOS ICNS from the original
+hooded mascot in `red-ops-banner.png`, using the same source rectangle as the
+sidebar (`desktop/branding.py`). The application, Windows installer and shortcuts,
+Linux launcher and macOS bundle share that artwork. The former lightning-only
+vector is retired. Regenerate icons before building; never substitute an older
+ICO or overwrite an already published release to refresh its icon.
 
 `scripts/capture-screens.py` uses a temporary demo profile and a real local
 diagnostic. Screenshots use Qt offscreen rendering on the named OS. Set

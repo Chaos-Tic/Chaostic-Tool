@@ -63,3 +63,21 @@ diagnostic. Screenshots use Qt offscreen rendering on the named OS. Set
 `CHAOSTIC_CAPTURE_LANGUAGE=fr` for French and `QT_SCALE_FACTOR=1.5` for a 150% review.
 These captures do not certify every native compositor, display or external tool.
 The [NEXUS notes](NEXUS.md) and [Operation Deck notes](NEXUS_VISUALS.md) are historical.
+
+
+## Windows taskbar identity
+
+Before creating any Qt windows, the GUI sets the stable Windows AppUserModelID
+`ChaosTic.ChaosticTool.Desktop`. Both installer shortcuts use the same ID and
+explicitly point to the bundled `icon.ico`, rather than relying on Explorer's
+cached executable association. The installer application ID (upgrade identity)
+is unchanged. Background workers do not register a GUI identity.
+
+Packaged Windows smoke tests read the real process AppUserModelID. CI also
+installs the generated Windows package into a temporary directory and checks
+the Start menu shortcut's AppUserModelID, target and icon resource, then uninstalls
+it. An old already-running process must be closed normally and relaunched to
+receive a new startup identity; an installer must not interrupt active operations.
+
+References: [Microsoft AppUserModelIDs](https://learn.microsoft.com/en-us/windows/win32/shell/appids)
+and [Inno Setup shortcut properties](https://jrsoftware.org/ishelp/topic_iconssection.htm).

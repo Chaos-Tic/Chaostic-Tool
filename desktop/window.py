@@ -396,7 +396,7 @@ class Window(QMainWindow):
         menu=QMenu(self)
         self.pack_button=menu.addAction("Installer le pack natif",lambda:self.install_tools([p for p in PORTABLE_PACK if can_install(p)]))
         self.python_pack_button=menu.addAction("Installer les outils Python",lambda:self.install_tools(PYTHON_PACK))
-        self.linux_pack_button=menu.addAction("Installer le pack Linux",lambda:self.install_linux(list(self.tool_by_key)))
+        self.linux_pack_button=menu.addAction("Installer le pack Linux",lambda:self.install_linux([key for key,tool in self.tool_by_key.items() if tool.get('linux_presets')]))
         install_menu=button("Installer des outils",kind="primary"); install_menu.setMenu(menu)
         installs.addWidget(install_menu)
         installs.addWidget(button("Attack flows  »",lambda:self.navigate(6)))
@@ -764,7 +764,7 @@ class Window(QMainWindow):
             self.tool_note.setText(T(tool['note']) + T('\nDernier échec : ') + error[-600:])
 
         self.tool_path.setText(find_executable(tool, self.store.settings["executables"].get(tool["key"]), self.store.root) or "")
-        self.launch_button.setEnabled(bool(tool['presets']) and not self.runner.active)
+        self.launch_button.setEnabled(bool(tool['presets']) and not self.runner.active and (tool['key']!='winpeas' or os.name=='nt'))
         self.linux_install_button.setVisible(bool(tool.get('linux_presets')))
         self.linux_install_button.setEnabled(not self.runner.active)
         self.linux_path_button.setVisible(bool(tool.get('linux_presets')))
@@ -857,6 +857,8 @@ class Window(QMainWindow):
                         command=native_command(tool,self.store.settings['executables'].get(key),self.store.root)
                         if not command: raise ValueError(T('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.'))
                         kwargs={'command':[*command,*args]}
+                        if sys.platform.startswith('linux') and (preset.get('interactive') or preset.get('requires_root')):
+                            kwargs.update(bridge=True,local_bridge=True,elevate=preset.get('requires_root',False))
                         if key=='rustscan' and preset.get('cli_index') is not None:
                             nmap=native_command(self.tool_by_key['nmap'],self.store.settings['executables'].get('nmap'),self.store.root)
                             if not nmap: raise ValueError(T('Ce profil RustScan appelle Nmap. Installez Nmap depuis la boîte à outils, ou choisissez le profil « Port de la cible, sans Nmap ».'))
@@ -916,7 +918,7 @@ class Window(QMainWindow):
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
             self.run_title.setText(T('Installation des paquets Linux'))
-            self.runner.start(T('Dépendances Linux'),T('Paquets Kali/Debian'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,timeout_ms=3_600_000)
+            self.runner.start(T('Dépendances Linux'),T('Paquets Linux'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
             self.navigate(3)
         except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 

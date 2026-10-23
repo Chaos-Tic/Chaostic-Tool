@@ -12,9 +12,9 @@ with the system package manager. No system-wide pip installation is needed.
 Desktop 1.3 also builds AppImages for x86-64 and ARM64.
 
 ```sh
-sudo apt install ./chaostictool-desktop_1.2.0_amd64.deb
+sudo apt install ./chaostictool-desktop_1.3.0_amd64.deb
 # Fedora (use the exact downloaded RPM filename):
-sudo dnf install ./chaostictool-desktop-1.2.0-1.x86_64.rpm
+sudo dnf install ./chaostictool-desktop-1.3.0-1.x86_64.rpm
 chaostictool-desktop
 ```
 

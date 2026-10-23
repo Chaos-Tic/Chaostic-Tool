@@ -4,17 +4,17 @@ The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
 execution and distro package installation. The CLI remains on `linux-cli`;
 the Windows edition remains on `desktop/windows-app`.
 
-## Desktop 1.1.5 downloads
+## Desktop 1.2.0 downloads
 
-Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.5/ChaosticTool-1.1.5-linux-x64.tar.gz)
-or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.5/ChaosticTool-1.1.5-linux-arm64.tar.gz).
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.2.0/ChaosticTool-1.2.0-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.2.0/ChaosticTool-1.2.0-linux-arm64.tar.gz).
 The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
 or `sh install.sh` from its folder to add the application to your menu.
 
-The Red Ops interface inherits the CLI's charcoal/red palette and technical
-typography. New profiles use dark mode; existing theme preferences are preserved.
+The Liquid Glass interface uses peach, sky and lilac surfaces. New profiles start
+in light mode; existing theme preferences are preserved.
 
-![Red Ops on Linux, rendered offscreen with a temporary demo profile](docs/images/linux/desktop-1.1.1-accueil.png)
+![Liquid Glass on Linux, rendered with a temporary demo profile](docs/images/linux/liquid-glass-accueil.png)
 
 ## Run from source
 
@@ -120,3 +120,12 @@ before distributing a release.
 
 The 1.2 revision adds native DEB/RPM packages and CMake source installation.
 See [installation, dependencies and channel status](docs/INSTALLATION.md).
+
+## GitHub updates — 1.3 development
+
+The upcoming version adds daily, anonymous update checks that can be disabled in
+Settings. **Update…** uses the installed package channel on Linux; downloaded
+installers are verified against the release SHA-256 before opening. AppImages can
+replace themselves after confirmation and retain the previous file. Source
+checkouts link to the release instructions without resetting local changes.
+See [update behavior and privacy](docs/UPDATES.md).

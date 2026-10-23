@@ -66,6 +66,10 @@ def main():
             archive.add(bundle, arcname='ChaosticTool')
     else:
         raise SystemExit('Supported build hosts: Windows, Linux, macOS.')
+    if system == 'linux' and os.environ.get('APPIMAGETOOL_PATH'):
+        run(sys.executable, 'scripts/build-appimage.py', '--bundle', ROOT/'dist/ChaosticTool',
+            '--tool', os.environ['APPIMAGETOOL_PATH'], '--runtime', os.environ['APPIMAGE_RUNTIME_PATH'],
+            '--version', VERSION, '--arch', arch, '--output', release)
     digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
     (release / (artifact.name + '.sha256')).write_text(f'{digest}  {artifact.name}\n', encoding='ascii')
     print(artifact)

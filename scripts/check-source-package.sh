@@ -4,10 +4,12 @@ set -eu
 export DEBIAN_FRONTEND=noninteractive
 export PYTHONDONTWRITEBYTECODE=1
 apt-get update -qq
-apt-get install -y -qq cmake >/tmp/build-dependencies.log
-cmake -S /src -B /tmp/build -DCMAKE_INSTALL_PREFIX=/usr
-cpack --config /tmp/build/CPackConfig.cmake -G DEB -B /tmp/packages
-apt-get install -y -qq /tmp/packages/*.deb >/tmp/runtime-dependencies.log
+apt-get install -y -qq cmake debhelper dpkg-dev >/tmp/build-dependencies.log
+mkdir /tmp/source
+tar -C /src -cf - CMakeLists.txt chaostic_desktop.py core desktop modules packaging LICENSE | tar -C /tmp/source -xf -
+cp -r /src/packaging/debian /tmp/source/debian
+(cd /tmp/source && dpkg-buildpackage -b -us -uc >/tmp/build-source-package.log)
+apt-get install -y -qq /tmp/chaostictool-desktop_*_all.deb >/tmp/runtime-dependencies.log
 cd /tmp
 export QT_QPA_PLATFORM=offscreen
 export CHAOSTIC_DESKTOP_HOME=/tmp/chaostic-smoke

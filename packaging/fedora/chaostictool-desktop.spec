@@ -2,8 +2,8 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool-desktop
-Version:        1.2.0
-Release:        2%{?dist}
+Version:        1.3.0
+Release:        1%{?dist}
 Summary:        Desktop workspace for authorized security testing
 License:        MIT
 URL:            https://github.com/Chaos-Tic/Chaostic-Tool

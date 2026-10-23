@@ -51,6 +51,28 @@ jobs:
         run: |
           xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
           CHAOSTIC_TEST_FONT='DejaVu Sans' QT_FONT_DPI=144 xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
+      - name: Verified AppImage tools and runtime
+        if: runner.os == 'Linux'
+        env:
+          APP_ARCH: ${{ matrix.arch }}
+        run: |
+          if [ "$APP_ARCH" = x64 ]; then
+            arch=x86_64
+            tool_hash=95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6
+            runtime_hash=617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46
+          else
+            arch=aarch64
+            tool_hash=a595ea34cd6136c7f595e9dcbb16f3e9725d7610efb9e43b38c3c6e86cafc270
+            runtime_hash=9a72a744d221576c9347ec074243acc5c3c7568896b12714e0e82e9f0bf47900
+          fi
+          tool="$RUNNER_TEMP/appimagetool.AppImage"
+          runtime="$RUNNER_TEMP/appimage-runtime"
+          curl -fsSL --retry 3 "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$arch.AppImage" -o "$tool"
+          curl -fsSL --retry 3 "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$arch" -o "$runtime"
+          printf '%s  %s\n' "$tool_hash" "$tool" "$runtime_hash" "$runtime" | sha256sum -c -
+          chmod +x "$tool"
+          echo "APPIMAGETOOL_PATH=$tool" >> "$GITHUB_ENV"
+          echo "APPIMAGE_RUNTIME_PATH=$runtime" >> "$GITHUB_ENV"
       - name: Verified Windows installer compiler
         if: runner.os == 'Windows'
         shell: pwsh
@@ -113,6 +135,14 @@ jobs:
           "$XDG_DATA_HOME/ChaosticTool/application/ChaosticTool" --smoke-test
           sh "$XDG_DATA_HOME/ChaosticTool/application/uninstall.sh"
           test ! -e "$XDG_DATA_HOME/ChaosticTool/application"
+      - name: Test AppImage without FUSE
+        if: runner.os == 'Linux'
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: |
+          export CHAOSTIC_DESKTOP_HOME="$RUNNER_TEMP/appimage-smoke"
+          ./release/*.AppImage --smoke-test
+          python -c 'import json,os; from pathlib import Path; result=json.loads((Path(os.environ["CHAOSTIC_DESKTOP_HOME"])/"smoke-result.json").read_text()); assert result["status"]=="success", result'
       - name: Build native Linux packages
         if: runner.os == 'Linux'
         run: |
@@ -121,20 +151,31 @@ jobs:
           cpack --config build/native-packages/CPackConfig.cmake -G 'DEB;RPM' -B release
           cd release
           sha256sum *.deb *.rpm > linux-native-SHA256SUMS-${{ matrix.arch }}
-      - name: Check system package installation and removal
+      - name: Check native packages and AppImage in a clean distribution
         if: runner.os == 'Linux'
+        env:
+          BASE_IMAGE: ${{ matrix.arch == 'arm64' && 'ubuntu:24.04' || 'ubuntu:22.04' }}
         run: |
-          sudo apt-get install -y ./release/*.deb
-          export CHAOSTIC_DESKTOP_HOME="$RUNNER_TEMP/native-package-smoke"
-          chaostictool-desktop --smoke-test
-          test -f "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
-          sudo apt-get remove -y chaostictool-desktop
-          test ! -e /usr/bin/chaostictool-desktop
-          test ! -e /usr/lib/chaostictool-desktop
+          docker run --rm -v "$PWD/release:/packages:ro" "$BASE_IMAGE" sh -ec '
+            export DEBIAN_FRONTEND=noninteractive QT_QPA_PLATFORM=offscreen
+            apt-get update -qq
+            apt-get install -y -qq /packages/*.deb >/tmp/package-install.log
+            export CHAOSTIC_DESKTOP_HOME=/tmp/package-smoke
+            chaostictool-desktop --smoke-test
+            grep -q "\"status\": \"success\"" "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
+            apt-get remove -y -qq chaostictool-desktop >/tmp/package-remove.log
+            test ! -e /usr/bin/chaostictool-desktop
+            test ! -e /usr/lib/chaostictool-desktop
+            export CHAOSTIC_DESKTOP_HOME=/tmp/appimage-smoke
+            APPIMAGE_EXTRACT_AND_RUN=1 /packages/*.AppImage --smoke-test
+            grep -q "\"status\": \"success\"" "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
+          '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ChaosticTool-${{ matrix.name }}
           path: |
+            release/*.AppImage
+            release/*.AppImage.sha256
             release/*.exe
             release/*.exe.sha256
             release/*.dmg

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import atexit
 import os
 import sys
@@ -72,10 +73,22 @@ MAIN_ENTRIES = [
 
 
 def main_menu():
-    return ui.menu("Main Menu", MAIN_ENTRIES, footer_extra=ui.context_footer(), show_back=False)
+    return ui.menu("Main Menu", MAIN_ENTRIES, footer_extra=ui.context_footer(), show_back=False, home=True)
 
 
 def main():
+    from core.version import VERSION
+    parser = argparse.ArgumentParser(description="ChaosticTool Linux terminal interface")
+    parser.add_argument("--version", action="version", version=f"ChaosticTool {VERSION}")
+    parser.add_argument("--check-installation", action="store_true",
+                        help="check runtime imports without root, network or tool installation")
+    args = parser.parse_args()
+    if args.check_installation:
+        for module in MODULES.values():
+            load_module(module)
+        print(f"ChaosticTool {VERSION}: runtime imports OK")
+        print(f"Results directory: {tgt.TARGETS_ROOT}")
+        return
     if os.geteuid() != 0:
         print("\n[!] This script requires root privileges.")
         print("    Re-run with: sudo python3 chaostictool.py\n")
@@ -85,30 +98,36 @@ def main():
     ui.startup_check()
     while True:
         choice = main_menu()
-        if choice == "0":
-            configure_target()
-        elif choice.lower() == "p":
-            proxy.proxy_menu(ui)
-        elif choice.lower() == "w":
-            from core import wordlists as _wl
-            _wl.wordlist_menu()
-        elif choice == "11":
-            session.view_results()
-        elif choice == "12":
-            flows.flow_menu()
-        elif choice in MODULES:
-            try:
-                mod = load_module(MODULES[choice])
-                mod.run()
-            except Exception as e:
-                ui.console.print(f"[bright_red][!] Module error: {e}[/bright_red]")
+        try:
+            if choice == "__search__":
+                ui.search_tools()
+            elif choice == "0":
+                configure_target()
+            elif choice.lower() == "p":
+                proxy.proxy_menu(ui)
+            elif choice.lower() == "w":
+                from core import wordlists as _wl
+                _wl.wordlist_menu()
+            elif choice == "11":
+                session.view_results()
+            elif choice == "12":
+                flows.flow_menu()
+            elif choice in MODULES:
+                try:
+                    mod = load_module(MODULES[choice])
+                    mod.run()
+                except Exception as e:
+                    ui.console.print(f"[bright_red][!] Module error: {e}[/bright_red]")
+                    ui.pause()
+            elif choice == "99":
+                ui.console.print("\n[brand.red]ChaosticTool session closed.[/brand.red]\n")
+                sys.exit(0)
+            else:
+                ui.console.print("[bright_red]Invalid choice.[/bright_red]")
                 ui.pause()
-        elif choice == "99":
-            ui.console.print("\n[brand.red]ChaosticTool session closed.[/brand.red]\n")
-            sys.exit(0)
-        else:
-            ui.console.print("[bright_red]Invalid choice.[/bright_red]")
-            ui.pause()
+        except KeyboardInterrupt:
+            # Escape cancels a form or returns from a secondary screen.
+            continue
 
 
 def cleanup():

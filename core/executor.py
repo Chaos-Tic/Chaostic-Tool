@@ -1,4 +1,10 @@
 import os
+import codecs
+import shutil
+import tempfile
+import threading
+import time
+from collections import deque
 import pwd
 import re
 import shlex
@@ -14,22 +20,10 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 from rich.text import Text
-from rich.theme import Theme
 
-THEME = Theme(
-    {
-        "brand.red": "bold #ff3131",
-        "brand.red_soft": "#ff6b6b",
-        "brand.warn": "bold #ffb84d",
-        "brand.ok": "bold #31ff83",
-        "brand.info": "bold #67e8f9",
-        "brand.muted": "#a98c91",
-        "brand.white": "bold #f8fafc",
-        "brand.command": "#ffb4b4",
-    }
-)
+from core.theme import THEME, COLORS
 
-console = Console(theme=THEME)
+console = Console(theme=THEME, style=f"{COLORS['text']} on {COLORS['bg']}")
 ACTIVE_PROCS = []
 
 
@@ -72,18 +66,18 @@ def _print_command_panel(cmd, output_path, interactive):
     body = Table.grid(expand=True)
     body.add_column(ratio=1)
     body.add_row(
-        f"[brand.muted]MODE[/brand.muted] "
+        f"[brand.faint]MODE[/brand.faint] "
         f"[brand.info]{'interactive' if interactive else 'captured'}[/brand.info]    "
-        f"[brand.muted]OUTPUT[/brand.muted] "
+        f"[brand.faint]OUTPUT[/brand.faint] "
         f"[brand.command]{escape(str(output_path or 'not saved'))}[/brand.command]"
     )
     body.add_row(Text(shlex.join(cmd), style="brand.command", overflow="fold"))
     console.print(
         Panel(
             body,
-            title="[brand.red] EXECUTION [/brand.red]",
-            border_style="brand.red",
-            box=box.HEAVY,
+            title="[brand.accent] EXECUTION [/brand.accent]",
+            border_style="brand.dim",
+            box=box.ROUNDED,
             padding=(1, 2),
         )
     )
@@ -97,109 +91,181 @@ def _result_panel(rc, output_path, saved):
     table.add_column(ratio=1)
     table.add_column(ratio=1)
     table.add_row(
-        f"[brand.muted]RESULT[/brand.muted]\n[{style}]{result}[/{style}]",
-        f"[brand.muted]EXIT CODE[/brand.muted]\n[{style}]{rc}[/{style}]",
+        f"[brand.faint]RESULT[/brand.faint]\n[{style}]{result}[/{style}]",
+        f"[brand.faint]EXIT CODE[/brand.faint]\n[{style}]{rc}[/{style}]",
     )
     table.add_row(
-        f"[brand.muted]SAVED[/brand.muted]\n[brand.command]{escape(save_state)}[/brand.command]",
-        "[brand.muted]CONTROL[/brand.muted]\n[brand.red]Ctrl+C armed[/brand.red]",
+        f"[brand.faint]SAVED[/brand.faint]\n[brand.command]{escape(save_state)}[/brand.command]",
+        "[brand.faint]CONTROL[/brand.faint]\n[brand.accent]Ctrl+C armed[/brand.accent]",
     )
     return Panel(
         table,
-        title="[brand.red] RUN SUMMARY [/brand.red]",
+        title="[brand.accent] RUN SUMMARY [/brand.accent]",
         border_style=style,
-        box=box.HEAVY,
+        box=box.ROUNDED,
         padding=(1, 2),
     )
 
 
-def run_tool(cmd, output_path=None, interactive=False):
-    _print_command_panel(cmd, output_path, interactive)
+class _Capture:
+    """Bounded display state and a disk-backed complete output journal."""
 
-    if interactive:
-        proc = None
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.done = threading.Event()
+        self.aborted = threading.Event()
+        self.visible = deque(maxlen=2000)
+        self.fragment = ""
+        self.started = time.monotonic()
+        # Monotonic timestamp of completion, set once in _capture_worker's finally
+        # block (just before self.done). Presentation reads this to FREEZE the
+        # displayed elapsed time instead of recomputing time.monotonic()-started
+        # on every refresh forever; None while the process is still running.
+        self.finished = None
+        self.proc = None
+        self.rc = 127
+        self.saved = False
+        self.save_error = None
+        self.journal = tempfile.TemporaryFile(mode="w+", encoding="utf-8", newline="")
+
+    def append(self, text):
+        self.journal.write(text)
+        with self.lock:
+            # A tool can emit a huge single line: retain only its display tail.
+            pieces = re.split(r"[\r\n]", self.fragment + text)
+            if len(pieces) > 1:
+                self.visible.extend(part[-4096:] for part in pieces[:-1])
+            self.fragment = pieces[-1][-4096:]
+            if self.fragment:
+                self.visible.append(self.fragment)
+                self.fragment = ""
+
+
+def _capture_worker(state, cmd, output_path, textual):
+    try:
+        state.proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            start_new_session=True, env=_build_env(),
+        )
+        ACTIVE_PROCS.append(state.proc)
+        if state.aborted.is_set():
+            _stop_process(state.proc)
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        stream = state.proc.stdout
+        read = getattr(stream, "read1", stream.read)
+        while True:
+            chunk = read(4096)
+            if not chunk:
+                break
+            text = chunk if isinstance(chunk, str) else decoder.decode(chunk)
+            state.append(text)
+            if textual:
+                console.print(Text.from_ansi(text), end="", soft_wrap=True)
+        tail = decoder.decode(b"", final=True)
+        if tail:
+            state.append(tail)
+            if textual:
+                console.print(Text.from_ansi(tail), end="", soft_wrap=True)
+        state.rc = state.proc.wait()
+    except FileNotFoundError:
+        state.append(f"Binary not found: {cmd[0]}\n")
+        state.rc = 127
+    except OSError as exc:
+        state.append(f"Execution failed: {exc}\n")
+        state.rc = 1
+        _stop_process(state.proc)
+    finally:
+        if state.aborted.is_set():
+            state.rc = 130
         try:
-            console.print("[brand.info]Interactive terminal attached. Return here when the tool exits.[/brand.info]")
+            if output_path and state.journal.tell():
+                state.journal.seek(0)
+                with Path(output_path).open("w", encoding="utf-8", newline="") as destination:
+                    shutil.copyfileobj(state.journal, destination)
+                _chown_to_sudo_user(output_path)
+                state.saved = True
+        except OSError as exc:
+            state.save_error = str(exc)
+        finally:
+            if state.proc is not None and state.proc.stdout is not None:
+                state.proc.stdout.close()
+            _forget_process(state.proc)
+            # Freeze the elapsed clock at the instant everything is finished
+            # (process reaped + output saved) so the scan view can stop ticking.
+            state.finished = time.monotonic()
+            state.done.set()
+
+
+def run_tool(cmd, output_path=None, interactive=False, context=None):
+    """Run an argv command; TTY capture uses a fullscreen bounded live view.
+
+    context accepts category/tool/preset/route labels and wait=False for flows.
+    Redirected input/output never waits for a completion key.
+    """
+    context = dict(context or {})
+    if interactive:
+        # The menu application has already exited. Child input remains untouched.
+        _print_command_panel(cmd, output_path, True)
+        proc = None
+        terminal = None
+        try:
+            import sys
+            if sys.stdin.isatty():
+                import termios
+                terminal = (sys.stdin.fileno(), termios.tcgetattr(sys.stdin.fileno()))
             proc = subprocess.Popen(cmd, start_new_session=True, env=_build_env())
             ACTIVE_PROCS.append(proc)
             rc = proc.wait()
         except FileNotFoundError:
-            console.print(f"[bright_red][!] Binary not found: {cmd[0]}[/bright_red]")
-            return 127
+            console.print(f"[bright_red]Binary not found: {escape(cmd[0])}[/bright_red]")
+            rc = 127
         except KeyboardInterrupt:
             _stop_process(proc)
-            console.print("\n[bright_yellow][!] Tool interrupted with Ctrl+C.[/bright_yellow]")
-            return 130
+            rc = 130
+        except OSError as exc:
+            console.print(Text(f"Execution failed: {exc}", style="bright_red"))
+            _stop_process(proc)
+            rc = 1
         finally:
             _forget_process(proc)
+            if terminal is not None:
+                import termios
+                termios.tcsetattr(terminal[0], termios.TCSADRAIN, terminal[1])
         console.print(_result_panel(rc, output_path, False))
         return rc
 
-    lines = []
-    proc = None
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            start_new_session=True,
-            env=_build_env(),
-        )
-        ACTIVE_PROCS.append(proc)
-    except FileNotFoundError:
-        console.print(f"[bright_red][!] Binary not found: {cmd[0]}[/bright_red]")
-        return 127
+    from core.scan_view import available, run_scan
+    fullscreen = available()
+    state = _Capture()
+    worker = threading.Thread(target=_capture_worker, args=(state, cmd, output_path, not fullscreen), daemon=True)
+
+    def abort():
+        if not state.aborted.is_set():
+            state.aborted.set()
+            threading.Thread(target=_stop_process, args=(state.proc,), daemon=True).start()
 
     try:
-        progress = Progress(
-            SpinnerColumn("dots"),
-            TextColumn("[brand.red]EXECUTING[/brand.red]"),
-            BarColumn(bar_width=None, pulse_style="brand.red_soft"),
-            TimeElapsedColumn(),
-            TextColumn("[brand.muted]Ctrl+C to stop[/brand.muted]"),
-            console=console,
-            transient=True,
-            refresh_per_second=12,
-        )
-        with progress:
-            task_id = progress.add_task("running", total=None)
-            buf = ""
-            for chunk in iter(lambda: proc.stdout.read(256), ""):
-                buf += chunk
-                # flush on newline or carriage-return (hashcat/john/nmap status lines)
-                while "\n" in buf or "\r" in buf:
-                    for sep in ("\n", "\r"):
-                        if sep in buf:
-                            part, buf = buf.split(sep, 1)
-                            line = part + sep
-                            progress.console.print(Text.from_ansi(part), end="\n" if sep == "\n" else "\r")
-                            lines.append(line)
-                            progress.advance(task_id, 1)
-                            break
-            # Tools may exit without a trailing newline (including binary output).
-            if buf:
-                progress.console.print(Text.from_ansi(buf), end="")
-                lines.append(buf)
-        proc.wait()
-    except KeyboardInterrupt:
-        _stop_process(proc)
-        console.print("\n[bright_yellow][!] Tool interrupted (Ctrl+C). Partial results saved if any.[/bright_yellow]")
-
-    saved = False
-    if output_path and lines:
-        Path(output_path).write_text("".join(lines), encoding="utf-8")
-        _chown_to_sudo_user(output_path)
-        saved = True
-
-    rc = proc.returncode if proc.returncode is not None else 130
-    console.print(_result_panel(rc, output_path, saved))
-    _forget_process(proc)
-    if proc.stdout is not None:
-        proc.stdout.close()
-    return rc
+        if fullscreen:
+            run_scan(state, worker.start, abort, context, cmd, output_path)
+        else:
+            _print_command_panel(cmd, output_path, False)
+            worker.start()
+            while not state.done.wait(0.1):
+                pass
+    except (KeyboardInterrupt, EOFError):
+        abort()
+    finally:
+        # A UI exception/closed terminal must never leave a child running.
+        if worker.ident is not None:
+            if not state.done.is_set():
+                abort()
+            worker.join(timeout=12)
+        state.journal.close()
+    if not fullscreen:
+        if state.save_error:
+            console.print(Text(f"Could not save output: {state.save_error}", style="bright_red"))
+        console.print(_result_panel(state.rc, output_path, state.saved))
+    return state.rc
 
 
 def cleanup_processes():
@@ -217,16 +283,24 @@ def _forget_process(proc):
 
 
 def _stop_process(proc):
+    """Stop the child's session, escalating with bounded waits and reaping it."""
     if proc is None:
         return
-    try:
-        os.killpg(proc.pid, signal.SIGINT)
-        proc.wait(timeout=3)
-    except Exception:
+    for sig, timeout in ((signal.SIGINT, 2), (signal.SIGTERM, 2), (signal.SIGKILL, 2)):
         try:
-            os.killpg(proc.pid, signal.SIGTERM)
-        except Exception:
-            proc.terminate()
+            os.killpg(proc.pid, sig)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            try:
+                proc.send_signal(sig)
+            except ProcessLookupError:
+                pass
+        try:
+            proc.wait(timeout=timeout)
+            return
+        except subprocess.TimeoutExpired:
+            continue
 
 
 def _chown_to_sudo_user(path):

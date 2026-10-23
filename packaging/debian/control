@@ -1,0 +1,15 @@
+Source: chaostictool
+Section: utils
+Priority: optional
+Maintainer: Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13), cmake
+Standards-Version: 4.7.0
+Homepage: https://github.com/Chaos-Tic/Chaostic-Tool
+Rules-Requires-Root: no
+
+Package: chaostictool
+Architecture: all
+Depends: ${misc:Depends}, python3 (>= 3.11), python3-rich (>= 13.7), python3-prompt-toolkit (>= 3.0)
+Description: terminal interface for authorized security testing
+ An interactive interface with target-based results and guided workflows.
+ External assessment tools are optional and installed separately.

@@ -6,7 +6,7 @@
 
 ### Linux pentest control surface for structured recon, tool orchestration, routing control, and target-based evidence capture
 
-[![Version](https://img.shields.io/badge/version-1.4.0-ff3131?style=for-the-badge)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v1.4.0)
+[![Version](https://img.shields.io/badge/version-1.5.0-ff3131?style=for-the-badge)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v1.5.0)
 [![Python](https://img.shields.io/badge/python-3.11%2B-111827?style=for-the-badge&logo=python)](https://www.python.org/)
 [![UI](https://img.shields.io/badge/UI-Rich%20Terminal-ff3131?style=for-the-badge)](https://github.com/Textualize/rich)
 [![Platform](https://img.shields.io/badge/platform-Linux-111827?style=for-the-badge&logo=linux)](#supported-systems)
@@ -23,22 +23,20 @@ ChaosticTool is a Rich-powered terminal framework for authorized security testin
 | Edition | Branch | Start here |
 |---|---|---|
 | Linux terminal | [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli) | CLI installation below; Python 3.11+ |
-| Windows desktop | [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) | [Desktop 1.1.5, Windows x64 / ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5) |
-| Linux desktop | [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) | [Desktop 1.1.5 downloads](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5) · [Linux GUI setup](https://github.com/Chaos-Tic/Chaostic-Tool/blob/desktop/linux-app/README_DESKTOP_LINUX.md) |
+| Windows desktop | [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) | [Desktop 1.3.0, Windows x64 / ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0) |
+| Linux desktop | [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) | [Desktop 1.3.0 downloads](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0) · [Linux GUI setup](https://github.com/Chaos-Tic/Chaostic-Tool/blob/desktop/linux-app/README_DESKTOP_LINUX.md) |
 
 The CLI and desktop branches have separate entry points and installation paths.
 The repository-root `install.sh` installs the **CLI**. The installer inside a
-Desktop Linux archive installs the **GUI**. Desktop 1.1.5 also includes macOS
-packages for Intel and Apple Silicon. All Desktop editions share the CLI-inspired
-Red Ops identity: the original README mascot and wordmark, deep black surfaces,
-red accents, numbered navigation and industrial frames.
-The CLI keeps its own version (1.4.0) and terminal experience.
+Desktop Linux archive installs the **GUI**. Desktop 1.3.0 also includes macOS
+packages for Intel and Apple Silicon, Linux AppImages and native DEB/RPM packages.
+The CLI keeps its own version (1.5.0) and terminal experience.
 
-## Terminal appearance — development preview
+## Terminal appearance
 
 ![ChaosticTool CLI light theme: phases, demo target and keyboard actions](docs/images/cli-light.svg)
 
-The development interface follows the peach, sky and lilac visual family of the desktop application, adapted to a terminal: clear sections, rounded frames, explicit status labels and a visible selection. Terminals use opaque colors; compositor blur and glass transparency are not required. The screenshots contain synthetic data and do not represent a completed scan. This refresh is included in CLI 1.4.0.
+The terminal interface follows the peach, sky and lilac visual family of the desktop application, adapted to a terminal: clear sections, rounded frames, explicit status labels and a visible selection. Terminals use opaque colors; compositor blur and glass transparency are not required. The screenshots contain synthetic data and do not represent a completed scan. This refresh was introduced in CLI 1.4.0.
 
 The CLI uses the terminal's `COLORFGBG` hint when available and falls back to dark otherwise. Set `CHAOSTIC_THEME=light` or `CHAOSTIC_THEME=dark` to override detection for a launch. True color is used where supported; terminal libraries handle reduced color capabilities. The application does not change your terminal preferences.
 
@@ -107,7 +105,7 @@ Several integrated tools require elevated privileges, so ChaosticTool is intende
 
 ## Native packages
 
-CLI 1.4.0 includes native DEB/RPM packages and source packaging for
+CLI 1.5.0 includes native DEB/RPM packages and source packaging for
 AUR, COPR and Ubuntu. The signed apt repository, AUR and Fedora COPR are published and tested. The package installs the interface and its Python
 runtime dependencies. Assessment tools remain optional and can be installed individually.
 
@@ -160,9 +158,9 @@ verified from apt (Ubuntu 24.04), AUR (Arch) and COPR (Fedora 44) on 2026-10-23.
 For a downloaded package, use the package manager so dependencies are resolved:
 
 ```sh
-sudo apt install ./chaostictool_1.4.0_all.deb
+sudo apt install ./chaostictool_1.5.0_all.deb
 # or Fedora:
-sudo dnf install ./chaostictool-1.4.0-1.noarch.rpm
+sudo dnf install ./chaostictool-1.5.0-1.noarch.rpm
 chaostictool --check-installation
 sudo chaostictool
 ```
@@ -412,7 +410,7 @@ Presets can also define custom prompt fields through `"prompt"`.
 
 ## Release
 
-Current release: `v1.4.0`.
+Current release: `v1.5.0`.
 
 See releases: https://github.com/Chaos-Tic/Chaostic-Tool/releases
 
@@ -440,9 +438,9 @@ wireless hardware and full installations require separate distro-specific tests.
 
 See [contribution and branch rules](CONTRIBUTING.md).
 
-## GitHub updater — 1.5 development
+## GitHub updater
 
-The next version checks the latest public release once per day in the background.
+CLI 1.5.0 checks the latest public release once per day in the background.
 The release carries separate CLI and Desktop versions, so the editions do not
 mistake one another's tags for an update. The request is anonymous: no target,
 result, user identifier or access token is sent. GitHub sees the request IP address.

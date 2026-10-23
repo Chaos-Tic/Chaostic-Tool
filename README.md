@@ -4,7 +4,7 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — a Liquid Glass interface with peach, sky and lilac surfaces (light by default for new profiles, with a dark option). The application has its own installer and uninstalls from Windows.
 
-**[Download Desktop 1.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0)** · **[Detailed Windows Guide](README_WINDOWS.md)** · **[Cross-Platform Packages](docs/INSTALLATION.md)** · **[Linux Terminal Version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
 ![Liquid Glass development preview rendered under Linux with an isolated demo profile](docs/images/linux/liquid-glass-accueil.png)
 
@@ -33,6 +33,8 @@ Version 1.3.0 provides Windows x64 and ARM64 installers. Choose the matching arc
 2. Run the installation. **Python and Git are not needed** to start the distributed application.
 3. Open **ChaosticTool Desktop** from the Start menu. **Open my files** gives access to your data space.
 4. Try the local diagnostic, then add a target and install the tools you need.
+
+For Linux packages, repositories (APT/AUR/COPR), and CMake builds, see the [Package Guide](docs/INSTALLATION.md).
 
 The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0). Desktop 1.3.0 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
 

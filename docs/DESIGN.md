@@ -48,7 +48,8 @@ No target or execution behavior changes as part of the visual refresh.
 ## Assets and verification
 
 The SVG icon preserves the circle/lightning motif in the shared pastel palette.
-The sidebar and window use this same vector. `scripts/make-icon.py` generates PNG
+The sidebar and native window use the PNG generated from this vector, avoiding
+platform-dependent SVG rasterization differences in window icons. `scripts/make-icon.py` generates PNG
 and multi-size Windows ICO assets from it, including 16 px. macOS ICNS is generated
 on macOS by the same script; native packaging needs platform verification.
 
@@ -61,7 +62,10 @@ screenshots. `scripts/capture-screens.py` uses isolated sample targets, history 
 synthetic execution text; it starts no operation or network request. Tool availability
 is detected on the rendering machine and is not a compatibility certification.
 Set `CHAOSTIC_CAPTURE_LANGUAGE=fr` for French or `QT_SCALE_FACTOR=1.5` for scale review.
-Offscreen Linux captures do not certify native compositor or Windows/macOS behavior.
+Linux X11 checks run in an isolated Xvfb display using `scripts/check-native-ui.py`
+and cover all seven pages, both languages, both themes and full/compact layouts.
+Offscreen captures do not certify Windows/macOS behavior; the platform builds and
+packaged smoke tests run separately in CI.
 
 ## Windows taskbar identity
 

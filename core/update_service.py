@@ -151,6 +151,23 @@ def native_commands(package: str, application: Path) -> list[list[str]]:
     return []
 
 
+def installed_version(package: str, manager: str) -> str:
+    if package not in ("chaostictool", "chaostictool-desktop"):
+        raise ValueError("Unknown package")
+    queries = {"apt-get": ["dpkg-query", "-W", "-f=${Version}", package],
+               "dnf": ["rpm", "-q", "--qf", "%{VERSION}", package],
+               "zypper": ["rpm", "-q", "--qf", "%{VERSION}", package],
+               "yay": ["pacman", "-Q", package], "paru": ["pacman", "-Q", package]}
+    try:
+        result = subprocess.run(queries[manager], capture_output=True, text=True, timeout=5, env=external_environment())
+        if result.returncode:
+            return ""
+        match = re.search(r"(?<![0-9.])([0-9]+\.[0-9]+\.[0-9]+)(?![0-9.])", result.stdout)
+        return match[1] if match else ""
+    except (KeyError, OSError, subprocess.TimeoutExpired):
+        return ""
+
+
 def download_verified(tag: str, filename: str, destination: Path, *, cancelled=None) -> Path:
     """Download only this repository's named asset and require its SHA-256 file."""
     prefix = "desktop-v" if tag.startswith("desktop-v") else "v"

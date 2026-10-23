@@ -54,6 +54,7 @@ def install(result):
         ui.console.print("Use the installer or source instructions for this installation:")
         ui.console.print(result["url"], markup=False)
         return False
+    manager = commands[0][0]
     owner = os.environ.get("SUDO_USER")
     if commands[0][0] in ("yay", "paru") and os.geteuid() == 0:
         if not owner or owner == "root":
@@ -71,6 +72,10 @@ def install(result):
         if subprocess.run(command, check=False).returncode:
             ui.console.print("Update did not complete. The package manager output above gives the reason.")
             return False
+    installed = update_service.installed_version("chaostictool", manager)
+    if not installed or update_service.version_tuple(installed) < update_service.version_tuple(result["version"]):
+        ui.console.print("The repository does not yet offer the requested version, or its installation could not be confirmed. Retry after repository synchronization.")
+        return False
     ui.console.print("Package update completed. Restart ChaosticTool to load the installed version.")
     return True
 

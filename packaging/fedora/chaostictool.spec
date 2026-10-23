@@ -1,5 +1,5 @@
 Name:           chaostictool
-Version:        1.4.0
+Version:        1.5.0
 Release:        1%{?dist}
 Summary:        Terminal interface for authorized security testing
 License:        MIT

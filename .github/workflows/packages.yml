@@ -48,6 +48,11 @@ jobs:
           cd release
           sha256sum *.deb *.rpm > SHA256SUMS
           gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --latest=false --verify-tag --title "ChaosticTool CLI ${GITHUB_REF_NAME#v}" --generate-notes
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Update edition versions for the application updater
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/update-release-metadata.py
       - name: Rebuild Fedora COPR
         env:
           COPR_WEBHOOK: ${{ secrets.COPR_WEBHOOK }}

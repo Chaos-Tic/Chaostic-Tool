@@ -1,2 +1,2 @@
-VERSION = "1.4.0"
-CODENAME = "pastel terminal and native packages"
+VERSION = "1.5.0"
+CODENAME = "GitHub release checks and confirmed updates"

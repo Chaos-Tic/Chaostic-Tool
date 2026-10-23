@@ -4,11 +4,11 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — a Liquid Glass interface with peach, sky and lilac surfaces (light by default for new profiles, with a dark option). Run local Linux tools with integrated output, interactive input and sudo when a profile requires it.
 
-**[Download Desktop 1.1.5](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5)** · **[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.2.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.2.0)** · **[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
 ![ChaosticTool Desktop development preview: Liquid Glass control center](docs/images/linux/liquid-glass-accueil.png)
 
-*Development preview: the visual refresh shown here is not yet in the linked 1.1.5 release. The Linux application is rendered offscreen with an isolated demo profile. Tool availability depends on the system. The bundle contains no targets or user history.*
+*Liquid Glass interface introduced in Desktop 1.2.0. The Linux application is rendered offscreen with an isolated demo profile. Tool availability depends on the system. The bundle contains no targets or user history.*
 
 ## CLI and Desktop, one repository
 
@@ -25,11 +25,11 @@ The historical `main` branch is now called **`linux-cli`**. The rename does not 
 
 | Linux desktop | Tool package manager | Distribution |
 |---|---|---|
-| Debian / Ubuntu / Kali / Parrot | apt | Portable `.tar.gz` and user installer |
-| Arch / Manjaro | pacman | Portable `.tar.gz` and user installer |
-| Fedora | dnf | Portable `.tar.gz` and user installer |
+| Debian / Ubuntu / Kali / Parrot | apt | Native DEB, signed apt repository, portable archive |
+| Arch / Manjaro | yay / paru | AUR source package and portable archive |
+| Fedora | dnf | Native RPM and COPR packaging |
 
-Desktop 1.1.5 provides Linux x64 and ARM64 archives and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5). See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
+Desktop 1.2.0 provides Linux x64 and ARM64 archives and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.2.0). See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
 
 1. Extract a Linux bundle for your architecture. The GitHub “Source code” archives do not contain a built application.
 2. Run `./ChaosticTool` from its folder, or `sh install.sh` to add it to the applications menu. Launch the GUI as your normal user.
@@ -172,11 +172,20 @@ See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.5 release is pinned to `desktop-v1.1.5`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.2.0 release is pinned to `desktop-v1.2.0`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.5**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.2.0**
 
 ## Native package development
 
 The 1.2 revision adds native DEB/RPM packages and CMake source installation.
 See [installation, dependencies and channel status](docs/INSTALLATION.md).
+
+## GitHub updates — 1.3 development
+
+The upcoming version adds daily, anonymous update checks that can be disabled in
+Settings. **Update…** uses the installed package channel on Linux; downloaded
+installers are verified against the release SHA-256 before opening. AppImages can
+replace themselves after confirmation and retain the previous file. Source
+checkouts link to the release instructions without resetting local changes.
+See [update behavior and privacy](docs/UPDATES.md).

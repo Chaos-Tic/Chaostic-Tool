@@ -32,10 +32,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix='chaostic-native-') as directory:
         for language in ('en', 'fr'):
             store = Store(Path(directory) / language)
-            store.settings.update(language=language, animations=False)
+            store.settings.update(language=language, animations=False, check_updates=False)
             store.add_target('https://staging.example.com', 'Demo target')
             window = Window(store)
-            window._update_timer.stop()
+            window._on_update_result(True, "9.0.0", "https://github.com/Chaos-Tic/Chaostic-Tool/releases", False)
             try:
                 for mode in ('light', 'dark'):
                     theme.set_mode(app, mode)

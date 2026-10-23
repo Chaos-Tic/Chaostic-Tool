@@ -30,8 +30,8 @@ with tempfile.TemporaryDirectory() as directory:
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen', CHAOSTIC_DESKTOP_HOME=directory)
     subprocess.run([str(executable), '--smoke-test'], env=env, timeout=90, check=True)
     from PySide6.QtGui import QImage
-    expected_icon = QImage(str(root/'desktop/assets/icon.png')).convertToFormat(QImage.Format.Format_ARGB32)
-    actual_icon = QImage(str(Path(directory)/'smoke-icon.png')).convertToFormat(QImage.Format.Format_ARGB32)
+    expected_icon = QImage(str(root/'desktop/assets/icon.png')).convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    actual_icon = QImage(str(Path(directory)/'smoke-icon.png')).convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
     assert not actual_icon.isNull() and actual_icon == expected_icon, 'Window icon differs from packaged branding'
     if sys.platform == 'win32':
         from desktop.branding import WINDOWS_APP_ID

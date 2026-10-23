@@ -87,15 +87,16 @@ class GamingButton(QPushButton):
         if not self.isEnabled():return
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         from PySide6.QtGui import QPainterPath
-        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),4,4);p.setClipPath(path)
+        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),12,12);p.setClipPath(path)
         primary=self.objectName() in ('primary','mission')
         if self.ripple<1:
             p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(QColor(255,255,255,int(60*(1-self.ripple))) if primary else QColor(227,50,79,int(40*(1-self.ripple))))
+            p.setBrush(QColor(255,255,255,int(60*(1-self.ripple))) if primary else QColor(120,160,210,int(40*(1-self.ripple))))
             radius=self.width()*self.ripple;p.drawEllipse(self.ripple_center,radius,radius)
         if self.hover<=0:return
-        c=QColor('#ffffff' if primary else '#e3324f');c.setAlpha(int(130*self.hover))
-        p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),4,4)
+        from desktop import theme
+        c=QColor('#ffffff' if primary else theme.COLORS['ACCENT']);c.setAlpha(int(130*self.hover))
+        p.setPen(QPen(c,1));p.setBrush(Qt.BrushStyle.NoBrush);p.drawRoundedRect(QRectF(self.rect()).adjusted(1,1,-1,-1),12,12)
 
 def cancel(widget,name):
     animation=getattr(widget,name,None)

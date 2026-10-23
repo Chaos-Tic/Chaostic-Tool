@@ -14,6 +14,11 @@ _LANG = "en"  # anglais par défaut
 # Dictionnaire FR -> EN. Toute chaîne d'interface enveloppée par T() doit y figurer
 # (sinon repli sur le français). Regroupé par zone pour la maintenance.
 FR_EN = {
+    "VOTRE ESPACE DE TRAVAIL": "YOUR WORKSPACE",
+    "Votre prochaine opération,\nbien préparée.": "Your next operation,\nthoughtfully prepared.",
+    "Cibles, outils et résultats, réunis dans un espace clair.": "Targets, tools and results, together in one clear workspace.",
+    "ESPACES DE TRAVAIL": "WORKSPACES",
+    "Réduire la transparence": "Reduce transparency",
     "VOTRE CIBLE. VOS OUTILS. VOTRE SESSION.":"YOUR TARGET. YOUR TOOLS. YOUR SESSION.",
     "ÉTAT LOCAL":"LOCAL STATE",
     "// ESPACES DE TRAVAIL":"// WORKSPACES",

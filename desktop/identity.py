@@ -58,7 +58,7 @@ class BrandPanel(QWidget):
     """Use the application icon consistently, with a readable text wordmark."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.icon = QIcon(str(Path(__file__).parent / "assets" / "icon.svg"))
+        self.icon = QIcon(str(Path(__file__).parent / "assets" / "icon.png"))
         self.compact = False
         self.setFixedHeight(115)
         self.setAccessibleName("ChaosticTool Desktop")

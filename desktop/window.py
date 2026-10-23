@@ -166,7 +166,7 @@ class Window(QMainWindow):
         super().__init__()
         self.store = store
         # Applique le thème et la langue enregistrés avant de construire l'UI.
-        theme.set_mode(QApplication.instance(), store.settings.get("theme", "dark"))
+        theme.set_mode(QApplication.instance(), store.settings.get("theme", "light"), store.settings.get("reduced_transparency", False))
         set_language(store.settings.get("language", "en"))
         self.tools = catalog()
         self.tool_by_key = {t["key"]: t for t in self.tools}
@@ -181,21 +181,21 @@ class Window(QMainWindow):
         self.setMinimumSize(900, 600)
         screen=QApplication.primaryScreen().availableGeometry()
         self.resize(min(1440,screen.width()),min(920,screen.height()))
-        root = QWidget()
+        root = GridBackground()
         outer = QHBoxLayout(root)
-        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setContentsMargins(12, 12, 12, 12)
         outer.setSpacing(0)
         self.setCentralWidget(root)
         sidebar = QWidget()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(230)
+        sidebar.setFixedWidth(244)
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(12, 18, 12, 16)
         side.setSpacing(5)
         self.brand_panel = BrandPanel()
         side.addWidget(self.brand_panel)
         side.addSpacing(8)
-        side.addWidget(label("// ESPACES DE TRAVAIL", "sidebarMeta"))
+        side.addWidget(label("ESPACES DE TRAVAIL", "sidebarMeta"))
         side.addSpacing(5)
         names = ["Centre de contrôle", "Cibles", "Arsenal d’outils", "Exécution", "Historique", "Paramètres", "Attack flows"]
         # self.nav stays ordered by stack index (nav[i] -> page i); only the on-screen
@@ -214,14 +214,14 @@ class Window(QMainWindow):
         side.addSpacing(8)
         side.addWidget(button("Ouvrir mes fichiers", self.open_data))
         outer.addWidget(sidebar)
-        body = GridBackground()
+        body = QWidget()
         main = QVBoxLayout(body)
-        main.setContentsMargins(22, 18, 22, 16)
+        main.setContentsMargins(22, 10, 10, 4)
         main.setSpacing(10)
         heading = QHBoxLayout()
         title_area = QVBoxLayout()
         title_area.setSpacing(6)
-        self.header_kicker=label("RED OPS CONTROL SURFACE  /  DESKTOP", "eyebrow")
+        self.header_kicker=label("CHAOSTICTOOL  ·  DESKTOP", "eyebrow")
         title_area.addWidget(self.header_kicker)
         self.page_title = label("", "pageTitle")
         title_area.addWidget(self.page_title)
@@ -565,6 +565,10 @@ class Window(QMainWindow):
         self.motion_toggle.setChecked(self.store.settings.get('animations',True))
         self.motion_toggle.toggled.connect(self.set_motion)
         appearance_box.addWidget(self.motion_toggle)
+        self.transparency_toggle = QCheckBox(T("Réduire la transparence"))
+        self.transparency_toggle.setChecked(self.store.settings.get("reduced_transparency", False))
+        self.transparency_toggle.toggled.connect(self.set_reduced_transparency)
+        appearance_box.addWidget(self.transparency_toggle)
         self.motion_rate=QComboBox()
         self.motion_rate.addItem(T('Fluide · cible 60 images/s'),60)
         self.motion_rate.addItem(T('Économe · cible 30 images/s'),30)
@@ -581,7 +585,7 @@ class Window(QMainWindow):
             lambda: self.set_app_language(self.language_select.currentData()))
         appearance_box.addWidget(self.language_select)
         appearance_box.addWidget(label('Les animations accompagnent vos actions. Les tableaux et journaux restent stables.', 'muted', True))
-        appearance_box.addWidget(label("Ambiance lumineuse lente sur l’accueil, transitions et réactions aux interactions. Aucun balayage permanent. Désactivez les effets pour une interface statique.","muted",True))
+
         layout.addWidget(appearance)
         frame,content=card()
         content.addWidget(label("Environnement Linux", "sectionTitle"))
@@ -656,6 +660,12 @@ class Window(QMainWindow):
 
     def set_motion_rate(self):
         fps=self.motion_rate.currentData();self.store.settings['animation_fps']=fps;self.store.save();clock().set_rate(fps)
+
+    def set_reduced_transparency(self, enabled):
+        self.store.settings["reduced_transparency"] = bool(enabled)
+        self.store.save()
+        theme.set_mode(QApplication.instance(), theme.MODE, enabled)
+        self.update()
 
     def set_motion(self,enabled):
         self.store.settings['animations']=bool(enabled);self.store.save();clock().set_enabled(enabled)
@@ -1032,7 +1042,7 @@ class Window(QMainWindow):
 
     def resizeEvent(self,event):
         if hasattr(self,'brand_panel'): self.brand_panel.set_compact(event.size().height()<740)
-        if hasattr(self,'header_kicker'): self.header_kicker.setText('RED OPS / DESKTOP' if event.size().width()<1120 else 'RED OPS CONTROL SURFACE  /  DESKTOP')
+        if hasattr(self,'header_kicker'): self.header_kicker.setText('CHAOSTICTOOL' if event.size().width()<1120 else 'CHAOSTICTOOL  ·  DESKTOP')
         super().resizeEvent(event)
         if hasattr(self,'tools_split'):
             orientation=Qt.Orientation.Vertical if self.width()<1100 else Qt.Orientation.Horizontal

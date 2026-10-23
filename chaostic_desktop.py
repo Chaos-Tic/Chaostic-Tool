@@ -69,8 +69,8 @@ def main():
     if "--smoke-test" in sys.argv:
         import py7zr
         assert callable(py7zr.SevenZipFile), 'Packaged 7z support is missing'
-        assert not window.hero.art.isNull(), "Packaged README artwork is missing"
-        assert not window.brand_panel.art.isNull(), "Packaged brand artwork is missing"
+        assert window.hero.title.text(), "Packaged workspace heading is missing"
+        assert not window.brand_panel.icon.isNull(), "Packaged application icon is missing"
         assert window.windowIcon().pixmap(256,256).save(str(root/"smoke-icon.png")), "Window icon is missing"
         result_file = root / "smoke-result.json"
         def done(result):

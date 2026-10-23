@@ -49,47 +49,83 @@ def tint(color,alpha):
     c=QColor(color);c.setAlpha(alpha);return c
 
 class GridBackground(QWidget):
-    """Quiet workspace; decoration stays inside the brand panel."""
-    def paintEvent(self,event):
-        # Uniform workspace; decorative grid is limited to the emblem.
-        p=QPainter(self);p.fillRect(self.rect(),QColor(theme.COLORS['background']))
+    """Paint the same peach, sky and lilac environment as Lorenz."""
+    def paintEvent(self, event):
+        p = QPainter(self)
+        colors = theme.COLORS
+        base = QLinearGradient(0, 0, self.width(), self.height())
+        for stop, key in ((0, 'ENV_START'), (.5, 'ENV_MIDDLE'), (1, 'ENV_END')):
+            base.setColorAt(stop, QColor(colors[key]))
+        p.fillRect(self.rect(), base)
+        if theme.REDUCED_TRANSPARENCY:
+            return
+        size = max(self.width(), self.height())
+        for x, y, color in ((.08, .1, '#ffb48c'), (.95, .3, '#8fd0f6'), (.45, 1.02, '#c3a6f5')):
+            field = QRadialGradient(self.width() * x, self.height() * y, size * .55)
+            field.setColorAt(0, tint(color, 70 if theme.MODE == 'dark' else 150))
+            field.setColorAt(1, tint(color, 0))
+            p.fillRect(self.rect(), field)
+
 
 class Hero(MotionPanel):
-    """Original CLI artwork with a functional action dock; no ambient animation."""
-    def __init__(self,parent=None,on_tools=None,on_flows=None):
-        super().__init__(parent);self.motion_active=False
-        self.art=QPixmap(str(ARTWORK));self.banner_height=240
-        self.setAccessibleName('ChaosticTool — Red Ops Control Surface')
-        self.setMinimumHeight(250)
-        box=QVBoxLayout(self);box.setContentsMargins(18,0,18,12)
-        box.addStretch()
-        dock=QHBoxLayout();dock.setSpacing(10)
+    """A calm welcome surface with real workspace actions."""
+    def __init__(self, parent=None, on_tools=None, on_flows=None):
+        super().__init__(parent)
+        self.motion_active = False
+        self.setAccessibleName('ChaosticTool Desktop')
+        self.setMinimumHeight(218)
+        box = QVBoxLayout(self)
+        box.setContentsMargins(28, 24, 28, 24)
+        box.setSpacing(12)
         from desktop.i18n import T
-        self.caption=QLabel(T('VOTRE CIBLE. VOS OUTILS. VOTRE SESSION.'))
-        self.caption.setObjectName('brandCaption');dock.addWidget(self.caption)
-        dock.addStretch()
-        for text,fn,kind in [(T('Ouvrir l’arsenal'),on_tools,'primary'),(T('Attack flows'),on_flows,'brandAction')]:
+        kicker = QLabel(T('VOTRE ESPACE DE TRAVAIL'))
+        kicker.setObjectName('heroTag')
+        box.addWidget(kicker)
+        self.title = QLabel(T('Votre prochaine opération,\nbien préparée.'))
+        self.title.setObjectName('heroHeading')
+        box.addWidget(self.title)
+        self.caption = QLabel(T('Cibles, outils et résultats, réunis dans un espace clair.'))
+        self.caption.setObjectName('heroDescription')
+        self.caption.setWordWrap(True)
+        box.addWidget(self.caption)
+        box.addStretch()
+        dock = QHBoxLayout()
+        dock.setSpacing(10)
+        for text, fn, kind in [(T('Ouvrir l’arsenal'), on_tools, 'primary'), (T('Attack flows'), on_flows, 'brandAction')]:
             from desktop.effects import GamingButton
-            button=GamingButton(text);button.setObjectName(kind)
+            button = GamingButton(text)
+            button.setObjectName(kind)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            if fn:button.clicked.connect(fn)
+            if fn:
+                button.clicked.connect(fn)
             dock.addWidget(button)
+        dock.addStretch()
         box.addLayout(dock)
 
-    def resizeEvent(self,event):
+    def resizeEvent(self, event):
         super().resizeEvent(event)
-        self.banner_height=min(242,int(self.width()/4))
-        self.setFixedHeight(self.banner_height+64)
-        self.caption.setVisible(self.width()>=850)
+        self.caption.setVisible(self.width() >= 720)
+        self.setMinimumHeight(218 if self.width() >= 720 else 198)
 
-    def paintEvent(self,event):
-        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        p.fillRect(self.rect(),QColor('#030303'))
-        width=self.banner_height*4
-        p.drawPixmap(QRectF((self.width()-width)/2,0,width,self.banner_height),self.art,QRectF(self.art.rect()))
-        p.setPen(QPen(QColor('#413030'),1))
-        p.drawLine(18,self.banner_height+2,self.width()-18,self.banner_height+2)
-        hatch(p,19,self.height()-4,3,'#a7232a')
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        panel(p, QRectF(self.rect()).adjusted(4, 4, -4, -4))
+        # Decorative glass lenses never carry status or interfere with text.
+        if self.width() < 860 or theme.REDUCED_TRANSPARENCY:
+            return
+        p.save()
+        p.setClipRect(self.rect().adjusted(0, 6, -6, -6))
+        cx, cy = self.width() - 136, self.height() / 2
+        for dx, dy, side, color in ((-32, 22, 135, '#ffb48c'), (40, -18, 155, '#8fd0f6'), (2, 0, 110, '#c3a6f5')):
+            r = QRectF(cx + dx - side/2, cy + dy - side/2, side, side)
+            gradient = QLinearGradient(r.topLeft(), r.bottomRight())
+            gradient.setColorAt(0, tint(color, 155))
+            gradient.setColorAt(1, tint(color, 30))
+            p.setBrush(gradient)
+            p.setPen(QPen(QColor(theme.COLORS['RIM']), 1.5))
+            p.drawEllipse(r)
+        p.restore()
 
 class ScanOverlay(MotionPanel):
     def __init__(self,parent=None):
@@ -105,17 +141,17 @@ class ScanOverlay(MotionPanel):
 
 
 class CircuitCard(QFrame):
-    """Double industrial frame shared by every work panel."""
+    """Layered glass frame shared by every work panel."""
     def paintEvent(self,event):
         p=QPainter(self)
-        panel(p,QRectF(self.rect()).adjusted(1,1,-1,-1),self.property('role')=='target')
+        panel(p,QRectF(self.rect()).adjusted(4,4,-4,-4),self.property('role')=='target')
 
 
 class HUDRail(QWidget):
     def __init__(self,parent=None):
         super().__init__(parent);self.setFixedHeight(12)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-    def paintEvent(self,event):
-        p=QPainter(self);p.setPen(QPen(QColor(theme.COLORS['border']),1))
-        p.drawLine(0,5,self.width(),5)
-        p.setPen(QPen(QColor(theme.COLORS['accent']),2));p.drawLine(0,5,90,5);hatch(p,self.width()-46,3,4)
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setPen(QPen(QColor(theme.COLORS['LINE']), 1))
+        p.drawLine(0, 5, self.width(), 5)

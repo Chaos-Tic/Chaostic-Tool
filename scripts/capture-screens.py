@@ -3,9 +3,9 @@
 Run from the repo root:
     QT_QPA_PLATFORM=offscreen PYTHONUTF8=1 python scripts/capture-screens.py [outdir]
 
-Seeds an isolated data home with a couple of targets and sample history so the
-home and history screens are populated, forces the dark (and light) theme and
-English by default (CHAOSTIC_CAPTURE_LANGUAGE=fr for French), then grabs each page to docs/images/windows/desktop-1.1.1-*.
+Seeds isolated demo targets and history; captures light first, then dark.
+No tool, diagnostic process or network request is started. English is the default
+(CHAOSTIC_CAPTURE_LANGUAGE=fr for French).
 """
 import os, sys, tempfile, json
 from pathlib import Path
@@ -74,50 +74,45 @@ def main():
 
     app = QApplication.instance() or QApplication(sys.argv)
 
-    home = Path(tempfile.mkdtemp(prefix="chaostic-shots-"))
-    seed(home)
+    with tempfile.TemporaryDirectory(prefix="chaostic-shots-") as directory:
+        home = Path(directory)
+        seed(home)
 
-    # Red Ops default theme, English.
-    build_settings(home, "dark")
-    thememod.apply_theme(app, "dark")
-    store = Store(home)
-    win = Window(store)
-    win.resize(*SIZE)
-    win.show()
-    QApplication.processEvents()
+        # Light is the primary documentation theme.
+        build_settings(home, "light")
+        thememod.apply_theme(app, "light")
+        store = Store(home)
+        win = Window(store)
+        win.resize(*SIZE)
+        win.show()
+        QApplication.processEvents()
 
-    win.navigate(0); grab(win, "desktop-1.1.1-accueil.png")
-    win.navigate(2); grab(win, "desktop-1.1.1-arsenal.png")
-    # A real local diagnostic illustrates execution without contacting a target.
-    from PySide6.QtTest import QTest
-    import time
-    win.launch("desktop-diagnostic", show_dialog=False)
-    deadline=time.monotonic()+15
-    while win.runner.active and time.monotonic()<deadline: QTest.qWait(30)
-    if win.runner.active: raise RuntimeError("Diagnostic capture timed out")
-    win.navigate(3); grab(win, "desktop-1.1.1-execution.png")
-    win.navigate(4); grab(win, "desktop-1.1.1-historique.png")
-    win.navigate(5); grab(win, "desktop-1.1.1-linux.png")
-    win.navigate(6); grab(win, "desktop-1.1.1-flows.png")
+        win.navigate(0); grab(win, "liquid-glass-accueil.png")
+        win.navigate(2); grab(win, "liquid-glass-arsenal.png")
+        # Synthetic output: no process or network request is started for captures.
+        win.console.setPlainText("Documentation demo\n\nPreparing an operation for staging.example.com\nChoose a tool and profile to begin.\n\nNo operation has been started.")
+        win.navigate(3); grab(win, "liquid-glass-execution.png")
+        win.navigate(4); grab(win, "liquid-glass-historique.png")
+        win.navigate(5); grab(win, "liquid-glass-linux.png")
+        win.navigate(6); grab(win, "liquid-glass-flows.png")
 
-    dlg = TargetDialog(win); dlg.resize(520, 300); dlg.show()
-    QApplication.processEvents()
-    dlg.grab().save(str(OUT / "desktop-1.1.1-formulaire.png")); print("saved formulaire")
-    dlg.close()
+        dlg = TargetDialog(win); dlg.resize(520, 300); dlg.show()
+        QApplication.processEvents()
+        dlg.grab().save(str(OUT / "liquid-glass-formulaire.png")); print("saved formulaire")
+        dlg.close()
 
-    win.navigate(0); win.resize(900,600); grab(win, "desktop-1.1.1-compact.png")
-    win.close()
+        win.navigate(0); win.resize(900,600); grab(win, "liquid-glass-compact.png")
+        win.close()
 
-    # Light theme home.
-    build_settings(home, "light")
-    thememod.apply_theme(app, "light")
-    store2 = Store(home)
-    win2 = Window(store2)
-    win2.resize(*SIZE)
-    win2.show()
-    win2.navigate(0); grab(win2, "desktop-1.1.1-clair.png")
-    win2.close()
-
+        # Complementary dark theme.
+        build_settings(home, "dark")
+        thememod.apply_theme(app, "dark")
+        store2 = Store(home)
+        win2 = Window(store2)
+        win2.resize(*SIZE)
+        win2.show()
+        win2.navigate(0); grab(win2, "liquid-glass-dark.png")
+        win2.close()
     print("DONE")
 
 

@@ -2,13 +2,13 @@
 
 **Your graphical operations center for Windows 10 and Windows 11.**
 
-Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — and the CLI-inspired Red Ops theme (dark by default for new profiles, with a light option). The application has its own installer and uninstalls from Windows.
+Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — a Liquid Glass interface with peach, sky and lilac surfaces (light by default for new profiles, with a dark option). The application has its own installer and uninstalls from Windows.
 
 **[Download Desktop 1.1.5](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
-![ChaosticTool Desktop 1.1.1 control center: Red Ops identity inspired by the CLI, local demo profile](docs/images/windows/desktop-1.1.1-accueil.png)
+![Liquid Glass development preview rendered under Linux with an isolated demo profile](docs/images/linux/liquid-glass-accueil.png)
 
-*Real application, with an isolated demo profile. The available tools depend on the machine used for the capture. The releases contain neither this profile nor the developer's history.*
+*Development preview rendered under Linux with synthetic data; the linked 1.1.5 release does not include this refresh. Windows builds and installer checks run separately in CI.*
 
 ## CLI and Desktop, one repository
 
@@ -68,7 +68,7 @@ To explore the interface without a remote scan, use **Local diagnostic** or a `l
 
 ## Catalog: 48 CLI tools and 4 extra diagnostics
 
-![Arsenal ordered by phase](docs/images/windows/desktop-1.1.1-arsenal.png)
+![Arsenal ordered by phase](docs/images/linux/liquid-glass-arsenal.png)
 
 Desktop reuses the **48 original tools**, with their graphical profiles, and adds **4 diagnostics**. The ordering by phase follows the CLI's. Options are presented in forms.
 
@@ -95,7 +95,7 @@ WSL is not needed to open Desktop or use the native functions. It does not autom
 
 ## Attack flows: one target and explicit steps
 
-![Attack flows target selector](docs/images/windows/desktop-1.1.1-flows.png)
+![Attack flows target selector](docs/images/linux/liquid-glass-flows.png)
 
 The three original flows are available, with creation, editing, import and export of custom flows. First choose **Flow target**: the session keeps that target even if you later select another global target.
 
@@ -105,7 +105,7 @@ Flow results stay associated with its target, including for local steps. Check t
 
 ## A history under your control
 
-![History with combinable filters and per-result actions](docs/images/windows/desktop-1.1.1-historique.png)
+![History with combinable filters and per-result actions](docs/images/linux/liquid-glass-historique.png)
 
 Combine the **target, tool, status, period** filters (24 hours, 7 days, 30 days or all) and **text search**. The counter distinguishes the displayed results from the whole kept set. Reset the filters to find the other operations.
 
@@ -115,13 +115,13 @@ Combine the **target, tool, status, period** filters (24 hours, 7 days, 30 days 
 
 Folders have descriptive names to recognize the tool and the context. Output limited on screen does not replace the full saved log. [Storage and history](README_WINDOWS.md).
 
-## Red Ops: the CLI identity on Desktop
+## Liquid Glass workspace
 
-![ChaosticTool Desktop 1.1.1 light theme](docs/images/windows/desktop-1.1.1-clair.png)
+![Complementary dark theme in the Liquid Glass development preview](docs/images/linux/liquid-glass-dark.png)
 
-Desktop 1.1.5 carries the **original CLI README identity**: the hooded mascot, distressed white/red wordmark, deep black surfaces, numbered navigation and double industrial frames. The active target and local counters share a compact operation panel above the shortcuts. New profiles start dark; existing theme preferences are preserved. The light theme uses the same identity, and the top button switches between both palettes.
+The development version uses a soft peach, sky and lilac environment, layered glass cards, rounded navigation and clear sans-serif text. The circle and lightning icon uses the same palette across the application and packaged assets. New profiles start light; existing theme preferences are preserved. The top button switches themes.
 
-In **Settings → Appearance**, disable the animations or choose a 60/30 target frame rate for the ambiance. That rate is not an FPS guarantee. Tables and logs stay stable. Rendering uses **Qt/PySide6**, with no game engine.
+In **Settings → Appearance**, choose **Reduce transparency** for opaque surfaces, disable interaction animations, or choose a 60/30 target frame rate. The background is static and needs no compositor blur. Tables and logs remain stable. Rendering uses **Qt/PySide6**.
 
 ## Personal data, updates and uninstall
 

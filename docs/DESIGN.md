@@ -1,70 +1,67 @@
-# Desktop design system — original Red Ops identity (1.1.1)
+# Desktop design system — Liquid Glass development preview
 
-The source of the identity is the Linux CLI README, not a separate Desktop logo.
-The unmodified repository-owned `assets/Banner.png` is shipped as
-`desktop/assets/red-ops-banner.png`. The home panel displays the complete artwork;
-sidebar source rectangles display its original mascot and wordmark on every page.
-Keep this packaged copy byte-identical when the source banner changes.
+This visual refresh follows the peach, sky and lilac material family of Lorenz
+and Lyapunov. It is a source development preview, not part of Desktop 1.1.5.
 
-## Visual language
+## Surfaces and typography
 
-- Deep black surfaces, distressed white/red wordmark and the hooded mascot.
-- The slashed ring from the wordmark, simplified into the vector application icon.
-- Numbered navigation with cut-corner selection and explicit keyboard focus.
-- Double industrial frames, cut corners and restrained red alignment marks.
-- Orbitron page titles, Share Tech Mono metadata/navigation and readable body text.
-- Quiet data areas: no texture behind logs, table cells or input fields.
+The central widget paints three soft color fields behind the sidebar and working
+area. Cards combine a tinted translucent body, diffuse shadow, bright outer rim
+and inner reflection. These layers are rendered by Qt and work without compositor
+blur. Settings → Appearance → Reduce transparency replaces glass bodies with
+opaque surfaces and removes background color fields and surface reflections.
 
-`desktop/identity.py` owns the original-artwork display, panel geometry and custom
-navigation. `desktop/theme.py` owns the adaptive control palette. Brand artwork and
-sidebar retain their black background in both themes; working surfaces adapt.
+Use installed Geist, Segoe UI Variable, Segoe UI, Inter, Cantarell or Noto Sans,
+with the platform font as fallback. Technical commands and addresses retain a
+monospace face. Page titles and navigation use sans-serif text.
+
+`desktop/theme.py` owns control colors, fonts and preferences;
+`desktop/identity.py` owns panel painting, branding and numbered navigation;
+`desktop/hud.py` owns the environment, welcome card and shared motion clock.
 
 | Token | Light | Dark |
 |---|---|---|
-| Background | `#f1eeee` | `#080808` |
-| Surface | `#ffffff` | `#101010` |
-| Text | `#21171b` | `#f2eeee` |
-| Muted text | `#65575d` | `#bdb3b3` |
-| Accent | `#c72c41` | `#ff5454` |
-| Primary button | `#ae2035` | `#b91624` |
-| Success | `#147d40` | `#5fdda0` |
+| Background | `#f4f1fa` | `#191d30` |
+| Surface | `#ffffff` | `#252b42` |
+| Text | `#151820` | `#f3f4f8` |
+| Muted text | `#4a5060` | `#c0c7d9` |
+| Accent | `#385cad` | `#a8dafa` |
+| Primary button | `#364d87` | `#425c9c` |
 
-Text and primary button token pairs meet the tested 4.5:1 contrast threshold.
-Status colors have text labels. Keep focus visible, buttons keyboard-operable and
-execution output selectable. Do not use decorative artwork as live status data;
-the home counters and execution status are populated from actual application state.
+The tested text token pairs and white primary-button text meet a 4.5:1 contrast
+threshold. Status colors retain text labels. Navigation has a persistent selection
+marker, a heavier active label and a visible keyboard focus ring.
 
-## Layout and behavior
+## Layout and preferences
 
-The home action dock leads to the arsenal and flows. Active target and local
-counters share an operation row, followed by shortcuts and recent results.
-The original banner preserves its aspect ratio at smaller widths; secondary hero
-copy disappears below 850 px. The sidebar mascot shrinks in windows shorter than
-740 px. The interface remains usable at 900 × 600 in English and French.
+The home screen contains the welcome actions, active target, local counts, shortcuts
+and recent operations. Decorative lenses carry no status information. At 900 × 600,
+secondary welcome text and lenses disappear, the wordmark shrinks, and content
+remains vertically scrollable without horizontal scrolling. English and French are
+supported. Ctrl+K opens search; F6 opens Execution.
 
-English is the default language; French is selectable in Settings. Ctrl+K opens
-search and F6 opens Execution. New profiles start dark. Existing saved theme
-preferences, targets and results are preserved. No idle animation is introduced.
+New profiles start light. Saved dark/light preferences are preserved. Reduced
+transparency survives theme changes and application restarts. Existing animation
+controls continue to disable interaction transitions; the home has no idle motion.
+No target or execution behavior changes as part of the visual refresh.
 
-## Verification and assets
+## Assets and verification
 
-`tests/test_redops.py` checks palette contrast, saved themes, compact layout,
-active-target persistence and French keyboard navigation. Packaged smoke tests
-assert that the original artwork is available before running the local diagnostic.
-`scripts/make-icon.py` regenerates PNG/ICO and macOS ICNS from `desktop/assets/icon.svg`.
-Desktop 1.1.5 restores the red lightning/crosshair icon used in 1.1.2, following
-the owner's visual preference. The application, Windows installer and shortcuts,
-Linux launcher and macOS bundle use this vector icon. The original hooded mascot
-and wordmark remain in the home screen and sidebar, sourced from `red-ops-banner.png`.
-The Windows identity fix introduced in 1.1.4 is retained. Regenerate icons before
-building; never overwrite an already published release to change its icon.
+The SVG icon preserves the circle/lightning motif in the shared pastel palette.
+The sidebar and window use this same vector. `scripts/make-icon.py` generates PNG
+and multi-size Windows ICO assets from it, including 16 px. macOS ICNS is generated
+on macOS by the same script; native packaging needs platform verification.
 
-`scripts/capture-screens.py` uses a temporary demo profile and a real local
-diagnostic. Screenshots use Qt offscreen rendering on the named OS. Set
-`CHAOSTIC_CAPTURE_LANGUAGE=fr` for French and `QT_SCALE_FACTOR=1.5` for a 150% review.
-These captures do not certify every native compositor, display or external tool.
-The [NEXUS notes](NEXUS.md) and [Operation Deck notes](NEXUS_VISUALS.md) are historical.
+`tests/test_redops.py` checks contrast, saved themes, reduced transparency,
+compact layout and French keyboard navigation. The historical test filename remains
+for compatibility. `tests/test_visual_motion.py` checks actions and animation cleanup.
 
+`scripts/render-docs.sh` regenerates icons and the light-first documentation
+screenshots. `scripts/capture-screens.py` uses isolated sample targets, history and
+synthetic execution text; it starts no operation or network request. Tool availability
+is detected on the rendering machine and is not a compatibility certification.
+Set `CHAOSTIC_CAPTURE_LANGUAGE=fr` for French or `QT_SCALE_FACTOR=1.5` for scale review.
+Offscreen Linux captures do not certify native compositor or Windows/macOS behavior.
 
 ## Windows taskbar identity
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import atexit
 import os
 import sys
@@ -76,6 +77,18 @@ def main_menu():
 
 
 def main():
+    from core.version import VERSION
+    parser = argparse.ArgumentParser(description="ChaosticTool Linux terminal interface")
+    parser.add_argument("--version", action="version", version=f"ChaosticTool {VERSION}")
+    parser.add_argument("--check-installation", action="store_true",
+                        help="check runtime imports without root, network or tool installation")
+    args = parser.parse_args()
+    if args.check_installation:
+        for module in MODULES.values():
+            load_module(module)
+        print(f"ChaosticTool {VERSION}: runtime imports OK")
+        print(f"Results directory: {tgt.TARGETS_ROOT}")
+        return
     if os.geteuid() != 0:
         print("\n[!] This script requires root privileges.")
         print("    Re-run with: sudo python3 chaostictool.py\n")

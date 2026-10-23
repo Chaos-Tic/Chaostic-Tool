@@ -1,0 +1,5 @@
+chaostictool (1.4.0-1) unstable; urgency=medium
+
+  * Add pastel terminal interface, native installation and per-user state.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 23 Oct 2026 22:00:00 +0200

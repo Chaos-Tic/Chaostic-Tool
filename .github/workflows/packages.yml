@@ -1,0 +1,50 @@
+name: Native CLI packages
+on:
+  pull_request:
+    branches: [linux-cli]
+  push:
+    branches: [linux-cli]
+    tags: ['v*']
+  # Native artifacts are also checked on the visual revision PR.
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['debian:trixie-slim', 'ubuntu:24.04', 'fedora:44']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build, install, check and remove in a clean distribution
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          mkdir -p packages
+          docker run --rm -v "$PWD:/src:ro" -v "$PWD/packages:/packages" "$IMAGE" sh /src/scripts/check-native-package.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cli-${{ strategy.job-index }}
+          path: |
+            packages/*.deb
+            packages/*.rpm
+          retention-days: 7
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Collect verified packages into a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --dir artifacts
+          mkdir release
+          find artifacts -type f -exec cp {} release/ \;
+          cd release
+          sha256sum *.deb *.rpm > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --draft --latest=false --verify-tag --title "ChaosticTool CLI ${GITHUB_REF_NAME#v}" --generate-notes

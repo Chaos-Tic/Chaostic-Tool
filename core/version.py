@@ -1,2 +1,2 @@
-VERSION = "1.3.2"
-CODENAME = "manifest-based uninstall, module cleanup"
+VERSION = "1.4.0"
+CODENAME = "pastel terminal and native packages"

@@ -84,7 +84,7 @@ It does not replace the underlying tools. It orchestrates them cleanly.
 - Rich-based terminal UI with a persistent HUD for target, route, proxy, and version state.
 - Phase-based methodology: OSINT, network scan, web enum, vuln scan, exploitation, post-exploitation, passwords, wireless, and MITM.
 - Ready-to-run presets for tools such as `nmap`, `rustscan`, `gobuster`, `ffuf`, `httpx`, `nuclei`, `sqlmap`, `hydra`, `bettercap`, and more.
-- Target-aware result storage under `targets/<target>/`.
+- Target-aware result storage under `~/.local/share/chaostictool/targets/<target>/`.
 - Guided attack flows for basic, intermediate, and advanced recon chains.
 - Tor routing through `proxychains` where operationally appropriate.
 - VPN guard for `tun*`, `wg*`, and `ppp*` interfaces.
@@ -105,7 +105,47 @@ ChaosticTool targets Linux distributions commonly used for security work:
 
 Several integrated tools require elevated privileges, so ChaosticTool is intended to run with `sudo`.
 
-## Installation
+## Native packages — development
+
+The next CLI release (1.4.0) adds native DEB/RPM packages and source packaging for
+AUR, COPR and Ubuntu. These channels are being validated; the existing 1.3.2 release
+does not contain these packages yet. The package installs the interface and its Python
+runtime dependencies. Assessment tools remain optional and can be installed individually.
+
+For a downloaded package, use the package manager so dependencies are resolved:
+
+```sh
+sudo apt install ./chaostictool_1.4.0_all.deb
+# or Fedora:
+sudo dnf install ./chaostictool-1.4.0-1.noarch.rpm
+chaostictool --check-installation
+sudo chaostictool
+```
+
+Remove package installations with `apt remove chaostictool`, `dnf remove chaostictool`
+or `pacman -R chaostictool`. The legacy `uninstall.sh` is for legacy script installs.
+User results are preserved when removing a package.
+
+CMake installs source files without downloading tools or Python packages. Install
+Python 3.11+, Rich 13.7+ and prompt_toolkit 3+ through your distribution first:
+
+```sh
+cmake -S . -B build/native -DCMAKE_INSTALL_PREFIX=/usr/local
+sudo cmake --install build/native
+# Packaging/staging, without touching the host filesystem:
+DESTDIR="$PWD/staging" cmake --install build/native
+# Optional DEB or RPM (requires dpkg-deb or rpmbuild):
+cpack --config build/native/CPackConfig.cmake -G DEB
+```
+
+Results now live in `$XDG_DATA_HOME/chaostictool/targets` (default
+`~/.local/share/chaostictool/targets`). Under sudo, the invoking user's home is used
+and new directories are owned by that user. `CHAOSTIC_CLI_HOME=/absolute/path` can
+override the location for a non-root launch. Existing source-checkout results stay
+where they are: copy them into the new targets directory when ready. Legacy custom
+flows are read if no per-user file exists; subsequent saves use the per-user file.
+
+## Installation from a checkout
 
 ```bash
 git clone --branch linux-cli https://github.com/Chaos-Tic/Chaostic-Tool.git
@@ -235,7 +275,7 @@ VPN mode does not force Linux traffic through a specific interface. The kernel r
 
 ## Result Storage
 
-The repository ships with an empty `targets/` directory. Real scan outputs are ignored by Git.
+New results are stored outside the installation, in `~/.local/share/chaostictool/targets/` (or the XDG data directory). Legacy checkout results are preserved.
 
 After target configuration, ChaosticTool creates a structured workspace:
 

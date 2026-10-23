@@ -4,7 +4,10 @@
 # (the CI release job), from the repository root:
 #   AUR_SSH_KEY=... packaging/arch/aur.sh VERSION
 set -euo pipefail
-version=${1:?usage: packaging/arch/aur.sh VERSION}
+version=${1:?usage: packaging/arch/aur.sh VERSION [PACKAGE]}
+package=${2:-chaostictool}
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
+case $package in chaostictool|chaostictool-desktop) ;; *) exit 2 ;; esac
 pacman -Syu --noconfirm --needed -q git openssh pacman-contrib >/dev/null
 install -dm700 ~/.ssh
 printf '%s\n' "${AUR_SSH_KEY:?set AUR_SSH_KEY}" >~/.ssh/aur && chmod 600 ~/.ssh/aur
@@ -16,7 +19,7 @@ KEYS
 # containers): name the key and the known hosts file explicitly.
 export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
 work=$(mktemp -d)
-git clone -q ssh://aur@aur.archlinux.org/chaostictool.git "$work/aur"
+git clone -q ssh://aur@aur.archlinux.org/$package.git "$work/aur"
 sed -e "s/^pkgver=.*/pkgver=$version/" -e 's/^pkgrel=.*/pkgrel=1/' packaging/arch/PKGBUILD >"$work/aur/PKGBUILD"
 id builder >/dev/null 2>&1 || useradd -m builder
 chown -R builder "$work"
@@ -26,10 +29,10 @@ git config --global --add safe.directory "$work/aur"
 cd "$work/aur"
 git add PKGBUILD .SRCINFO
 if git diff --cached --quiet; then
-    echo "AUR chaostictool is already at $version"
+    echo "AUR $package is already at $version"
 else
     git -c user.name=Chaos-Tic -c user.email=58691435+Chaos-Tic@users.noreply.github.com \
         commit -q -m "Update to $version"
     git push -q origin HEAD:master
-    echo "AUR chaostictool updated to $version"
+    echo "AUR $package updated to $version"
 fi

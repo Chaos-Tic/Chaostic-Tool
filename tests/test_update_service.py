@@ -84,3 +84,18 @@ class UpdateServiceTests(unittest.TestCase):
             with self.assertRaises(InterruptedError):
                 service.download_verified("desktop-v1.2.0", "installer.exe", Path(directory), cancelled=lambda: True)
             self.assertEqual(list(Path(directory).iterdir()), [])
+
+    @unittest.skipUnless(__import__('os').name == 'posix', 'AppImage is a Linux distribution format')
+    def test_appimage_replacement_preserves_previous_version_and_rolls_back_on_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original, downloaded = Path(directory)/'current.AppImage', Path(directory)/'new.AppImage'
+            original.write_bytes(b'old'); original.chmod(0o755)
+            downloaded.write_bytes(b'new verified bytes')
+            backup = service.replace_appimage(downloaded, original)
+            self.assertEqual(original.read_bytes(), b'new verified bytes')
+            self.assertEqual(backup.read_bytes(), b'old')
+            with patch.object(service.os, 'replace', side_effect=OSError('rename failed')):
+                with self.assertRaises(OSError):
+                    service.replace_appimage(downloaded, original)
+            self.assertEqual(original.read_bytes(), b'new verified bytes')
+            self.assertEqual(list(Path(directory).glob('.chaostic-update-*')), [])

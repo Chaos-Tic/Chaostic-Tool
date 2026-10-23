@@ -12,3 +12,28 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/update-release-metadata.py
+  desktop-aur:
+    if: startsWith(github.event.release.tag_name, 'desktop-v')
+    needs: metadata
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: infrastructure
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          path: source
+      - env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: cd source && bash ../infrastructure/packaging/arch/aur.sh "${TAG#desktop-v}" chaostictool-desktop
+  desktop-copr:
+    if: startsWith(github.event.release.tag_name, 'desktop-v')
+    needs: metadata
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          COPR_WEBHOOK: ${{ secrets.COPR_DESKTOP_WEBHOOK }}
+        run: curl -fsS -X POST "$COPR_WEBHOOK"

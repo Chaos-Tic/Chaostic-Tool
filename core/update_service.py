@@ -168,6 +168,29 @@ def installed_version(package: str, manager: str) -> str:
         return ""
 
 
+def replace_appimage(downloaded: Path, original: Path) -> Path:
+    """Atomically replace a user-owned AppImage and retain its previous inode."""
+    import uuid
+    original = original.resolve(strict=True)
+    if downloaded.suffix != ".AppImage" or original.stat().st_uid != os.geteuid():
+        raise ValueError("Only an AppImage owned by the current user can be replaced")
+    backup = original.with_name(original.name + ".previous-" + uuid.uuid4().hex[:8])
+    descriptor, temporary = tempfile.mkstemp(prefix=".chaostic-update-", dir=original.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as output, downloaded.open("rb") as source:
+            shutil.copyfileobj(source, output)
+        os.chmod(temporary, original.stat().st_mode & 0o777 | 0o100)
+        os.link(original, backup)
+        try:
+            os.replace(temporary, original)
+        except OSError:
+            backup.unlink(missing_ok=True)
+            raise
+        return backup
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
 def download_verified(tag: str, filename: str, destination: Path, *, cancelled=None) -> Path:
     """Download only this repository's named asset and require its SHA-256 file."""
     prefix = "desktop-v" if tag.startswith("desktop-v") else "v"

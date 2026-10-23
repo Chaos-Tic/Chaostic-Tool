@@ -108,8 +108,54 @@ Several integrated tools require elevated privileges, so ChaosticTool is intende
 ## Native packages
 
 CLI 1.4.0 includes native DEB/RPM packages and source packaging for
-AUR, COPR and Ubuntu. Repository channels are being verified separately. The package installs the interface and its Python
+AUR, COPR and Ubuntu. The signed apt repository, AUR and Fedora COPR are published and tested. The package installs the interface and its Python
 runtime dependencies. Assessment tools remain optional and can be installed individually.
+
+
+### Debian / Ubuntu
+
+Configure the signed project repository once (Debian 13+ or Ubuntu 24.04+):
+
+```sh
+sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
+printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
+sudo apt update
+sudo apt install chaostictool
+```
+
+The signing key fingerprint is `B968 F27E 534B 7AD3 2C2A 026A C874 EC5C A8A6 42AE`.
+Use `sudo apt update && sudo apt upgrade` for updates. Ubuntu can use this repository;
+the separate Launchpad PPA is not yet confirmed available.
+
+### Arch / Manjaro
+
+```sh
+yay -S chaostictool
+# Updates:
+yay -Syu
+```
+
+The [AUR recipe](https://aur.archlinux.org/packages/chaostictool) builds the tagged
+source archive and checks its SHA-256 digest. `paru -S chaostictool` also works.
+
+### Fedora
+
+```sh
+sudo dnf copr enable chaostic/chaostictool
+sudo dnf install chaostictool
+# Updates:
+sudo dnf upgrade chaostictool
+```
+
+[COPR](https://copr.fedorainfracloud.org/coprs/chaostic/chaostictool/) builds the
+source package for Fedora 43 and 44. Minimal Fedora installations may first need
+`dnf5-plugins` for the `copr` command.
+
+These are project-maintained repositories, separate from the distributions'
+official repositories. Fresh-container installation, diagnostic and removal were
+verified from apt (Ubuntu 24.04), AUR (Arch) and COPR (Fedora 44) on 2026-10-23.
+
+### Downloaded packages and source installs
 
 For a downloaded package, use the package manager so dependencies are resolved:
 
@@ -133,8 +179,9 @@ cmake -S . -B build/native -DCMAKE_INSTALL_PREFIX=/usr/local
 sudo cmake --install build/native
 # Packaging/staging, without touching the host filesystem:
 DESTDIR="$PWD/staging" cmake --install build/native
-# Optional DEB or RPM (requires dpkg-deb or rpmbuild):
-cpack --config build/native/CPackConfig.cmake -G DEB
+# For DEB/RPM packaging, configure a separate build with /usr:
+cmake -S . -B build/packages -DCMAKE_INSTALL_PREFIX=/usr
+cpack --config build/packages/CPackConfig.cmake -G DEB
 ```
 
 Results now live in `$XDG_DATA_HOME/chaostictool/targets` (default

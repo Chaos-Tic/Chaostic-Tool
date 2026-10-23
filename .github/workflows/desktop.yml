@@ -134,7 +134,16 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ChaosticTool-${{ matrix.name }}
-          path: release/*
+          path: |
+            release/*.exe
+            release/*.exe.sha256
+            release/*.dmg
+            release/*.dmg.sha256
+            release/*.tar.gz
+            release/*.tar.gz.sha256
+            release/*.deb
+            release/*.rpm
+            release/linux-native-SHA256SUMS-*
           if-no-files-found: error
           retention-days: 30
   native-source:
@@ -169,4 +178,4 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "ChaosticTool ${GITHUB_REF_NAME#desktop-v}" --generate-notes --draft --verify-tag
           fi
-          find packages -type f -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber
+          find packages -mindepth 2 -maxdepth 2 -type f -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber

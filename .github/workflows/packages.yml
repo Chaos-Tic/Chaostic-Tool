@@ -47,4 +47,28 @@ jobs:
           find artifacts -type f -exec cp {} release/ \;
           cd release
           sha256sum *.deb *.rpm > SHA256SUMS
-          gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --draft --latest=false --verify-tag --title "ChaosticTool CLI ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --latest=false --verify-tag --title "ChaosticTool CLI ${GITHUB_REF_NAME#v}" --generate-notes
+      - name: Rebuild Fedora COPR
+        env:
+          COPR_WEBHOOK: ${{ secrets.COPR_WEBHOOK }}
+        run: curl -fsS -X POST "$COPR_WEBHOOK"
+  aur:
+    needs: release
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: bash packaging/arch/aur.sh "${TAG#v}"
+  ppa:
+    needs: release
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - env:
+          PPA_SIGNING_KEY: ${{ secrets.PPA_SIGNING_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: bash packaging/debian/ppa.sh "${TAG#v}"

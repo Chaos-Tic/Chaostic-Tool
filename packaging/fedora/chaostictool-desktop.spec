@@ -1,4 +1,5 @@
 # Frozen Python/Qt runtime, identical to the tested public desktop bundle.
+%global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool-desktop
 Version:        1.2.0
@@ -25,6 +26,7 @@ settings remain separate. External assessment tools are optional.
 %prep
 (cd %{_sourcedir} && sha256sum -c %{SOURCE2})
 %setup -q -n ChaosticTool
+cp -p %{SOURCE1} LICENSE
 
 %build
 # The runtime was built and smoke-tested by the upstream release workflow.
@@ -52,7 +54,7 @@ EOF
 install -m644 _internal/desktop/assets/icon.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %files
-%license %{SOURCE1}
+%license LICENSE
 %{_bindir}/chaostictool-desktop
 %{_libexecdir}/chaostictool-desktop/
 %{_datadir}/applications/chaostictool-desktop.desktop

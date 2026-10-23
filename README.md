@@ -175,3 +175,8 @@ See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
 The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.5 release is pinned to `desktop-v1.1.5`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
 [MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.5**
+
+## Native package development
+
+The 1.2 revision adds native DEB/RPM packages and CMake source installation.
+See [installation, dependencies and channel status](docs/INSTALLATION.md).

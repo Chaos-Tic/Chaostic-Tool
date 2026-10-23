@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ChaosticTool Desktop
+Comment=Workspace for authorized security testing
+Exec=chaostictool-desktop
+Icon=chaostictool-desktop
+Terminal=false
+Categories=Network;Utility;
+StartupWMClass=ChaosticTool Desktop

@@ -114,7 +114,7 @@ def wordlist_menu() -> None:
     while True:
         ui.header("Wordlist Manager")
 
-        table = Table(box=box.SQUARE, border_style="brand.red", expand=True, pad_edge=True)
+        table = Table(box=box.ROUNDED, border_style="brand.red", expand=True, pad_edge=True)
         table.add_column("KEY", justify="center", width=5)
         table.add_column("PATH", style="brand.white", ratio=1)
         table.add_column("PROFILE", style="brand.muted", no_wrap=True)

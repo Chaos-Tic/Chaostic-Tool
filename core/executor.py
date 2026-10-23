@@ -21,9 +21,9 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeEl
 from rich.table import Table
 from rich.text import Text
 
-from core.theme import THEME
+from core.theme import THEME, COLORS
 
-console = Console(theme=THEME)
+console = Console(theme=THEME, style=f"{COLORS['text']} on {COLORS['bg']}")
 ACTIVE_PROCS = []
 
 
@@ -77,7 +77,7 @@ def _print_command_panel(cmd, output_path, interactive):
             body,
             title="[brand.accent] EXECUTION [/brand.accent]",
             border_style="brand.dim",
-            box=box.SQUARE,
+            box=box.ROUNDED,
             padding=(1, 2),
         )
     )
@@ -102,7 +102,7 @@ def _result_panel(rc, output_path, saved):
         table,
         title="[brand.accent] RUN SUMMARY [/brand.accent]",
         border_style=style,
-        box=box.SQUARE,
+        box=box.ROUNDED,
         padding=(1, 2),
     )
 

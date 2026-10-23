@@ -14,6 +14,8 @@
 
 ChaosticTool is a Rich-powered terminal framework for authorized security testing. It centralizes common pentest tools, guided scan flows, target-aware output storage, and Tor/VPN routing controls into one fast interactive CLI.
 
+**[Installation Guide](INSTALLATION.md)** · **[All Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases)** · **[Desktop Version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app)**
+
 </div>
 
 ---
@@ -22,7 +24,7 @@ ChaosticTool is a Rich-powered terminal framework for authorized security testin
 
 | Edition | Branch | Start here |
 |---|---|---|
-| Linux terminal | [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli) | CLI installation below; Python 3.11+ |
+| Linux terminal | [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli) | [Installation Guide](INSTALLATION.md) · Python 3.11+ |
 | Windows desktop | [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app) | [Desktop 1.3.0, Windows x64 / ARM64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0) |
 | Linux desktop | [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app) | [Desktop 1.3.0 downloads](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0) · [Linux GUI setup](https://github.com/Chaos-Tic/Chaostic-Tool/blob/desktop/linux-app/README_DESKTOP_LINUX.md) |
 
@@ -32,30 +34,16 @@ Desktop Linux archive installs the **GUI**. Desktop 1.3.0 also includes macOS
 packages for Intel and Apple Silicon, Linux AppImages and native DEB/RPM packages.
 The CLI keeps its own version (1.5.0) and terminal experience.
 
-## Terminal appearance
+## Terminal Interface
 
 ![ChaosticTool CLI light theme: phases, demo target and keyboard actions](docs/images/cli-light.svg)
 
-The terminal interface follows the peach, sky and lilac visual family of the desktop application, adapted to a terminal: clear sections, rounded frames, explicit status labels and a visible selection. Terminals use opaque colors; compositor blur and glass transparency are not required. The screenshots contain synthetic data and do not represent a completed scan. This refresh was introduced in CLI 1.4.0.
-
-The CLI uses the terminal's `COLORFGBG` hint when available and falls back to dark otherwise. Set `CHAOSTIC_THEME=light` or `CHAOSTIC_THEME=dark` to override detection for a launch. True color is used where supported; terminal libraries handle reduced color capabilities. The application does not change your terminal preferences.
-
-With `prompt_toolkit` installed and an interactive terminal, menus run full screen. Arrow keys and Enter select a phase, `/` opens search, and the existing action shortcuts remain available. Non-interactive output or an unavailable TUI dependency uses the Rich fallback with the same palette. No-color output retains labels and selection markers.
-
 <details>
-<summary>Dark terminal preview</summary>
+<summary>Dark theme preview</summary>
 
-![ChaosticTool CLI dark theme with the same actions and demo data](docs/images/cli-dark.svg)
+![ChaosticTool CLI dark theme](docs/images/cli-dark.svg)
 
 </details>
-
-Generate the SVG previews without root access, startup checks, external commands or network requests:
-
-```bash
-CHAOSTIC_THEME=light python scripts/render-cli.py
-CHAOSTIC_THEME=dark python scripts/render-cli.py
-python -m unittest discover -s tests -v
-```
 
 ## What Is Chaostic Tool?
 
@@ -114,13 +102,7 @@ Install ChaosticTool through your distribution's package manager or run it from 
 | **Fedora** | COPR | `sudo dnf copr enable chaostic/chaostictool && sudo dnf install chaostictool` |
 | **Any Linux** | Source checkout | `git clone -b linux-cli https://github.com/Chaos-Tic/Chaostic-Tool.git && cd Chaostic-Tool && sudo ./install.sh` |
 
-👉 For repository configuration, signing keys, offline `.deb` / `.rpm` packages, CMake source staging, installer profiles (`minimal`, `standard`, `full`), and uninstallation, see the complete **[Installation Guide](docs/INSTALLATION.md)**.
-
-The project directory itself is not touched. Remove it manually once the uninstaller has run:
-
-```bash
-sudo rm -rf Chaostic-Tool/
-```
+👉 For repository configuration, signing keys, offline `.deb` / `.rpm` packages, CMake source staging, installer profiles (`minimal`, `standard`, `full`), and uninstallation, see the complete **[Installation Guide](INSTALLATION.md)**.
 
 ## Quick Start
 

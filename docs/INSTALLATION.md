@@ -163,4 +163,6 @@ sudo pacman -R chaostictool
 For checkout-based installations, run the uninstaller:
 ```bash
 sudo ./uninstall.sh
+# Optionally remove the checkout directory afterwards:
+cd .. && rm -rf Chaostic-Tool/
 ```

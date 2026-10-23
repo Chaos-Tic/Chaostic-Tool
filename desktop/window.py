@@ -10,7 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl, QSize, QTimer
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradient, QConicalGradient, QRadialGradient, QPainter, QPen, QTextCursor
 from PySide6.QtWidgets import (
-    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+    QAbstractItemView, QApplication, QBoxLayout, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
     QInputDialog, QScrollArea, QMenu, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
@@ -318,13 +318,15 @@ class Window(QMainWindow):
         hero=self.hero
         effects.glow(hero, "#9b75ff", blur=34, alpha=70)
         layout.addWidget(hero)
-        missions=QHBoxLayout();missions.setSpacing(12)
+        missions=QBoxLayout(QBoxLayout.Direction.LeftToRight);missions.setSpacing(12)
+        self.home_missions = missions
         for text,index in [('01  /  CIBLES\nPRÉPARER',1),('02  /  ARSENAL\nSÉLECTIONNER',2),('03  /  HISTORIQUE\nCONSULTER',4)]:
             entry=button(text,lambda checked=False,n=index:self.navigate(n),'mission')
             missions.addWidget(entry,1)
-        operation = QHBoxLayout(); operation.setSpacing(12)
+        operation = QBoxLayout(QBoxLayout.Direction.LeftToRight); operation.setSpacing(12)
+        self.home_operation = operation
         target_bar, target_layout = card(); target_bar.setProperty('role','target')
-        target_layout.addWidget(label("CIBLE ACTIVE / PROCHAINE OPÉRATION","eyebrow"))
+        target_layout.addWidget(label("CIBLE ACTIVE / PROCHAINE OPÉRATION","eyebrow",True))
         self.active_name=label("Aucune cible","targetTitle",True)
         self.active_host=label("Ajoutez votre premier environnement.","sessionHost",True)
         target_layout.addWidget(self.active_name);target_layout.addWidget(self.active_host)
@@ -367,8 +369,8 @@ class Window(QMainWindow):
         actions.addWidget(button("Définir comme cible active", self.activate_target))
         actions.addWidget(button("Retirer la cible", self.remove_target))
         actions.addStretch()
-        actions.addWidget(label("Les résultats restent dans l’historique.", "muted"))
         layout.addLayout(actions)
+        layout.addWidget(label("Les résultats restent dans l’historique.", "muted", True))
 
     def build_tools(self):
         layout = self.page()
@@ -1041,6 +1043,9 @@ class Window(QMainWindow):
         self.statusBar().showMessage(T('Résultat local supprimé.'))
 
     def resizeEvent(self,event):
+        if hasattr(self, 'home_operation'):
+            self.home_operation.setDirection(QBoxLayout.Direction.TopToBottom if event.size().width() < 1120 else QBoxLayout.Direction.LeftToRight)
+            self.home_missions.setDirection(QBoxLayout.Direction.TopToBottom if event.size().width() < 1020 else QBoxLayout.Direction.LeftToRight)
         if hasattr(self,'brand_panel'): self.brand_panel.set_compact(event.size().height()<740)
         if hasattr(self,'header_kicker'): self.header_kicker.setText('CHAOSTICTOOL' if event.size().width()<1120 else 'CHAOSTICTOOL  ·  DESKTOP')
         super().resizeEvent(event)

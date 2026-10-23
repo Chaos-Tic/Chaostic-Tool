@@ -14,6 +14,20 @@ _LANG = "en"  # anglais par défaut
 # Dictionnaire FR -> EN. Toute chaîne d'interface enveloppée par T() doit y figurer
 # (sinon repli sur le français). Regroupé par zone pour la maintenance.
 FR_EN = {
+    "Remplacer cette AppImage par la version vérifiée ? L’ancienne version sera conservée.": "Replace this AppImage with the verified version? The previous version will be kept.",
+    "AppImage mise à jour. Fermez puis relancez l’application.": "AppImage updated. Close and restart the application.",
+    " Utilisez le bouton Mettre à jour pour continuer.": " Use Update to continue.",
+    "Terminez l’opération en cours avant de mettre à jour l’application.": "Finish the current operation before updating the application.",
+    "Ouvrir un terminal pour exécuter la mise à jour ?": "Open a terminal to run the package update?",
+    "Exécutez cette commande dans votre terminal, puis redémarrez l’application :": "Run this command in your terminal, then restart the application:",
+    "Télécharger, vérifier puis ouvrir l’installateur depuis GitHub ?": "Download, verify and open the installer from GitHub?",
+    "Téléchargement et vérification de l’installateur…": "Downloading and verifying the installer…",
+    "La mise à jour n’a pas été installée.": "The update was not installed.",
+    "Installateur vérifié. Suivez les étapes d’installation, puis redémarrez l’application.": "Installer verified. Follow the installation steps, then restart the application.",
+    "Ouvrez l’installateur vérifié :": "Open the verified installer:",
+    "Vérifier automatiquement les mises à jour": "Automatically check for updates",
+    "Une requête anonyme par jour vers GitHub. GitHub voit votre adresse IP. Aucun téléchargement sans votre accord.": "One anonymous request per day to GitHub. GitHub sees your IP address. No download without your consent.",
+    "Mettre à jour…": "Update…",
     "VOTRE ESPACE DE TRAVAIL": "YOUR WORKSPACE",
     "Votre prochaine opération,\nbien préparée.": "Your next operation,\nthoughtfully prepared.",
     "Cibles, outils et résultats, réunis dans un espace clair.": "Targets, tools and results, together in one clear workspace.",

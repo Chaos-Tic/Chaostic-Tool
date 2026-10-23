@@ -4,10 +4,10 @@ The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
 execution and distro package installation. The CLI remains on `linux-cli`;
 the Windows edition remains on `desktop/windows-app`.
 
-## Desktop 1.2.0 downloads
+## Desktop 1.3.0 downloads
 
-Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.2.0/ChaosticTool-1.2.0-linux-x64.tar.gz)
-or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.2.0/ChaosticTool-1.2.0-linux-arm64.tar.gz).
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.3.0/ChaosticTool-1.3.0-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.3.0/ChaosticTool-1.3.0-linux-arm64.tar.gz) (or the `.AppImage`, `.deb` and `.rpm` assets on the [release page](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0)).
 The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
 or `sh install.sh` from its folder to add the application to your menu.
 
@@ -116,15 +116,15 @@ the oldest supported distribution for wider compatibility. Automated tests
 use Qt's offscreen mode; verify the interface in your real Wayland/X11 session
 before distributing a release.
 
-## Native package development
+## Native packages
 
-The 1.2 revision adds native DEB/RPM packages and CMake source installation.
+Desktop 1.3.0 includes native DEB/RPM packages, AppImages, AUR/COPR/APT channels and CMake source installation.
 See [installation, dependencies and channel status](docs/INSTALLATION.md).
 
-## GitHub updates — 1.3 development
+## GitHub updates
 
-The upcoming version adds daily, anonymous update checks that can be disabled in
-Settings. **Update…** uses the installed package channel on Linux; downloaded
+Desktop 1.3.0 checks daily and anonymously for public releases (can be disabled in
+Settings). **Update…** uses the installed package channel on Linux; downloaded
 installers are verified against the release SHA-256 before opening. AppImages can
 replace themselves after confirmation and retain the previous file. Source
 checkouts link to the release instructions without resetting local changes.

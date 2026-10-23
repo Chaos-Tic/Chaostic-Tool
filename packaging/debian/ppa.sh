@@ -35,7 +35,8 @@ else
     curl -fsSL -o "$out/${package}_$version.orig.tar.gz" "https://github.com/Chaos-Tic/Chaostic-Tool/archive/refs/tags/$tag_prefix$version.tar.gz"
 fi
 first=1
-for pair in $targets; do
+[ -n "${PPA_ORIG_UPLOADED:-}" ] && first=0
+for pair in ${PPA_TARGETS:-$targets}; do
     series=${pair%%:*}
     number=${pair#*:}
     full=$version-1~ppa${PPA_REVISION:-1}~ubuntu$number
@@ -60,9 +61,12 @@ EOF
     cp "$work"/${package}_${full}* "$out/"
     rm -rf "$work"
     if [ "${PPA_UPLOAD:-1}" = 1 ]; then
-        if ! dput "ppa:${PPA:-chaos-tic/chaostictool}" "$out/${package}_${full}_source.changes"; then
-            sleep 10
-            dput -f "ppa:${PPA:-chaos-tic/chaostictool}" "$out/${package}_${full}_source.changes"
-        fi
+        for try in 1 2 3 4; do
+            force=; [ "$try" = 1 ] || force=-f
+            dput $force "ppa:${PPA:-chaos-tic/chaostictool}" "$out/${package}_${full}_source.changes" && break
+            [ "$try" = 4 ] && exit 1
+            echo "Upload failed (attempt $try); retrying in 90 s" >&2
+            sleep 90
+        done
     fi
 done

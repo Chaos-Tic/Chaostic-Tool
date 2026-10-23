@@ -4,7 +4,7 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — a Liquid Glass interface with peach, sky and lilac surfaces (light by default for new profiles, with a dark option). Run local Linux tools with integrated output, interactive input and sudo when a profile requires it.
 
-**[Download Desktop 1.2.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.2.0)** · **[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0)** · **[Linux setup guide](README_DESKTOP_LINUX.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
 ![ChaosticTool Desktop development preview: Liquid Glass control center](docs/images/linux/liquid-glass-accueil.png)
 
@@ -29,7 +29,7 @@ The historical `main` branch is now called **`linux-cli`**. The rename does not 
 | Arch / Manjaro | yay / paru | AUR source package and portable archive |
 | Fedora | dnf | Native RPM and COPR packaging |
 
-Desktop 1.2.0 provides Linux x64 and ARM64 archives and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.2.0). See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
+Desktop 1.3.0 provides Linux x64 and ARM64 archives, AppImages, native DEB/RPM packages and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0). See the [Linux guide](README_DESKTOP_LINUX.md) for prerequisites and source installation.
 
 1. Extract a Linux bundle for your architecture. The GitHub “Source code” archives do not contain a built application.
 2. Run `./ChaosticTool` from its folder, or `sh install.sh` to add it to the applications menu. Launch the GUI as your normal user.
@@ -172,19 +172,19 @@ See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.2.0 release is pinned to `desktop-v1.2.0`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Desktop 1.3.0 release is pinned to `desktop-v1.3.0`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.2.0**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.3.0**
 
-## Native package development
+## Native packages
 
-The 1.2 revision adds native DEB/RPM packages and CMake source installation.
+Desktop 1.3.0 includes native DEB/RPM packages, AppImages, AUR/COPR/APT channels and CMake source installation.
 See [installation, dependencies and channel status](docs/INSTALLATION.md).
 
-## GitHub updates — 1.3 development
+## GitHub updates
 
-The upcoming version adds daily, anonymous update checks that can be disabled in
-Settings. **Update…** uses the installed package channel on Linux; downloaded
+Desktop 1.3.0 checks daily and anonymously for public releases (can be disabled in
+Settings). **Update…** uses the installed package channel on Linux; downloaded
 installers are verified against the release SHA-256 before opening. AppImages can
 replace themselves after confirmation and retain the previous file. Source
 checkouts link to the release instructions without resetting local changes.

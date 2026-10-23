@@ -83,6 +83,7 @@ class Hero(MotionPanel):
         box.addWidget(kicker)
         self.title = QLabel(T('Votre prochaine opération,\nbien préparée.'))
         self.title.setObjectName('heroHeading')
+        self.title.setWordWrap(True)
         box.addWidget(self.title)
         self.caption = QLabel(T('Cibles, outils et résultats, réunis dans un espace clair.'))
         self.caption.setObjectName('heroDescription')

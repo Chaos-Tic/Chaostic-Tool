@@ -5,12 +5,14 @@ Requires Xvfb and xdotool. A temporary demo profile is used. No scan, installer 
 """
 from __future__ import annotations
 import json
+import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from desktop import theme
@@ -21,8 +23,12 @@ from desktop.window import Window
 def main():
     app = QApplication([])
     theme.apply_theme(app)
+    if font := os.environ.get("CHAOSTIC_TEST_FONT"):
+        theme.BODY = theme.DISPLAY = font
+        app.setFont(QFont(font, 10))
     assert app.platformName() == 'xcb', app.platformName()
     results = []
+    overflows = []
     with tempfile.TemporaryDirectory(prefix='chaostic-native-') as directory:
         for language in ('en', 'fr'):
             store = Store(Path(directory) / language)
@@ -47,7 +53,8 @@ def main():
                             widget = window.stack.widget(page)
                             # Scroll areas must fit horizontally at the supported minimum.
                             if hasattr(widget, 'horizontalScrollBar'):
-                                assert widget.horizontalScrollBar().maximum() == 0, (language, mode, width, page)
+                                if widget.horizontalScrollBar().maximum():
+                                    overflows.append([language, mode, width, page, widget.horizontalScrollBar().maximum()])
                         window.nav[2].setFocus()
                         QTest.keyClick(window.nav[2], Qt.Key.Key_Space)
                         assert window.stack.currentIndex() == 2
@@ -60,6 +67,7 @@ def main():
                 window.close()
                 window.deleteLater()
                 app.processEvents()
+    assert not overflows, overflows
     print(json.dumps({'platform': app.platformName(), 'checked': results, 'result': 'OK'}))
 
 

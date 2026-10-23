@@ -12,13 +12,14 @@ import sys
 import termios
 import time
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 @unittest.skipUnless(os.name == 'posix', 'POSIX terminal test')
 class TerminalTests(unittest.TestCase):
-    def drive(self, source, keys=b'', *, columns=80, rows=24, mode='light'):
+    def drive(self, source, keys=b'', *, columns=80, rows=24, mode='light', send_after=b''):
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', rows, columns, 0, 0))
         original = termios.tcgetattr(slave)
@@ -39,7 +40,7 @@ class TerminalTests(unittest.TestCase):
                             break
                         raise
                     data.extend(part)
-                    if keys and not sent and b'\x1b[?1049h' in data:
+                    if keys and not sent and b'\x1b[?1049h' in data and (not send_after or send_after in data):
                         # Send keys only after the full-screen application owns the terminal.
                         os.write(master, keys)
                         sent = True
@@ -81,3 +82,23 @@ with tempfile.TemporaryDirectory() as directory:
     print('SYNTHETIC_EXECUTION_OK')
 '''
         self.assertIn('SYNTHETIC_EXECUTION_OK', self.drive(source, mode='dark'))
+
+    def test_terminal_interrupt_saves_partial_output_and_reaps_child(self):
+        source = """
+import sys,tempfile
+from pathlib import Path
+from core.executor import run_tool,ACTIVE_PROCS
+with tempfile.TemporaryDirectory() as directory:
+    output=Path(directory)/'partial.txt'
+    code="import signal,sys,time; signal.signal(signal.SIGINT,lambda *args: sys.exit(130)); print('STREAM_READY',flush=True); time.sleep(10)"
+    rc=run_tool([sys.executable,'-u','-c',code],output,context={'wait':False,'tool':'Demo'})
+    assert rc==130 and 'STREAM_READY' in output.read_text()
+    assert not ACTIVE_PROCS
+    print('INTERRUPT_CLEANUP_OK')
+"""
+        self.assertIn('INTERRUPT_CLEANUP_OK', self.drive(source, b'\x03', send_after=b'STREAM_READY'))
+
+    def test_dumb_terminal_uses_the_plain_output_path(self):
+        from core import scan_view
+        with patch.object(sys.stdin, 'isatty', return_value=True), patch.object(sys.stdout, 'isatty', return_value=True), patch.dict(os.environ, TERM='dumb'):
+            self.assertFalse(scan_view.available())

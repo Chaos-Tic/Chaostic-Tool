@@ -257,19 +257,24 @@ class Window(QMainWindow):
         self.navigate(0)
         if store.warning:
             self.statusBar().showMessage(store.warning)
-        from desktop.updater import UpdateChecker
+        from desktop.updater import UpdateChecker, InstallerDownload
         from PySide6.QtGui import QGuiApplication
-        self.update_checker = UpdateChecker(self)
+        self.update_checker = UpdateChecker(self, root=store.root)
+        self.update_download = InstallerDownload(store.root / "updates", self)
+        self.update_download.result.connect(self._on_installer_downloaded)
+        self._available_update = None
         self.update_checker.result.connect(self._on_update_result)
         # Vérification discrète au démarrage — jamais en mode headless (tests/CI),
         # et via un timer rattaché à la fenêtre pour ne pas tirer après sa fermeture.
-        if QGuiApplication.platformName() != "offscreen":
+        if QGuiApplication.platformName() != "offscreen" and store.settings.get("check_updates", True):
             self._update_timer = QTimer(self)
             self._update_timer.setSingleShot(True)
             self._update_timer.timeout.connect(lambda: self.check_updates(manual=False))
             self._update_timer.start(2500)
 
     def check_updates(self, manual=False):
+        if not manual and not self.store.settings.get("check_updates", True):
+            return
         if manual and hasattr(self, "update_button"):
             self.update_button.setEnabled(False)
             self.update_button.setText(T("Vérification…"))
@@ -280,25 +285,111 @@ class Window(QMainWindow):
             self.update_button.setEnabled(True)
             self.update_button.setText(T("Rechercher les mises à jour"))
         if available and version:
+            self._available_update = (version, url)
+            self.install_update_button.setVisible(True)
             message = T("Mise à jour disponible : Desktop {version}.").format(version=version)
             self.statusBar().showMessage(message)
             if hasattr(self, "update_label"):
-                self.update_label.setText(message + T(" Ouvrez la page de téléchargement pour l’installer."))
+                self.update_label.setText(message + T(" Utilisez le bouton Mettre à jour pour continuer."))
                 self.update_label.setVisible(True)
             if manual:
-                box = QMessageBox(self)
-                box.setWindowTitle(T("Mise à jour disponible"))
-                box.setText(T("Desktop {version} est disponible (vous avez {current}).").format(version=version, current=VERSION))
-                box.setInformativeText(T("Ouvrir la page de téléchargement ?"))
-                box.setStandardButtons(QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
-                box.setDefaultButton(QMessageBox.StandardButton.Open)
-                if box.exec() == QMessageBox.StandardButton.Open:
-                    QDesktopServices.openUrl(QUrl(url))
+                self.install_update_button.setFocus()
         elif manual:
+            self._available_update = None
+            self.install_update_button.setVisible(False)
             if version:
                 QMessageBox.information(self, T("À jour"), T("Vous utilisez déjà la dernière version (Desktop {current}).").format(current=VERSION))
             else:
                 QMessageBox.warning(self, T("Mise à jour"), T("Impossible de vérifier les mises à jour pour le moment."))
+
+    def set_update_checks(self, enabled):
+        self.store.settings["check_updates"] = enabled
+        self.store.save()
+
+    def install_app_update(self):
+        if not self._available_update:
+            return
+        if self.runner.active:
+            QMessageBox.information(self, T("Mise à jour"), T("Terminez l’opération en cours avant de mettre à jour l’application."))
+            return
+        import platform
+        import shlex
+        import shutil
+        import subprocess
+        from pathlib import Path
+        from core.update_service import native_commands, external_environment
+        version, url = self._available_update
+        application = Path(sys.executable if getattr(sys, "frozen", False) else __file__)
+        commands = native_commands("chaostictool-desktop", application) if sys.platform.startswith("linux") else []
+        if commands:
+            commands = [[*command] if command[0] in ("yay", "paru") else ["sudo", *command] for command in commands]
+            script = " && ".join(shlex.join(command) for command in commands)
+            answer = QMessageBox.question(self, T("Mise à jour"),
+                T("Ouvrir un terminal pour exécuter la mise à jour ?") + "\n\n" + script,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            terminals = (("x-terminal-emulator", "-e"), ("konsole", "-e"), ("gnome-terminal", "--"),
+                         ("kgx", "--"), ("xfce4-terminal", "-x"), ("mate-terminal", "-x"),
+                         ("kitty", "--"), ("alacritty", "-e"), ("foot", "--"), ("xterm", "-e"))
+            for program, flag in terminals:
+                terminal = shutil.which(program)
+                if terminal:
+                    script += "; printf '\nPress Enter to close. '; read -r answer"
+                    try:
+                        subprocess.Popen([terminal, flag, "sh", "-c", script], start_new_session=True, env=external_environment())
+                    except OSError as exc:
+                        QMessageBox.warning(self, T("Mise à jour"), str(exc))
+                    return
+            QMessageBox.information(self, T("Mise à jour"), T("Exécutez cette commande dans votre terminal, puis redémarrez l’application :") + "\n\n" + script)
+            return
+        arch = {"amd64": "x64", "x86_64": "x64", "aarch64": "arm64", "arm64": "arm64"}.get(platform.machine().lower())
+        if not arch or not getattr(sys, "frozen", False):
+            QDesktopServices.openUrl(QUrl(url))
+            return
+        if sys.platform == "win32":
+            filename = f"ChaosticTool-Setup-{version}-windows-{arch}.exe"
+        elif sys.platform == "darwin":
+            filename = f"ChaosticTool-{version}-macos-{arch}.dmg"
+        elif os.environ.get("APPIMAGE"):
+            filename = f"ChaosticTool-{version}-linux-{arch}.AppImage"
+        else:
+            filename = f"ChaosticTool-{version}-linux-{arch}.tar.gz"
+        answer = QMessageBox.question(self, T("Mise à jour"),
+            T("Télécharger, vérifier puis ouvrir l’installateur depuis GitHub ?") + "\n\n" + filename + "\n" + url,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.install_update_button.setEnabled(False)
+        self.update_label.setText(T("Téléchargement et vérification de l’installateur…"))
+        self.update_download.start("desktop-v" + version, filename)
+
+    def _on_installer_downloaded(self, path, error):
+        self.install_update_button.setEnabled(True)
+        if error:
+            self.update_label.setText(T("La mise à jour n’a pas été installée."))
+            QMessageBox.warning(self, T("Mise à jour"), error)
+            return
+        if sys.platform.startswith("linux") and os.environ.get("APPIMAGE") and path.endswith(".AppImage"):
+            from pathlib import Path
+            from core.update_service import replace_appimage
+            original = Path(os.environ["APPIMAGE"]).resolve()
+            answer = QMessageBox.question(self, T("Mise à jour"), T("Remplacer cette AppImage par la version vérifiée ? L’ancienne version sera conservée.") + "\n\n" + str(original),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            try:
+                replace_appimage(Path(path), original)
+            except (OSError, ValueError) as exc:
+                QMessageBox.warning(self, T("Mise à jour"), str(exc))
+                return
+            self.update_label.setText(T("AppImage mise à jour. Fermez puis relancez l’application."))
+            self.install_update_button.setVisible(False)
+            self._available_update = None
+            return
+        self.update_label.setText(T("Installateur vérifié. Suivez les étapes d’installation, puis redémarrez l’application."))
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(path)):
+            QMessageBox.information(self, T("Mise à jour"), T("Ouvrez l’installateur vérifié :") + "\n" + path)
 
     def focus_search(self):
         self.navigate(2);self.search.setFocus();self.search.selectAll()
@@ -620,9 +711,17 @@ class Window(QMainWindow):
         self.update_label = label("", "muted", True)
         self.update_label.setVisible(False)
         content.addWidget(self.update_label)
-        updates = QHBoxLayout()
+        self.update_checks_toggle = QCheckBox(T("Vérifier automatiquement les mises à jour"))
+        self.update_checks_toggle.setChecked(self.store.settings.get("check_updates", True))
+        self.update_checks_toggle.toggled.connect(self.set_update_checks)
+        content.addWidget(self.update_checks_toggle)
+        content.addWidget(label("Une requête anonyme par jour vers GitHub. GitHub voit votre adresse IP. Aucun téléchargement sans votre accord.", "muted", True))
+        updates = QVBoxLayout()
         self.update_button = button("Rechercher les mises à jour", lambda: self.check_updates(manual=True))
         updates.addWidget(self.update_button)
+        self.install_update_button = button("Mettre à jour…", self.install_app_update)
+        self.install_update_button.setVisible(False)
+        updates.addWidget(self.install_update_button)
         updates.addWidget(button("Ouvrir le dépôt GitHub  »", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Chaos-Tic/Chaostic-Tool"))))
         updates.addStretch()
         content.addLayout(updates)
@@ -1166,5 +1265,7 @@ class Window(QMainWindow):
             if answer != QMessageBox.StandardButton.Yes:
                 event.ignore()
                 return
+        self.update_checker.shutdown()
+        self.update_download.shutdown()
         self.runner.shutdown()
         event.accept()

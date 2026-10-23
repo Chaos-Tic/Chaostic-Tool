@@ -4,11 +4,11 @@
 
 Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — a Liquid Glass interface with peach, sky and lilac surfaces (light by default for new profiles, with a dark option). The application has its own installer and uninstalls from Windows.
 
-**[Download Desktop 1.1.5](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**[Download Desktop 1.2.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.2.0)** · **[Detailed Windows guide](README_WINDOWS.md)** · **[Development builds](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml)** · **[Linux terminal version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
 
 ![Liquid Glass development preview rendered under Linux with an isolated demo profile](docs/images/linux/liquid-glass-accueil.png)
 
-*Development preview rendered under Linux with synthetic data; the linked 1.1.5 release does not include this refresh. Windows builds and installer checks run separately in CI.*
+*Liquid Glass interface introduced in Desktop 1.2.0. The preview is rendered under Linux with synthetic data; Windows builds and installer checks run separately in CI.*
 
 ## CLI and Desktop, one repository
 
@@ -25,16 +25,16 @@ The historical `main` branch is now called **`linux-cli`**. The rename does not 
 
 | Your computer | Installer | Target systems |
 |---|---|---|
-| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.1.5/ChaosticTool-Setup-1.1.5-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
+| Intel or AMD 64-bit | [Windows x64](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.2.0/ChaosticTool-Setup-1.2.0-windows-x64.exe) | Windows 10 **1809 or later**, Windows 11 |
 
-Version 1.1.5 provides Windows x64 and ARM64 installers. Choose the matching architecture from the release assets.
+Version 1.2.0 provides Windows x64 and ARM64 installers. Choose the matching architecture from the release assets.
 
 1. Check your architecture in **Windows Settings → System → About**, then download the matching `.exe`. The GitHub “Source code” archives are not the installer.
 2. Run the installation. **Python and Git are not needed** to start the distributed application.
 3. Open **ChaosticTool Desktop** from the Start menu. **Open my files** gives access to your data space.
 4. Try the local diagnostic, then add a target and install the tools you need.
 
-The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5). Desktop 1.1.5 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
+The installer and its SHA-256 fingerprint are in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.2.0). Desktop 1.2.0 is a **stable public release**, without a Windows publisher signature; Windows may show a reputation warning. The macOS distribution is not notarized.
 
 ### Application and tool compatibility
 
@@ -167,6 +167,20 @@ See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
 | [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
 | [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
 
-The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.1.5 release is pinned to `desktop-v1.1.5`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+The [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml) builds Windows, Linux and macOS and tests the packaged applications. The Windows 1.2.0 release is pinned to `desktop-v1.2.0`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.1.5**
+[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.2.0**
+
+## Native package development
+
+The 1.2 revision adds native DEB/RPM packages and CMake source installation.
+See [installation, dependencies and channel status](docs/INSTALLATION.md).
+
+## GitHub updates — 1.3 development
+
+The upcoming version adds daily, anonymous update checks that can be disabled in
+Settings. **Update…** uses the installed package channel on Linux; downloaded
+installers are verified against the release SHA-256 before opening. AppImages can
+replace themselves after confirmation and retain the previous file. Source
+checkouts link to the release instructions without resetting local changes.
+See [update behavior and privacy](docs/UPDATES.md).

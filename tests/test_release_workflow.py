@@ -31,7 +31,12 @@ fi
             jq.write_text('#!/bin/sh\nprintf "%s\\n" "$STATE"\n')
             jq.chmod(0o755)
             (root / 'packages').mkdir()
-            (root / 'packages/test asset.zip').write_bytes(b'tested bundle')
+            artifact = root / 'packages/ChaosticTool-linux-x64'
+            artifact.mkdir()
+            (artifact / 'tested bundle.tar.gz').write_bytes(b'tested bundle')
+            stage = artifact / '_CPack_Packages/stage'
+            stage.mkdir(parents=True)
+            (stage / 'private-runtime.so').write_bytes(b'not a public asset')
             calls = root / 'calls'
             env = dict(os.environ, PATH=str(bin_dir)+os.pathsep+os.environ['PATH'],
                        STATE=state, CALLS=str(calls), GITHUB_REF_NAME='desktop-v1.0.2',
@@ -50,6 +55,8 @@ fi
         self.assertNotIn('release create', calls)
         self.assertIn('release upload', calls)
         self.assertIn('--clobber', calls)
+        self.assertIn('tested bundle.tar.gz', calls)
+        self.assertNotIn('private-runtime.so', calls)
 
     def test_new_release_stays_draft_and_uses_existing_tag(self):
         calls = self.run_publication('missing')

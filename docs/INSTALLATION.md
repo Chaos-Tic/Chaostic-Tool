@@ -1,4 +1,4 @@
-# Native Linux installation — 1.2 development
+# Native Linux installation
 
 Two editions have separate packages: `chaostictool` (CLI) and
 `chaostictool-desktop` (GUI). They can coexist. Installing either interface does
@@ -6,10 +6,10 @@ not install all external assessment tools or add third-party security repositori
 
 ## Package files
 
-The next desktop release builds `.deb` and `.rpm` packages for x86-64 and ARM64.
+Desktop 1.2 builds `.deb` and `.rpm` packages for x86-64 and ARM64.
 These packages contain the tested desktop bundle and resolve graphics libraries
 with the system package manager. No system-wide pip installation is needed.
-They are not present in the existing Desktop 1.1.5 release.
+Desktop 1.3 also builds AppImages for x86-64 and ARM64.
 
 ```sh
 sudo apt install ./chaostictool-desktop_1.2.0_amd64.deb
@@ -59,3 +59,19 @@ accidental build against old sources. AUR, COPR, apt repository and Ubuntu PPA
 publication are separate steps: this document does not claim these channels are
 already available for this development version. Once published, updates must use
 `yay -Syu`, `dnf upgrade` or `apt upgrade` through the configured channel.
+
+## Native repository commands
+
+The signed apt repository is shared with the CLI:
+
+```sh
+sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
+printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
+sudo apt update
+sudo apt install chaostictool-desktop
+```
+
+Arch: `yay -S chaostictool-desktop` or `paru -S chaostictool-desktop`.
+Fedora COPR: `sudo dnf copr enable chaostic/chaostictool-desktop && sudo dnf install chaostictool-desktop` (or install the release RPM directly with `sudo dnf install ./downloaded-package.rpm`). Use the native manager to
+remove packages and retain user data. Source installs via CMake and portable
+archives remain available independently of repository synchronization.

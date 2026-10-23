@@ -3,7 +3,7 @@ from pathlib import Path
 
 STATE_FILES={'settings.json','linux.json','linux-status.json','wsl-setup.json',
              'run.json','output.txt','desktop-errors.log','desktop.lock',
-             'smoke-result.json','smoke-initial-state.json'}
+             'smoke-result.json','smoke-initial-state.json','update-check.json','cli-settings.json'}
 
 def assert_clean_bundle(directory):
     root=Path(directory)

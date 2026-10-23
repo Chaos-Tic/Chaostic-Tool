@@ -103,141 +103,18 @@ ChaosticTool targets Linux distributions commonly used for security work:
 
 Several integrated tools require elevated privileges, so ChaosticTool is intended to run with `sudo`.
 
-## Native packages
+## Installation
 
-CLI 1.5.0 includes native DEB/RPM packages and source packaging for
-AUR, COPR and Ubuntu. The signed apt repository, AUR and Fedora COPR are published and tested. The package installs the interface and its Python
-runtime dependencies. Assessment tools remain optional and can be installed individually.
+Install ChaosticTool through your distribution's package manager or run it from a git checkout:
 
+| Platform | Channel | Quick install command |
+|---|---|---|
+| **Debian / Ubuntu / Kali / Parrot** | Signed APT | `sudo apt install chaostictool` |
+| **Arch / Manjaro** | AUR | `yay -S chaostictool` |
+| **Fedora** | COPR | `sudo dnf copr enable chaostic/chaostictool && sudo dnf install chaostictool` |
+| **Any Linux** | Source checkout | `git clone -b linux-cli https://github.com/Chaos-Tic/Chaostic-Tool.git && cd Chaostic-Tool && sudo ./install.sh` |
 
-### Debian / Ubuntu
-
-Configure the signed project repository once (Debian 13+ or Ubuntu 24.04+):
-
-```sh
-sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
-printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
-sudo apt update
-sudo apt install chaostictool
-```
-
-The signing key fingerprint is `B968 F27E 534B 7AD3 2C2A 026A C874 EC5C A8A6 42AE`.
-Use `sudo apt update && sudo apt upgrade` for updates. Ubuntu can use this repository;
-the separate Launchpad PPA is not yet confirmed available.
-
-### Arch / Manjaro
-
-```sh
-yay -S chaostictool
-# Updates:
-yay -Syu
-```
-
-The [AUR recipe](https://aur.archlinux.org/packages/chaostictool) builds the tagged
-source archive and checks its SHA-256 digest. `paru -S chaostictool` also works.
-
-### Fedora
-
-```sh
-sudo dnf copr enable chaostic/chaostictool
-sudo dnf install chaostictool
-# Updates:
-sudo dnf upgrade chaostictool
-```
-
-[COPR](https://copr.fedorainfracloud.org/coprs/chaostic/chaostictool/) builds the
-source package for Fedora 43 and 44. Minimal Fedora installations may first need
-`dnf5-plugins` for the `copr` command.
-
-These are project-maintained repositories, separate from the distributions'
-official repositories. Fresh-container installation, diagnostic and removal were
-verified from apt (Ubuntu 24.04), AUR (Arch) and COPR (Fedora 44) on 2026-10-23.
-
-### Downloaded packages and source installs
-
-For a downloaded package, use the package manager so dependencies are resolved:
-
-```sh
-sudo apt install ./chaostictool_1.5.0_all.deb
-# or Fedora:
-sudo dnf install ./chaostictool-1.5.0-1.noarch.rpm
-chaostictool --check-installation
-sudo chaostictool
-```
-
-Remove package installations with `apt remove chaostictool`, `dnf remove chaostictool`
-or `pacman -R chaostictool`. The legacy `uninstall.sh` is for legacy script installs.
-User results are preserved when removing a package.
-
-CMake installs source files without downloading tools or Python packages. Install
-Python 3.11+, Rich 13.7+ and prompt_toolkit 3+ through your distribution first:
-
-```sh
-cmake -S . -B build/native -DCMAKE_INSTALL_PREFIX=/usr/local
-sudo cmake --install build/native
-# Packaging/staging, without touching the host filesystem:
-DESTDIR="$PWD/staging" cmake --install build/native
-# For DEB/RPM packaging, configure a separate build with /usr:
-cmake -S . -B build/packages -DCMAKE_INSTALL_PREFIX=/usr
-cpack --config build/packages/CPackConfig.cmake -G DEB
-```
-
-Results now live in `$XDG_DATA_HOME/chaostictool/targets` (default
-`~/.local/share/chaostictool/targets`). Under sudo, the invoking user's home is used
-and new directories are owned by that user. `CHAOSTIC_CLI_HOME=/absolute/path` can
-override the location for a non-root launch. Existing source-checkout results stay
-where they are: copy them into the new targets directory when ready. Legacy custom
-flows are read if no per-user file exists; subsequent saves use the per-user file.
-
-## Installation from a checkout
-
-```bash
-git clone --branch linux-cli https://github.com/Chaos-Tic/Chaostic-Tool.git
-cd Chaostic-Tool
-sudo ./install.sh
-sudo chaostictool
-```
-
-The default installer uses the `standard` profile: it installs the Python runtime, `rich`, the ChaosticTool launcher, and fast official distro packages where available. It deliberately avoids source builds and large optional stacks by default.
-
-Supported installer options:
-
-```bash
-sudo ./install.sh --profile minimal      # Python/Rich + launcher only
-sudo ./install.sh --profile standard     # default: official distro packages only
-sudo ./install.sh --with-tor             # Tor/proxychains for minimal/standard profiles
-sudo ./install.sh --profile full         # heavy Go/Cargo/pipx/pip/gem/source/AUR installs + Tor routing
-```
-
-Additional opt-in options are `--with-kali-repo` (apt systems),
-`--with-chaotic-aur` (pacman systems), and `--no-tools`. `./install.sh --help`
-describes every option. Extra repositories change the system package sources;
-they are not needed for the default installation. Prefer a dedicated assessment
-environment when using them. Installs record their changes in
-`/var/lib/chaostictool/manifest` for the uninstaller.
-
-The installer detects `pacman`, `apt`, `dnf`, `zypper`, or `apk`, skips unavailable packages instead of failing the whole run, and links registered user-installed Go, Cargo, pipx, pip, and local binaries into paths visible from root shells.
-
-The installation, especially the full version, may take some time because it will install the 50+ tools required for it to work properly, unless they are already installed.
-
-On ARM systems such as Raspberry Pi OS, the `full` profile uses portable fallbacks for tools that are often absent from the default repositories. Metasploit can still remain unavailable unless the system exposes a compatible `metasploit-framework` package.
-
-## Uninstallation
-
-```bash
-sudo ./uninstall.sh
-```
-
-The uninstaller removes, in order:
-
-- the `/usr/local/bin/chaostictool` launcher;
-- source-install wrappers (`responder`, `whatweb`, `xsstrike`) and Python-module wrappers (`secretsdump.py`, `psexec.py`, `GetUserSPNs.py`) from `/usr/local/bin`;
-- direct-download assets (`linpeas.sh`, `winpeas.exe`, `rustscan` release binary);
-- symlinks to user-local tool directories (`~/go/bin`, `~/.cargo/bin`, `~/.local/bin`) that the installer created;
-- the `/opt/chaostictool/` source checkouts and `/var/cache/chaostictool/` build staging area;
-- Tor and proxychains config modifications, restoring originals from the `.chaostictool.bak` backups.
-
-For Go, Cargo, pipx, and gem tools, the uninstaller asks for confirmation before removing each group. System packages installed via `pacman`, `apt`, or `dnf` are listed at the end for manual review — they are never removed automatically.
+👉 For repository configuration, signing keys, offline `.deb` / `.rpm` packages, CMake source staging, installer profiles (`minimal`, `standard`, `full`), and uninstallation, see the complete **[Installation Guide](docs/INSTALLATION.md)**.
 
 The project directory itself is not touched. Remove it manually once the uninstaller has run:
 

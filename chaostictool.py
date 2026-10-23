@@ -68,6 +68,7 @@ MAIN_ENTRIES = [
     ("12", "Attack flows",                   "brand.info", "guided basic/intermediate/advanced attack chains", "[brand.info]FLOW[/brand.info]"),
     ("p",  "Proxy / VPN / Tor",              "brand.warn", "route traffic through Tor or guard a VPN interface", "[brand.warn]ROUTE[/brand.warn]"),
     ("w",  "Wordlists",                       "brand.info", "download missing wordlists (SecLists, rockyou, dirb)", "[brand.info]WORDS[/brand.info]"),
+    ("u",  "Application updates", "brand.info", "GitHub release checks and package updates", "[brand.info]UPDATE[/brand.info]"),
     ("99", "Quit",                           "bright_red", "", "[bright_red]EXIT[/bright_red]"),
 ]
 
@@ -82,7 +83,21 @@ def main():
     parser.add_argument("--version", action="version", version=f"ChaosticTool {VERSION}")
     parser.add_argument("--check-installation", action="store_true",
                         help="check runtime imports without root, network or tool installation")
+    parser.add_argument("--check-updates", action="store_true", help="check the latest public CLI release")
+    parser.add_argument("--update", action="store_true", help="check and propose a package update with confirmation")
+    parser.add_argument("--no-update-check", action="store_true", help="disable automatic release checks for this launch")
     args = parser.parse_args()
+    if args.check_updates or args.update:
+        from core import cli_updates
+        if args.check_updates and not args.update:
+            result = cli_updates._check(force=True)
+            if result['error']:
+                print("Could not verify updates.")
+                raise SystemExit(1)
+            print(f"CLI {VERSION}: " + (f"update {result['version']} available" if result['available'] else "no newer release"))
+        else:
+            cli_updates.show(install_now=True)
+        return
     if args.check_installation:
         for module in MODULES.values():
             load_module(module)
@@ -94,6 +109,9 @@ def main():
         print("    Re-run with: sudo python3 chaostictool.py\n")
         sys.exit(1)
 
+    if not args.no_update_check and sys.stdin.isatty() and sys.stdout.isatty():
+        from core import cli_updates
+        cli_updates.start_background()
     flows.load_custom_flows()
     ui.startup_check()
     while True:
@@ -108,6 +126,10 @@ def main():
             elif choice.lower() == "w":
                 from core import wordlists as _wl
                 _wl.wordlist_menu()
+            elif choice.lower() == "u":
+                from core import cli_updates
+                if cli_updates.show():
+                    return
             elif choice == "11":
                 session.view_results()
             elif choice == "12":

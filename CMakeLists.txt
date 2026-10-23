@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ChaosticTool VERSION 1.4.0 LANGUAGES NONE)
+project(ChaosticTool VERSION 1.5.0 LANGUAGES NONE)
 # Pure Python application: CMake only stages files; dependencies belong to the package manager.
 set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Library directory (unused by this Python application)")
 include(GNUInstallDirs)

@@ -256,7 +256,9 @@ def context_footer():
     target, target_style = _target_state()
     proxy, proxy_style = _proxy_state()
     route = route_status()
-    return [
+    from core.cli_updates import notice
+    updates = [f"[brand.info]{notice()}[/brand.info]"] if notice() else []
+    return updates + [
         f"[brand.faint]target:[/brand.faint] [{target_style}]{escape(target)}[/{target_style}]",
         f"[brand.faint]route:[/brand.faint] [brand.info]{escape(route)}[/brand.info]",
         f"[brand.faint]proxy:[/brand.faint] [{proxy_style}]{escape(proxy)}[/{proxy_style}]",

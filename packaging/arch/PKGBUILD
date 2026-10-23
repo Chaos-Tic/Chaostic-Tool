@@ -1,6 +1,6 @@
 # Maintainer: Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>
 pkgname=chaostictool
-pkgver=1.4.0
+pkgver=1.5.0
 pkgrel=1
 pkgdesc='Terminal interface for authorized security testing'
 arch=('any')

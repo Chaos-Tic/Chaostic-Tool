@@ -28,6 +28,10 @@ def expected_names(version):
         names.add("linux-native-SHA256SUMS-"+arch)
     names.update((f"chaostictool-desktop_{version}_amd64.deb", f"chaostictool-desktop_{version}_arm64.deb",
                   f"chaostictool-desktop-{version}-1.x86_64.rpm", f"chaostictool-desktop-{version}-1.aarch64.rpm"))
+    if tuple(map(int, version.split("."))) >= (1, 3, 0):
+        for arch in ("x64", "arm64"):
+            name = f"ChaosticTool-{version}-linux-{arch}.AppImage"
+            names.update((name, name+".sha256"))
     return names
 
 
@@ -53,7 +57,7 @@ def collect(source, output, version):
                 if not match or match[2] not in expected or digest(output/match[2]) != match[1].lower():
                     raise ValueError("Checksum failed: "+checksum.name)
                 verified.add(match[2])
-    packages = {name for name in expected if name.endswith((".exe", ".dmg", ".tar.gz", ".deb", ".rpm"))}
+    packages = {name for name in expected if name.endswith((".exe", ".dmg", ".tar.gz", ".deb", ".rpm", ".AppImage"))}
     if not packages.issubset(verified):
         raise ValueError("Every installer must have a verified checksum")
 

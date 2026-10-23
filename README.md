@@ -439,3 +439,26 @@ pentest tools or scan external targets. Package availability, privileged routing
 wireless hardware and full installations require separate distro-specific tests.
 
 See [contribution and branch rules](CONTRIBUTING.md).
+
+## GitHub updater — 1.5 development
+
+The next version checks the latest public release once per day in the background.
+The release carries separate CLI and Desktop versions, so the editions do not
+mistake one another's tags for an update. The request is anonymous: no target,
+result, user identifier or access token is sent. GitHub sees the request IP address.
+
+Use **u → Application updates** to check manually, change automatic checks, or
+confirm an update through the package manager that owns this installation.
+Nothing is downloaded or installed by the automatic check. Source checkouts link
+to the release instructions; local changes are never reset automatically.
+
+```sh
+chaostictool --check-updates
+chaostictool --update                 # displays commands, then asks for confirmation
+chaostictool --no-update-check        # disable automatic checking for this launch
+CHAOSTIC_UPDATE_CHECK=0 chaostictool  # environment override
+```
+
+The **u** menu saves the automatic-check preference in the user data directory.
+The 1.4.0 release predates this updater; upgrade once through your package manager
+to obtain it. See [update privacy and verification](SECURITY.md).

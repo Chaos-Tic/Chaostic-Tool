@@ -1,0 +1,25 @@
+name: Publish tested desktop installers
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        description: Tested desktop tag workflow run
+        required: true
+      tag:
+        description: Existing desktop-vX.Y.Z tag
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: publish-desktop-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ inputs.run }}
+          TAG: ${{ inputs.tag }}
+        run: python scripts/publish-built-desktop.py --run "$RUN" --tag "$TAG"

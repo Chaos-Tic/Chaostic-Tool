@@ -313,7 +313,7 @@ pip_install_requirements() {
         return 1
     fi
     if ! python3 -m pip --version >/dev/null 2>&1; then
-        echo -e "${RED}[!] pip is unavailable and Rich could not be installed.${NC}"
+        echo -e "${RED}[!] pip is unavailable and Python dependencies could not be installed.${NC}"
         return 1
     fi
     python3 -m pip install --break-system-packages -r "$SCRIPT_DIR/requirements.txt" \
@@ -338,13 +338,15 @@ install_python_runtime() {
         exit 1
     fi
 
-    if ! python3 -c "import rich" >/dev/null 2>&1; then
-        echo -e "${CYAN}[*] Installing Python dependency with pip fallback: rich${NC}"
+    if ! python3 -c "import rich, prompt_toolkit" >/dev/null 2>&1; then
+        echo -e "${CYAN}[*] Installing Python dependencies with pip fallback: rich, prompt_toolkit${NC}"
         pip_install_requirements || {
-            echo -e "${RED}[!] Python dependency install failed: rich is still unavailable.${NC}"
+            echo -e "${RED}[!] Python dependency installation failed.${NC}"
             exit 1
         }
     fi
+
+    python3 -c "import rich, prompt_toolkit" || return 1
 
     echo -e "${GREEN}[+] $(python3 --version 2>&1)${NC}"
     echo -e "${GREEN}[+] Python dependencies OK${NC}\n"

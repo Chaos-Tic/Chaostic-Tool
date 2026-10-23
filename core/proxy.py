@@ -3,22 +3,10 @@ import shutil
 import signal
 import subprocess
 import time
-from rich.console import Console
-from rich.theme import Theme
 
-THEME = Theme(
-    {
-        "brand.red": "bold #ff3131",
-        "brand.warn": "bold #ffb84d",
-        "brand.ok": "bold #31ff83",
-        "brand.info": "bold #67e8f9",
-        "brand.muted": "#a98c91",
-        "brand.command": "#ffb4b4",
-        "brand.white": "bold #f8fafc",
-    }
-)
+from core.theme import THEME
 
-console = Console(theme=THEME)
+from core.terminal import console
 
 # Global proxy state
 PROXY_STATE = {
@@ -64,27 +52,28 @@ def get_default_interface():
 def proxy_menu(ui_module):
     """Interactive menu to configure proxy/VPN/Tor routing."""
     while True:
-        status = "[brand.ok]ACTIVE[/brand.ok]" if PROXY_STATE["enabled"] else "[bright_red]DISABLED[/bright_red]"
+        status = "[brand.badge.ok] ACTIVE [/brand.badge.ok]" if PROXY_STATE["enabled"] else "[brand.badge.bad] DISABLED [/brand.badge.bad]"
         mode = PROXY_STATE["mode"] or "none"
         default_iface = get_default_interface()
 
         entries = [
-            ("1", "Enable Tor routing", "brand.red", "route supported tool traffic through proxychains", "[brand.red]TOR[/brand.red]"),
-            ("2", "Enable VPN guard", "brand.info", "warn if the default route is not the selected VPN", "[brand.info]VPN[/brand.info]"),
-            ("3", "Disable proxy", "bright_red", "restore direct connection", "[bright_red]DIRECT[/bright_red]"),
-            ("4", "Check Tor status", "brand.warn", "verify Tor is running", "[brand.warn]CHECK[/brand.warn]"),
-            ("5", "Show Tor exit IP", "brand.warn", "query current Tor public IP", "[brand.warn]IP[/brand.warn]"),
-            ("6", "Rotate Tor identity", "brand.warn", "ask Tor for a new circuit / exit IP", "[brand.warn]ROTATE[/brand.warn]"),
-            ("7", "Toggle Tor auto-rotate", "brand.warn", "rotate before every Tor-routed tool", "[brand.warn]AUTO[/brand.warn]"),
+            ("1", "Enable Tor routing", "brand.accent", "route supported tool traffic through proxychains", "[brand.badge.ok] TOR [/brand.badge.ok]"),
+            ("2", "Enable VPN guard", "brand.info", "warn if the default route is not the selected VPN", "[brand.badge.info] VPN [/brand.badge.info]"),
+            ("3", "Disable proxy", "brand.danger", "restore direct connection", "[brand.badge.bad] DIRECT [/brand.badge.bad]"),
+            ("4", "Check Tor status", "brand.warn", "verify Tor is running", "[brand.badge.warn] CHECK [/brand.badge.warn]"),
+            ("5", "Show Tor exit IP", "brand.warn", "query current Tor public IP", "[brand.badge.warn] IP [/brand.badge.warn]"),
+            ("6", "Rotate Tor identity", "brand.warn", "ask Tor for a new circuit / exit IP", "[brand.badge.warn] ROTATE [/brand.badge.warn]"),
+            ("7", "Toggle Tor auto-rotate", "brand.warn", "rotate before every Tor-routed tool", "[brand.badge.warn] AUTO [/brand.badge.warn]"),
         ]
         footer = [
-            f"[brand.red]Status:[/brand.red] {status} [brand.muted]mode: {mode}[/brand.muted]",
-            f"[brand.red]Default route:[/brand.red] [brand.command]{default_iface or 'unknown'}[/brand.command]",
-            f"[brand.red]Tor exit IP:[/brand.red] {_format_tor_ip_state()}",
-            f"[brand.red]Tor auto-rotate:[/brand.red] {'ON' if PROXY_STATE['tor_auto_rotate'] else 'OFF'}",
+            f"[brand.faint]status[/brand.faint] {status} [brand.muted]mode: {mode}[/brand.muted]",
+            f"[brand.faint]default route[/brand.faint] [brand.command]{default_iface or 'unknown'}[/brand.command]",
+            f"[brand.faint]tor exit ip[/brand.faint] {_format_tor_ip_state()}",
+            f"[brand.faint]tor auto-rotate[/brand.faint] {'ON' if PROXY_STATE['tor_auto_rotate'] else 'OFF'}",
             "[brand.muted]Proxy routing is only applied to tools where it makes operational sense.[/brand.muted]",
         ]
-        choice = ui_module.menu("Proxy / VPN / Tor", entries, footer_extra=footer)
+        choice = ui_module.menu("Routing control", entries, footer_extra=footer,
+                                routing_rows=routing_snapshot())
 
         if choice in ui_module.BACK_KEYS:
             return
@@ -333,3 +322,26 @@ def should_proxy_tool(tool):
         binaries = {tool.get("binary")} | set(tool.get("binary_alternatives", []))
         return bool(tor_safe & binaries)
     return True
+
+
+def routing_snapshot():
+    """Describe observed routing state without claiming untested protection."""
+    enabled = PROXY_STATE["enabled"]
+    mode = PROXY_STATE.get("mode")
+    binary = proxychains_binary()
+    running = is_tor_running()
+    interface = PROXY_STATE.get("interface")
+    default = get_default_interface() or "unknown"
+    tor_state = "ACTIVE" if enabled and mode == "tor" and running and binary else "OFF"
+    if enabled and mode == "tor" and (not running or not binary):
+        tor_state = "UNAVAILABLE"
+    guard = "OFF"
+    if enabled and mode == "vpn":
+        guard = "MATCH" if interface and interface == default else "MISMATCH"
+    exit_ip = PROXY_STATE.get("tor_exit_ip") or "not checked"
+    return [
+        ("TOR", f"{binary or 'proxychains missing'} / exit {exit_ip}", tor_state),
+        ("VPN GUARD", f"selected {interface or 'none'} / default {default} / warning only", guard),
+        ("PROXY", "uses the installed proxychains configuration", "AVAILABLE" if binary else "MISSING"),
+        ("DNS LEAK", "no DNS leak verification implemented", "NOT VERIFIED"),
+    ]

@@ -72,7 +72,7 @@ MAIN_ENTRIES = [
 
 
 def main_menu():
-    return ui.menu("Main Menu", MAIN_ENTRIES, footer_extra=ui.context_footer(), show_back=False)
+    return ui.menu("Main Menu", MAIN_ENTRIES, footer_extra=ui.context_footer(), show_back=False, home=True)
 
 
 def main():
@@ -85,30 +85,36 @@ def main():
     ui.startup_check()
     while True:
         choice = main_menu()
-        if choice == "0":
-            configure_target()
-        elif choice.lower() == "p":
-            proxy.proxy_menu(ui)
-        elif choice.lower() == "w":
-            from core import wordlists as _wl
-            _wl.wordlist_menu()
-        elif choice == "11":
-            session.view_results()
-        elif choice == "12":
-            flows.flow_menu()
-        elif choice in MODULES:
-            try:
-                mod = load_module(MODULES[choice])
-                mod.run()
-            except Exception as e:
-                ui.console.print(f"[bright_red][!] Module error: {e}[/bright_red]")
+        try:
+            if choice == "__search__":
+                ui.search_tools()
+            elif choice == "0":
+                configure_target()
+            elif choice.lower() == "p":
+                proxy.proxy_menu(ui)
+            elif choice.lower() == "w":
+                from core import wordlists as _wl
+                _wl.wordlist_menu()
+            elif choice == "11":
+                session.view_results()
+            elif choice == "12":
+                flows.flow_menu()
+            elif choice in MODULES:
+                try:
+                    mod = load_module(MODULES[choice])
+                    mod.run()
+                except Exception as e:
+                    ui.console.print(f"[bright_red][!] Module error: {e}[/bright_red]")
+                    ui.pause()
+            elif choice == "99":
+                ui.console.print("\n[brand.red]ChaosticTool session closed.[/brand.red]\n")
+                sys.exit(0)
+            else:
+                ui.console.print("[bright_red]Invalid choice.[/bright_red]")
                 ui.pause()
-        elif choice == "99":
-            ui.console.print("\n[brand.red]ChaosticTool session closed.[/brand.red]\n")
-            sys.exit(0)
-        else:
-            ui.console.print("[bright_red]Invalid choice.[/bright_red]")
-            ui.pause()
+        except KeyboardInterrupt:
+            # Escape cancels a form or returns from a secondary screen.
+            continue
 
 
 def cleanup():

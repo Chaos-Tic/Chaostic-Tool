@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/Banner.png" alt="ChaosticTool - Red Ops Control Surface" width="100%" />
+<img src="assets/icon.svg" alt="ChaosticTool circle and lightning icon in pastel glass" width="84" />
 
 # ChaosticTool
 
@@ -34,11 +34,30 @@ Red Ops identity: the original README mascot and wordmark, deep black surfaces,
 red accents, numbered navigation and industrial frames.
 The CLI keeps its own version (1.3.2) and terminal experience.
 
-## Screenshots
+## Terminal appearance — development preview
 
-<p align="center">
-  <img width="1896" height="782" alt="ChaosticTool Linux terminal showing the target context and phase menu" src="https://github.com/user-attachments/assets/cd667ae3-bab3-4b77-a441-a01f1888d85a" />
-</p>
+![ChaosticTool CLI light theme: phases, demo target and keyboard actions](docs/images/cli-light.svg)
+
+The development interface follows the peach, sky and lilac visual family of the desktop application, adapted to a terminal: clear sections, rounded frames, explicit status labels and a visible selection. Terminals use opaque colors; compositor blur and glass transparency are not required. The screenshots contain synthetic data and do not represent a completed scan. This refresh is not yet in the linked 1.3.2 release.
+
+The CLI uses the terminal's `COLORFGBG` hint when available and falls back to dark otherwise. Set `CHAOSTIC_THEME=light` or `CHAOSTIC_THEME=dark` to override detection for a launch. True color is used where supported; terminal libraries handle reduced color capabilities. The application does not change your terminal preferences.
+
+With `prompt_toolkit` installed and an interactive terminal, menus run full screen. Arrow keys and Enter select a phase, `/` opens search, and the existing action shortcuts remain available. Non-interactive output or an unavailable TUI dependency uses the Rich fallback with the same palette. No-color output retains labels and selection markers.
+
+<details>
+<summary>Dark terminal preview</summary>
+
+![ChaosticTool CLI dark theme with the same actions and demo data](docs/images/cli-dark.svg)
+
+</details>
+
+Generate the SVG previews without root access, startup checks, external commands or network requests:
+
+```bash
+CHAOSTIC_THEME=light python scripts/render-cli.py
+CHAOSTIC_THEME=dark python scripts/render-cli.py
+python -m unittest discover -s tests -v
+```
 
 ## What Is Chaostic Tool?
 

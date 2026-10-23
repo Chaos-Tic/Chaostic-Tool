@@ -39,7 +39,7 @@ def view_results():
                 summary,
                 title="[brand.red] SESSION [/brand.red]",
                 border_style="brand.red",
-                box=box.HEAVY,
+                box=box.SQUARE,
                 padding=(1, 2),
             )
         )
@@ -87,7 +87,7 @@ def view_results():
                     f"[brand.command]{escape(str(f))}[/brand.command]",
                     title="[brand.red] FILE VIEW [/brand.red]",
                     border_style="brand.red",
-                    box=box.HEAVY,
+                    box=box.SQUARE,
                 )
             )
             try:
@@ -118,7 +118,7 @@ def _clean_target_results(target_dir):
             f"[brand.command]{escape(str(target_dir))}[/brand.command]",
             title="[bright_red] DESTRUCTIVE ACTION [/bright_red]",
             border_style="bright_red",
-            box=box.HEAVY,
+            box=box.SQUARE,
         )
     )
     rep = console.input("[bright_red]Type CLEAN to confirm[/bright_red] [brand.white]›[/brand.white] ").strip()

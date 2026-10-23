@@ -13,23 +13,11 @@ import urllib.request
 import zipfile
 from contextlib import suppress
 
-from rich.console import Console
 from rich.table import Table
-from rich.theme import Theme
 
-THEME = Theme(
-    {
-        "brand.red": "bold #ff3131",
-        "brand.warn": "bold #ffb84d",
-        "brand.ok": "bold #31ff83",
-        "brand.info": "bold #67e8f9",
-        "brand.muted": "#a98c91",
-        "brand.command": "#ffb4b4",
-        "brand.white": "bold #f8fafc",
-    }
-)
+from core.theme import THEME
 
-console = Console(theme=THEME)
+from core.terminal import console
 
 
 def _manifest_record(entry: str) -> None:

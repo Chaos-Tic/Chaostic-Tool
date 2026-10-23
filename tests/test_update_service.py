@@ -54,6 +54,7 @@ class UpdateServiceTests(unittest.TestCase):
             self.assertEqual(service.native_commands("chaostictool", Path("/home/operator/project/main.py")), [])
             run.assert_not_called()
 
+    @unittest.skipUnless(__import__('os').name == 'posix', 'Linux package managers use POSIX paths')
     def test_native_package_uses_its_manager(self):
         with patch.object(service.shutil, "which", return_value="/usr/bin/dpkg-query"), patch.object(service.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="install ok installed")):
             self.assertEqual(service.native_commands("chaostictool", Path("/usr/share/chaostictool/chaostictool.py")), [["apt-get", "update"], ["apt-get", "install", "--only-upgrade", "chaostictool"]])

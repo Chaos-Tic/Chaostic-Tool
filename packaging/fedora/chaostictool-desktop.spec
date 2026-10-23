@@ -3,7 +3,7 @@
 %global __os_install_post %{nil}
 Name:           chaostictool-desktop
 Version:        1.2.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Desktop workspace for authorized security testing
 License:        MIT
 URL:            https://github.com/Chaos-Tic/Chaostic-Tool
@@ -13,7 +13,8 @@ Source2:        %{url}/releases/download/desktop-v%{version}/ChaosticTool-%{vers
 ExclusiveArch:  x86_64
 AutoReqProv:    no
 Requires:       glibc >= 2.35
-Requires:       mesa-libEGL, libglvnd-opengl, libxkbcommon, libxkbcommon-x11
+Requires:       ca-certificates, dejavu-sans-fonts
+Requires:       mesa-libEGL, libglvnd-opengl, libglvnd-glx, libxkbcommon, libxkbcommon-x11
 Requires:       xcb-util-cursor, xcb-util-wm, xcb-util-keysyms
 Requires:       xcb-util-image, xcb-util-renderutil, libxcb, dbus-libs
 Requires:       fontconfig, glib2, libstdc++, libgcc

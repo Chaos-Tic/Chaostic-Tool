@@ -37,3 +37,20 @@ jobs:
       - env:
           COPR_WEBHOOK: ${{ secrets.COPR_DESKTOP_WEBHOOK }}
         run: curl -fsS -X POST "$COPR_WEBHOOK"
+  desktop-ppa:
+    if: startsWith(github.event.release.tag_name, 'desktop-v')
+    needs: metadata
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: infrastructure
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          path: source
+      - env:
+          PPA_SIGNING_KEY: ${{ secrets.PPA_SIGNING_KEY }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: cd source && bash ../infrastructure/packaging/debian/ppa.sh "${TAG#desktop-v}" chaostictool-desktop

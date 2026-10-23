@@ -1,4 +1,4 @@
-"""User-facing contracts for the Red Ops refresh."""
+"""User-facing contracts for the Liquid Glass refresh."""
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,7 +16,7 @@ def luminance(value):
     return sum(c*w for c,w in zip(channels,(0.2126,0.7152,0.0722)))
 
 
-class RedOpsTests(unittest.TestCase):
+class LiquidGlassTests(unittest.TestCase):
     def test_readable_text_and_primary_button_in_both_themes(self):
         for palette in (theme.LIGHT,theme.DARK):
             for foreground,background in [('TEXT','SURFACE'),('MUTED','SURFACE'),('FAINT','SURFACE'),('ACCENT','SURFACE'),('GOOD','SURFACE'),('WARNING','SURFACE')]:
@@ -25,17 +25,17 @@ class RedOpsTests(unittest.TestCase):
                     self.assertGreaterEqual((b+.05)/(a+.05),4.5)
             self.assertGreaterEqual(1.05/(luminance(palette['ACCENT_STRONG'])+.05),4.5)
 
-    def test_first_launch_dark_and_existing_light_preference_preserved(self):
+    def test_first_launch_light_and_existing_dark_preference_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             store=Store(Path(directory));window=Window(store)
             try:
-                self.assertEqual(theme.MODE,'dark')
+                self.assertEqual(theme.MODE,'light')
                 window.toggle_theme()
-                self.assertEqual(Store(store.root).settings['theme'],'light')
+                self.assertEqual(Store(store.root).settings['theme'],'dark')
             finally:window.close();window.deleteLater();APP.processEvents()
 
             restored=Window(Store(store.root))
-            try:self.assertEqual(theme.MODE,'light')
+            try:self.assertEqual(theme.MODE,'dark')
             finally:restored.close();restored.deleteLater();APP.processEvents()
 
     def test_french_compact_navigation_works_with_keyboard(self):
@@ -65,10 +65,30 @@ class RedOpsTests(unittest.TestCase):
                 self.assertLessEqual(window.width(),900)
                 self.assertFalse(window.hero.caption.isVisible())
                 self.assertTrue(window.brand_panel.compact)
-                self.assertFalse(window.hero.art.isNull())
+                self.assertFalse(window.brand_panel.icon.isNull())
                 self.assertEqual(window.stack.widget(0).horizontalScrollBar().maximum(),0)
                 self.assertEqual(window.active_host.text(),'https://example.com:8443/')
                 window.toggle_theme();APP.processEvents()
                 self.assertEqual(window.active_host.text(),'https://example.com:8443/')
                 self.assertFalse(window.runner.active)
             finally:window.close();window.deleteLater();APP.processEvents()
+
+    def test_reduce_transparency_survives_theme_switch_and_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = Store(Path(directory))
+            window = Window(store)
+            try:
+                window.transparency_toggle.setChecked(True)
+                self.assertTrue(theme.REDUCED_TRANSPARENCY)
+                self.assertNotIn('rgba', theme.glass_css())
+                window.toggle_theme()
+                self.assertTrue(theme.REDUCED_TRANSPARENCY)
+                self.assertEqual(theme.glass_css(), theme.COLORS['SURFACE'])
+            finally:
+                window.close(); window.deleteLater(); APP.processEvents()
+            restored = Window(Store(store.root))
+            try:
+                self.assertTrue(restored.transparency_toggle.isChecked())
+                self.assertTrue(theme.REDUCED_TRANSPARENCY)
+            finally:
+                restored.close(); restored.deleteLater(); APP.processEvents()

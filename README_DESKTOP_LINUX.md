@@ -115,3 +115,8 @@ A bundle built locally inherits the host's library requirements, so build on
 the oldest supported distribution for wider compatibility. Automated tests
 use Qt's offscreen mode; verify the interface in your real Wayland/X11 session
 before distributing a release.
+
+## Native package development
+
+The 1.2 revision adds native DEB/RPM packages and CMake source installation.
+See [installation, dependencies and channel status](docs/INSTALLATION.md).

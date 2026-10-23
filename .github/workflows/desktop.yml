@@ -113,15 +113,41 @@ jobs:
           "$XDG_DATA_HOME/ChaosticTool/application/ChaosticTool" --smoke-test
           sh "$XDG_DATA_HOME/ChaosticTool/application/uninstall.sh"
           test ! -e "$XDG_DATA_HOME/ChaosticTool/application"
+      - name: Build native Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y cmake rpm
+          cmake -S . -B build/native-packages -DCMAKE_INSTALL_PREFIX=/usr -DCHAOSTIC_BUNDLE_DIR="$PWD/dist/ChaosticTool"
+          cpack --config build/native-packages/CPackConfig.cmake -G 'DEB;RPM' -B release
+          cd release
+          sha256sum *.deb *.rpm > linux-native-SHA256SUMS-${{ matrix.arch }}
+      - name: Check system package installation and removal
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y ./release/*.deb
+          export CHAOSTIC_DESKTOP_HOME="$RUNNER_TEMP/native-package-smoke"
+          chaostictool-desktop --smoke-test
+          test -f "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
+          sudo apt-get remove -y chaostictool-desktop
+          test ! -e /usr/bin/chaostictool-desktop
+          test ! -e /usr/lib/chaostictool-desktop
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ChaosticTool-${{ matrix.name }}
           path: release/*
           if-no-files-found: error
           retention-days: 30
+  native-source:
+    name: Debian source package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify distro Python and Qt without pip
+        run: |
+          docker run --rm -v "$PWD:/src:ro" debian:trixie-slim sh /src/scripts/check-source-package.sh
   release:
     if: startsWith(github.ref, 'refs/tags/desktop-v')
-    needs: build
+    needs: [build, native-source]
     runs-on: ubuntu-latest
     permissions:
       contents: write

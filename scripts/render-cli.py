@@ -58,7 +58,7 @@ def render(destination: Path) -> None:
     svg = canvas.export_svg(title="ChaosticTool · CLI · demo", theme=terminal)
     svg = re.sub(r"@font-face\s*\{.*?\}", "", svg, flags=re.S)
     svg = svg.replace("Fira Code", "DejaVu Sans Mono")
-    destination.write_text(svg, encoding="utf-8")
+    destination.write_text("\n".join(line.rstrip() for line in svg.splitlines()) + "\n", encoding="utf-8")
     print(destination)
 
 

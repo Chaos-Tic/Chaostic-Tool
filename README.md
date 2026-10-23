@@ -36,13 +36,7 @@ The CLI keeps its own version (1.5.0) and terminal experience.
 
 ## Terminal Interface
 
-![ChaosticTool CLI light theme: phases, demo target and keyboard actions](docs/images/cli-light.svg)
-
-<details>
-
-![ChaosticTool CLI dark theme](docs/images/cli-dark.svg)
-
-</details>
+![ChaosticTool CLI terminal interface](docs/images/cli-dark.svg)
 
 ## What Is Chaostic Tool?
 

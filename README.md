@@ -6,7 +6,7 @@
 
 ### Linux pentest control surface for structured recon, tool orchestration, routing control, and target-based evidence capture
 
-[![Version](https://img.shields.io/badge/version-1.3.2-ff3131?style=for-the-badge)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v1.3.2)
+[![Version](https://img.shields.io/badge/version-1.4.0-ff3131?style=for-the-badge)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v1.4.0)
 [![Python](https://img.shields.io/badge/python-3.11%2B-111827?style=for-the-badge&logo=python)](https://www.python.org/)
 [![UI](https://img.shields.io/badge/UI-Rich%20Terminal-ff3131?style=for-the-badge)](https://github.com/Textualize/rich)
 [![Platform](https://img.shields.io/badge/platform-Linux-111827?style=for-the-badge&logo=linux)](#supported-systems)
@@ -32,13 +32,13 @@ Desktop Linux archive installs the **GUI**. Desktop 1.1.5 also includes macOS
 packages for Intel and Apple Silicon. All Desktop editions share the CLI-inspired
 Red Ops identity: the original README mascot and wordmark, deep black surfaces,
 red accents, numbered navigation and industrial frames.
-The CLI keeps its own version (1.3.2) and terminal experience.
+The CLI keeps its own version (1.4.0) and terminal experience.
 
 ## Terminal appearance — development preview
 
 ![ChaosticTool CLI light theme: phases, demo target and keyboard actions](docs/images/cli-light.svg)
 
-The development interface follows the peach, sky and lilac visual family of the desktop application, adapted to a terminal: clear sections, rounded frames, explicit status labels and a visible selection. Terminals use opaque colors; compositor blur and glass transparency are not required. The screenshots contain synthetic data and do not represent a completed scan. This refresh is not yet in the linked 1.3.2 release.
+The development interface follows the peach, sky and lilac visual family of the desktop application, adapted to a terminal: clear sections, rounded frames, explicit status labels and a visible selection. Terminals use opaque colors; compositor blur and glass transparency are not required. The screenshots contain synthetic data and do not represent a completed scan. This refresh is included in CLI 1.4.0.
 
 The CLI uses the terminal's `COLORFGBG` hint when available and falls back to dark otherwise. Set `CHAOSTIC_THEME=light` or `CHAOSTIC_THEME=dark` to override detection for a launch. True color is used where supported; terminal libraries handle reduced color capabilities. The application does not change your terminal preferences.
 
@@ -105,11 +105,10 @@ ChaosticTool targets Linux distributions commonly used for security work:
 
 Several integrated tools require elevated privileges, so ChaosticTool is intended to run with `sudo`.
 
-## Native packages — development
+## Native packages
 
-The next CLI release (1.4.0) adds native DEB/RPM packages and source packaging for
-AUR, COPR and Ubuntu. These channels are being validated; the existing 1.3.2 release
-does not contain these packages yet. The package installs the interface and its Python
+CLI 1.4.0 includes native DEB/RPM packages and source packaging for
+AUR, COPR and Ubuntu. Repository channels are being verified separately. The package installs the interface and its Python
 runtime dependencies. Assessment tools remain optional and can be installed individually.
 
 For a downloaded package, use the package manager so dependencies are resolved:
@@ -366,7 +365,7 @@ Presets can also define custom prompt fields through `"prompt"`.
 
 ## Release
 
-Current release: `v1.3.2`.
+Current release: `v1.4.0`.
 
 See releases: https://github.com/Chaos-Tic/Chaostic-Tool/releases
 

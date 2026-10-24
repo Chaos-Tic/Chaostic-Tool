@@ -99,6 +99,21 @@ _KILL_CHAIN = [
 # selection walks the bands top-to-bottom exactly as they are drawn.
 _HOME_ORDER = [k for _, _, ks in _KILL_CHAIN for k in ks]
 
+_ASCII_CHAOSTIC = [
+    r"  ____ _                     _   _      ",
+    r" / ___| |__   __ _  ___  ___| |_(_) ___ ",
+    r"| |   | '_ \ / _` |/ _ \/ __| __| |/ __|",
+    r"| |___| | | | (_| | (_) \__ \ |_| | (__ ",
+    r" \____|_| |_|\__,_|\___/|___/\__|_|\___|",
+]
+_ASCII_TOOL = [
+    r" _____            _ ",
+    r"|_   _|__   ___  | |",
+    r"  | |/ _ \ / _ \ | |",
+    r"  | | (_) | (_) || |",
+    r"  |_|\___/ \___/ |_|",
+]
+
 
 def _seg_width(frags) -> int:
     return sum(get_cwidth(t) for _, t in frags)
@@ -202,7 +217,7 @@ class MenuScreen:
         self.selected, self.width = 0, 80
         body = Window(_MenuControl(self), wrap_lines=False, always_hide_cursor=True)
         root = HSplit([
-            Window(FormattedTextControl(self._header), height=5),
+            Window(FormattedTextControl(self._header), dont_extend_height=True),
             body,
             Window(FormattedTextControl(self._footer), height=3, style="class:footer"),
         ])
@@ -250,12 +265,18 @@ class MenuScreen:
         inner = max(1, width - 6)
         top = [("class:frame", " ╭" + "─" * max(1, width - 4) + "╮ \n")]
         bottom = [("class:frame", " ╰" + "─" * max(1, width - 4) + "╯ ")]
-        identity = [("class:wordmark", "Chaostic"), ("class:wordmark2", "Tool")]
+        rows = []
+        if inner >= 60:
+            for c, t in zip(_ASCII_CHAOSTIC, _ASCII_TOOL):
+                rows.extend(_row([("class:wordmark", c), ("class:wordmark2", t)], [], inner) + [("", "\n")])
+        else:
+            identity = [("class:wordmark", "Chaostic"), ("class:wordmark2", "Tool")]
+            rows.extend(_row(identity, [], inner) + [("", "\n")])
         subtitle = [("class:muted", "Targets, tools and results. One workspace.")]
         eyebrow = [("class:eyebrow", EYEBROW)]
-        return (top + _row(identity, [], inner) + [("", "\n")]
-                + _row(subtitle, [], inner) + [("", "\n")]
-                + _row(eyebrow, [], inner) + [("", "\n")] + bottom)
+        rows.extend(_row(subtitle, [], inner) + [("", "\n")])
+        rows.extend(_row(eyebrow, [], inner) + [("", "\n")])
+        return top + rows + bottom
 
     def _subheader(self, width):
         return [("class:wordmark", "  Chaostic"), ("class:wordmark2", "Tool\n"),

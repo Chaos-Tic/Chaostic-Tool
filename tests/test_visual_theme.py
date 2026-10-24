@@ -44,7 +44,7 @@ class VisualThemeTests(unittest.TestCase):
             self.assertLess(cursor, len(rows))
             self.assertNotIn('RED OPS', ''.join(text for _, text in screen._masthead(width)))
             masthead_lines = ''.join(text for _, text in screen._masthead(width)).split('\n')
-            self.assertEqual(len(masthead_lines), 5)
+            self.assertEqual(len(masthead_lines), 9 if width >= 68 else 5)
             for m_line in masthead_lines:
                 self.assertEqual(len(m_line), width)
                 self.assertIn(m_line[1], ('╭', '│', '╰'))

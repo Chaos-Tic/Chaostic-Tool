@@ -375,7 +375,7 @@ In a [GitHub issue](https://github.com/Chaos-Tic/Chaostic-Tool/issues), state: D
 <a id="validation"></a>
 ## 9. Compatibility, tests and limits
 
-This version's sources are identified by the `desktop-v1.3.0` tag. Build and test results are available in the [Desktop workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/desktop.yml).
+This version's sources are identified by the `desktop-v1.3.0` tag. Build and test results are available in the [CI/CD workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml).
 
 | Check | Actual scope |
 |---|---|
@@ -415,7 +415,7 @@ Replace the compiler path with its real location. The build script runs the test
 | [Multi-system Desktop guide](docs/DESKTOP.md) | Windows, Linux, macOS and storage |
 | [Tools manifest](desktop/packages.json) | Versions and distributions of the managed dependencies |
 | [Python manifest](desktop/runtimes.json) | Isolated runtimes and fingerprints |
-| [Build workflow](.github/workflows/desktop.yml) | Platforms and steps actually run |
+| [Build workflow](.github/workflows/ci.yml) | Platforms and steps actually run |
 | [Licenses and components](docs/THIRD_PARTY.md) | Dependencies and redistribution notices |
 | [Microsoft: install WSL](https://learn.microsoft.com/en-us/windows/wsl/install) | Windows preparation and requirements |
 | [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |

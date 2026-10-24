@@ -20,7 +20,13 @@ KEYS
 export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
 work=$(mktemp -d)
 git clone -q ssh://aur@aur.archlinux.org/$package.git "$work/aur"
-sed -e "s/^pkgver=.*/pkgver=$version/" -e 's/^pkgrel=.*/pkgrel=1/' packaging/arch/PKGBUILD >"$work/aur/PKGBUILD"
+pkgbuild="packaging/arch/PKGBUILD"
+if [ "$package" = "chaostictool-desktop" ] && [ -f "packaging/arch/PKGBUILD-desktop" ]; then
+    pkgbuild="packaging/arch/PKGBUILD-desktop"
+elif [ "$package" = "chaostictool" ] && [ -f "packaging/arch/PKGBUILD-cli" ]; then
+    pkgbuild="packaging/arch/PKGBUILD-cli"
+fi
+sed -e "s/^pkgver=.*/pkgver=$version/" -e 's/^pkgrel=.*/pkgrel=1/' "$pkgbuild" >"$work/aur/PKGBUILD"
 id builder >/dev/null 2>&1 || useradd -m builder
 chown -R builder "$work"
 # Git refuses to work as root in a folder owned by builder unless told it is safe.

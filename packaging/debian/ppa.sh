@@ -12,8 +12,13 @@ case $package in
         title=ChaosticTool
         ;;
     chaostictool-desktop)
-        tag_prefix=desktop-v
-        archive_dir=Chaostic-Tool-desktop-v$version
+        if [[ $version =~ ^1\. ]]; then
+            tag_prefix=desktop-v
+            archive_dir=Chaostic-Tool-desktop-v$version
+        else
+            tag_prefix=v
+            archive_dir=Chaostic-Tool-$version
+        fi
         targets="resolute:26.04 stonking:26.10"
         title="ChaosticTool Desktop"
         ;;

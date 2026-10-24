@@ -1,18 +1,77 @@
-name: Desktop Windows Linux macOS
+name: CI/CD Pipeline
 on:
   push:
-    branches: [desktop/windows-app, desktop/linux-app]
-    tags: ['desktop-v*']
+    branches: [main, desktop/linux-app, feat/*]
+    tags: ['v*']
   pull_request:
-    branches: [desktop/windows-app, desktop/linux-app]
+    branches: [main, desktop/linux-app]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
-  group: desktop-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+
 jobs:
-  build:
+  unit-tests:
+    name: Test suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.14']
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-desktop.txt
+            requirements-build.txt
+      - name: Install system dependencies for headless Qt
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libegl1 libopengl0 libgl1 libxkbcommon0 libxkbcommon-x11-0 \
+            libxcb-xkb1 libxcb-render-util0 libxcb-image0 libxcb-util1 libdbus-1-3 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 \
+            xvfb xdotool fonts-dejavu-core
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-desktop.txt
+      - name: Run all unit and integration tests
+        run: python -m unittest discover -s tests -v
+      - name: Native X11 visual contracts
+        env:
+          QT_QPA_PLATFORM: xcb
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
+          CHAOSTIC_TEST_FONT='DejaVu Sans' QT_FONT_DPI=144 xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
+      - name: Check documentation links
+        run: python scripts/check-docs.py
+      - name: Check shell scripts syntax
+        run: bash -n install.sh uninstall.sh packaging/linux/*.sh packaging/debian/*.sh packaging/arch/*.sh scripts/*.sh
+
+  native-source:
+    name: Debian source package check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify package build and smoke-test in clean Debian Trixie
+        run: docker run --rm -v "$PWD:/src:ro" debian:trixie-slim sh /src/scripts/check-source-package.sh
+
+  build-matrix:
+    name: Build ${{ matrix.name }}
+    needs: [unit-tests, native-source]
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,8 +82,6 @@ jobs:
           - {os: ubuntu-24.04-arm, name: linux-arm64, arch: arm64}
           - {os: macos-15-intel, name: macos-x64, arch: x64}
           - {os: macos-15, name: macos-arm64, arch: arm64}
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
     timeout-minutes: 35
     env:
       QT_QPA_PLATFORM: offscreen
@@ -41,16 +98,15 @@ jobs:
             requirements-build.txt
       - name: Linux graphics runtime
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxkbcommon0 libxkbcommon-x11-0 libxcb-xkb1 libxcb-render-util0 libxcb-image0 libxcb-util1 libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 xvfb xdotool fonts-dejavu-core
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libegl1 libopengl0 libgl1 libxkbcommon0 libxkbcommon-x11-0 \
+            libxcb-xkb1 libxcb-render-util0 libxcb-image0 libxcb-util1 libdbus-1-3 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 \
+            xvfb xdotool fonts-dejavu-core
       - name: Install build dependencies
         run: python -m pip install -r requirements-build.txt
-      - name: Native X11 visual contracts
-        if: runner.os == 'Linux'
-        env:
-          QT_QPA_PLATFORM: xcb
-        run: |
-          xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
-          CHAOSTIC_TEST_FONT='DejaVu Sans' QT_FONT_DPI=144 xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
       - name: Verified AppImage tools and runtime
         if: runner.os == 'Linux'
         env:
@@ -84,11 +140,6 @@ jobs:
           $setup = Start-Process $setupPath -ArgumentList '/VERYSILENT', '/CURRENTUSER', '/NOICONS', '/TASKS=""', ('/DIR="' + $compilerRoot + '"') -WindowStyle Hidden -PassThru -Wait
           if ($setup.ExitCode -ne 0) { throw "Compiler setup failed: $($setup.ExitCode)" }
           "ISCC_PATH=$compilerRoot\ISCC.exe" >> $env:GITHUB_ENV
-      - name: Check local documentation links
-        run: python scripts/check-docs.py
-      - name: Check CLI shell syntax
-        if: runner.os == 'Linux'
-        run: bash -n install.sh uninstall.sh packaging/linux/install.sh packaging/linux/uninstall.sh
       - name: Test and build distributable application
         run: python scripts/build-desktop.py
       - name: Test packaged application
@@ -99,7 +150,6 @@ jobs:
         run: |
           $appId = python -c "from desktop.branding import WINDOWS_APP_ID; print(WINDOWS_APP_ID)"
           $destination = Join-Path $env:RUNNER_TEMP 'ChaosticTool-taskbar-check'
-          # The installer disables the group page, so Inno ignores /GROUP.
           $group = 'ChaosticTool'
           $installer = Get-ChildItem release/ChaosticTool-Setup-*.exe | Select-Object -First 1
           $setupLog = Join-Path $env:RUNNER_TEMP 'chaostic-installer.log'
@@ -119,9 +169,6 @@ jobs:
             $expectedIcon = (Resolve-Path -LiteralPath (Join-Path $destination '_internal/desktop/assets/icon.ico')).Path
             if (($shortcut.IconLocation -split ',')[0] -ne $expectedIcon -or -not (Test-Path -LiteralPath $expectedIcon)) { throw 'Shortcut icon resource mismatch' }
             if ($shortcut.TargetPath -ne (Join-Path $destination 'ChaosticTool.exe')) { throw 'Shortcut target mismatch' }
-          } catch {
-            Get-Content -LiteralPath $setupLog
-            throw
           } finally {
             $uninstall = Start-Process -FilePath (Join-Path $destination 'unins000.exe') -ArgumentList '/VERYSILENT', '/NORESTART' -WindowStyle Hidden -Wait -PassThru
             if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed: $($uninstall.ExitCode)" }
@@ -151,7 +198,7 @@ jobs:
           cpack --config build/native-packages/CPackConfig.cmake -G 'DEB;RPM' -B release
           cd release
           sha256sum *.deb *.rpm > linux-native-SHA256SUMS-${{ matrix.arch }}
-      - name: Check native packages and AppImage in a clean distribution
+      - name: Check native packages and AppImage in clean container
         if: runner.os == 'Linux'
         env:
           BASE_IMAGE: ${{ matrix.arch == 'arm64' && 'ubuntu:24.04' || 'ubuntu:22.04' }}
@@ -172,7 +219,7 @@ jobs:
           '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ChaosticTool-${{ matrix.name }}
+          name: package-${{ matrix.name }}
           path: |
             release/*.AppImage
             release/*.AppImage.sha256
@@ -186,37 +233,113 @@ jobs:
             release/*.rpm
             release/linux-native-SHA256SUMS-*
           if-no-files-found: error
-          retention-days: 30
-  native-source:
-    name: Debian source package
-    runs-on: ubuntu-24.04
+          retention-days: 14
+
+  linux-package-install:
+    name: Package smoke test (${{ matrix.image }})
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { format: deb, image: 'debian:12' }
+          - { format: deb, image: 'debian:trixie-slim' }
+          - { format: deb, image: 'ubuntu:22.04' }
+          - { format: deb, image: 'ubuntu:24.04' }
+          - { format: rpm, image: 'fedora:43' }
+          - { format: rpm, image: 'fedora:44' }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Verify distro Python and Qt without pip
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: package-linux-x64
+          path: packages
+      - name: Test installation in clean ${{ matrix.image }} container
         run: |
-          docker run --rm -v "$PWD:/src:ro" debian:trixie-slim sh /src/scripts/check-source-package.sh
+          docker run --rm -v "$PWD/packages:/packages:ro" "${{ matrix.image }}" sh -ec '
+            export DEBIAN_FRONTEND=noninteractive QT_QPA_PLATFORM=offscreen
+            if command -v apt-get >/dev/null; then
+              apt-get update -qq
+              apt-get install -y -qq /packages/*.deb
+            else
+              dnf install -y -q /packages/*.rpm
+            fi
+            export CHAOSTIC_DESKTOP_HOME=/tmp/container-smoke
+            chaostictool-desktop --smoke-test
+            grep -q "\"status\": \"success\"" "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
+            if command -v apt-get >/dev/null; then
+              apt-get remove -y -qq chaostictool-desktop
+            else
+              dnf remove -y -q chaostictool-desktop
+            fi
+            test ! -e /usr/bin/chaostictool-desktop
+          '
+
   release:
-    if: startsWith(github.ref, 'refs/tags/desktop-v')
-    needs: [build, native-source]
+    name: Publish Release (tag ${{ github.ref_name }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [unit-tests, native-source, build-matrix, linux-package-install]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download all tested installers
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: dist
+      - name: Compute SHA-256 fingerprints and publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --dir packages
-      - name: Publish public download assets
-        env:
-          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
         run: |
-          # Preserve immutable public assets and resume an existing draft.
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft > release-state.json; then
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft > release-state.json 2>/dev/null; then
             if [ "$(jq -r .isDraft release-state.json)" != "true" ]; then
               echo "::notice::Release already published; keeping its existing assets unchanged."
               exit 0
             fi
           else
-            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "ChaosticTool ${GITHUB_REF_NAME#desktop-v}" --generate-notes --draft --verify-tag
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "ChaosticTool ${TAG#v}" --generate-notes --verify-tag
           fi
-          find packages -mindepth 2 -maxdepth 2 -type f -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber
+          find dist -maxdepth 1 -type f -print0 | xargs -0 gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Trigger Fedora COPR webhook
+        env:
+          COPR_WEBHOOK: ${{ secrets.COPR_WEBHOOK }}
+        run: |
+          if [ -n "$COPR_WEBHOOK" ]; then
+            curl -fsS -X POST "$COPR_WEBHOOK"
+            echo "COPR webhook triggered"
+          fi
+
+  ppa:
+    name: Publish to Launchpad PPA
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v') && secrets.PPA_SIGNING_KEY != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Sign and submit PPA packages
+        env:
+          PPA_SIGNING_KEY: ${{ secrets.PPA_SIGNING_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          bash packaging/debian/ppa.sh "${TAG#v}" chaostictool
+          bash packaging/debian/ppa.sh "${TAG#v}" chaostictool-desktop
+
+  aur:
+    name: Publish to Arch Linux AUR
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v') && secrets.AUR_SSH_KEY != ''
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Push to AUR
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          bash packaging/arch/aur.sh "${TAG#v}" chaostictool
+          bash packaging/arch/aur.sh "${TAG#v}" chaostictool-desktop

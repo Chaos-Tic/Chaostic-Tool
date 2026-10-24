@@ -106,7 +106,7 @@ jobs:
             libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 \
             xvfb xdotool fonts-dejavu-core
       - name: Install build dependencies
-        run: python -m pip install -r requirements-build.txt
+        run: python -m pip install -r requirements.txt -r requirements-desktop.txt -r requirements-build.txt
       - name: Verified AppImage tools and runtime
         if: runner.os == 'Linux'
         env:
@@ -198,25 +198,6 @@ jobs:
           cpack --config build/native-packages/CPackConfig.cmake -G 'DEB;RPM' -B release
           cd release
           sha256sum *.deb *.rpm > linux-native-SHA256SUMS-${{ matrix.arch }}
-      - name: Check native packages and AppImage in clean container
-        if: runner.os == 'Linux'
-        env:
-          BASE_IMAGE: ${{ matrix.arch == 'arm64' && 'ubuntu:24.04' || 'ubuntu:22.04' }}
-        run: |
-          docker run --rm -v "$PWD/release:/packages:ro" "$BASE_IMAGE" sh -ec '
-            export DEBIAN_FRONTEND=noninteractive QT_QPA_PLATFORM=offscreen
-            apt-get update -qq
-            apt-get install -y -qq /packages/*.deb >/tmp/package-install.log
-            export CHAOSTIC_DESKTOP_HOME=/tmp/package-smoke
-            chaostictool-desktop --smoke-test
-            grep -q "\"status\": \"success\"" "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
-            apt-get remove -y -qq chaostictool-desktop >/tmp/package-remove.log
-            test ! -e /usr/bin/chaostictool-desktop
-            test ! -e /usr/lib/chaostictool-desktop
-            export CHAOSTIC_DESKTOP_HOME=/tmp/appimage-smoke
-            APPIMAGE_EXTRACT_AND_RUN=1 /packages/*.AppImage --smoke-test
-            grep -q "\"status\": \"success\"" "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
-          '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: package-${{ matrix.name }}

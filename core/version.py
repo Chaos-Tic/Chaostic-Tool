@@ -1,2 +1,2 @@
-VERSION = "1.3.2"
-CODENAME = "manifest-based uninstall, module cleanup"
+VERSION = "2.0.0"
+CODENAME = "unified monorepo release"

@@ -3,12 +3,60 @@ from pathlib import Path
 
 from core import target as tgt
 from core import ui
+from core.paths import data_home, ensure_directory
 from core.tools import get_tool
 
-CUSTOM_FLOWS_PATH = Path(__file__).parent.parent / "custom_flows.json"
+CUSTOM_FLOWS_PATH = data_home() / "custom_flows.json"
+LEGACY_FLOWS_PATH = Path(__file__).resolve().parent.parent / "custom_flows.json"
 CUSTOM_FLOWS: dict = {}
 
-from core.flow_definitions import FLOWS
+FLOWS = {
+    "1": {
+        "name": "Basic attack flow",
+        "desc": "low-noise first pass: DNS, quick ports, web fingerprint, default nuclei",
+        "steps": [
+            ("dig", 0),
+            ("subfinder", 0),
+            ("nmap", 0),
+            ("httpx", 1),
+            ("whatweb", 0),
+            ("nuclei", 0),
+        ],
+    },
+    "2": {
+        "name": "Intermediate attack flow",
+        "desc": "broader recon with crawling and URL history",
+        "steps": [
+            ("dig", 0),
+            ("subfinder", 1),
+            ("nmap", 1),
+            ("naabu", 0),
+            ("httpx", 1),
+            ("katana", 1),
+            ("gau", 1),
+            ("waybackurls", 0),
+            ("nuclei", 2),
+            ("sslscan", 0),
+        ],
+    },
+    "3": {
+        "name": "Advanced attack flow",
+        "desc": "deeper scans; louder and slower, confirm each step",
+        "steps": [
+            ("amass", 0),
+            ("subfinder", 1),
+            ("nmap", 1),
+            ("rustscan", 2),
+            ("ffuf", 0),
+            ("gobuster", 0),
+            ("katana", 2),
+            ("nuclei", 1),
+            ("nuclei", 2),
+            ("testssl.sh", 0),
+            ("nikto", 0),
+        ],
+    },
+}
 
 
 def _next_custom_key() -> str:
@@ -19,10 +67,11 @@ def _next_custom_key() -> str:
 
 def load_custom_flows() -> None:
     global CUSTOM_FLOWS
-    if not CUSTOM_FLOWS_PATH.exists():
+    path = CUSTOM_FLOWS_PATH if CUSTOM_FLOWS_PATH.exists() else LEGACY_FLOWS_PATH
+    if not path.exists():
         return
     try:
-        data = json.loads(CUSTOM_FLOWS_PATH.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, dict):
             CUSTOM_FLOWS.update(data)
     except Exception as exc:
@@ -36,10 +85,12 @@ def load_custom_flows() -> None:
 def save_custom_flows() -> None:
     persistent = {k: v for k, v in CUSTOM_FLOWS.items() if v.get("persistent")}
     try:
+        ensure_directory(CUSTOM_FLOWS_PATH.parent)
         CUSTOM_FLOWS_PATH.write_text(
             json.dumps(persistent, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
+        tgt._chown_tree(CUSTOM_FLOWS_PATH)
     except OSError as exc:
         try:
             from core import ui as _ui

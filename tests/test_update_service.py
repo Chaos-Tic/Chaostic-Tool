@@ -21,6 +21,8 @@ class UpdateServiceTests(unittest.TestCase):
     def test_editions_are_independent_and_prereleases_rejected(self):
         payload = {"tag_name": "desktop-v1.2.0", "body": '<!-- chaostictool-versions: {"cli":"1.4.0","desktop":"1.1.5"} -->'}
         self.assertEqual(service.release_versions(payload), {"cli": "1.4.0", "desktop": "1.2.0"})
+        unified = {"tag_name": "v2.0.0"}
+        self.assertEqual(service.release_versions(unified), {"cli": "2.0.0", "desktop": "2.0.0"})
         with self.assertRaises(ValueError):
             service.release_versions({**payload, "prerelease": True})
         with self.assertRaises(ValueError):

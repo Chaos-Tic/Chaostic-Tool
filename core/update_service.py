@@ -53,6 +53,8 @@ def release_versions(payload: dict) -> dict[str, str]:
     for edition, prefix in (("cli", "v"), ("desktop", "desktop-v")):
         if tag.startswith(prefix) and VERSION.fullmatch(tag[len(prefix):]):
             versions[edition] = tag[len(prefix):]
+    if tag.startswith("v") and VERSION.fullmatch(tag[1:]):
+        versions.setdefault("desktop", tag[1:])
     return versions
 
 

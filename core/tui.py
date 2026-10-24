@@ -109,7 +109,7 @@ def _row(left, right, inner_w):
     red HUD border each side — echoing the banner's cut-corner control frame."""
     gap = max(1, inner_w - _seg_width(left) - _seg_width(right))
     return ([("class:frame", " │ ")] + left + [("", " " * gap)] + right
-            + [("class:frame", " │")])
+            + [("class:frame", " │ ")])
 
 
 def _status_pill_class(word: str) -> str:
@@ -247,7 +247,7 @@ class MenuScreen:
 
     def _masthead(self, width):
         """Rounded, quiet workspace masthead shared by both terminal palettes."""
-        inner = max(1, width - 5)
+        inner = max(1, width - 6)
         top = [("class:frame", " ╭" + "─" * max(1, width - 4) + "╮ \n")]
         bottom = [("class:frame", " ╰" + "─" * max(1, width - 4) + "╯ ")]
         identity = [("class:wordmark", "Chaostic"), ("class:wordmark2", "Tool")]

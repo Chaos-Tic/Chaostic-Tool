@@ -61,7 +61,7 @@ def _frame_row(left, right, inner_w):
     the banner's cut-corner HUD border in red on each side."""
     gap = max(1, inner_w - _seg(left) - _seg(right))
     return ([("class:frame", " │ ")] + left + [("", " " * gap)] + right
-            + [("class:frame", " │")])
+            + [("class:frame", " │ ")])
 
 
 def run_scan(state, start, abort, context, cmd, output_path):

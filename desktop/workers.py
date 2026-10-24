@@ -53,6 +53,7 @@ def tls(target):
     host, port = target["host"], target["port"]
     print(f"Connexion TLS à {host}:{port}\n", flush=True)
     context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     with socket.create_connection((host, port), timeout=12) as raw:
         with context.wrap_socket(raw, server_hostname=host) as connection:
             certificate = connection.getpeercert()

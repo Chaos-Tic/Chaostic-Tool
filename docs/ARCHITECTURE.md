@@ -52,16 +52,16 @@ flowchart TD
 | Path | Responsibility |
 | --- | --- |
 | [`chaostictool.py`](../chaostictool.py) | Unified command-line launcher, Rich terminal UI, profile runner, workflow dispatch |
-| [`core/profiles.py`](../core/profiles.py) | 32 offensive profiles across 5 reconnaissance phases with argument generators |
+| [`chaostic_desktop.py`](../chaostic_desktop.py) | Native desktop application entry point (`chaostictool-desktop`), Qt initialization |
+| [`desktop/profiles.py`](../desktop/profiles.py) | 32 offensive profiles across 5 reconnaissance phases with argument generators |
 | [`core/flows.py`](../core/flows.py) | Orchestrated reconnaissance workflows, step sequencing, and dependency resolution |
-| [`core/executor.py`](../core/executor.py) | PTY terminal allocation, subprocess control, real-time output streaming, secret redaction |
-| [`core/storage.py`](../core/storage.py) | Target persistence, deduplication, run history metadata, JSON Lines export |
+| [`core/executor.py`](../core/executor.py) | Subprocess control, real-time output streaming, secret redaction |
+| [`core/terminal.py`](../core/terminal.py) | POSIX pseudo-terminal allocation and ANSI color terminal streaming |
+| [`desktop/storage.py`](../desktop/storage.py) | Target persistence, deduplication, run history metadata, JSON Lines export |
 | [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.0.0`) |
 | [`core/update_service.py`](../core/update_service.py) | GitHub release verification, cache throttling (once-a-day), package-manager detection |
-| [`desktop/app.py`](../desktop/app.py) | Native desktop application launcher (`chaostictool-desktop`), Qt initialization |
 | [`desktop/window.py`](../desktop/window.py) | Main Liquid Glass window, navigation stack, arsenal selector, run monitor |
 | [`desktop/theme.py`](../desktop/theme.py) | Frosted-glass stylesheets, translucent palettes (light pastel & neon dark), typography |
-| [`desktop/terminal.py`](../desktop/terminal.py) | Headless-compatible VT100/ANSI terminal widget with pyte screen virtualization |
 | [`CMakeLists.txt`](../CMakeLists.txt) | Unified CPack packaging for Debian (`.deb`), Red Hat (`.rpm`), Arch, and AppImage |
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Multi-OS build matrix, disposable container verification, release publishing |
 

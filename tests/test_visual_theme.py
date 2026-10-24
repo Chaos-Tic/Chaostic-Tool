@@ -43,6 +43,13 @@ class VisualThemeTests(unittest.TestCase):
                 self.assertIn(action, text)
             self.assertLess(cursor, len(rows))
             self.assertNotIn('RED OPS', ''.join(text for _, text in screen._masthead(width)))
+            masthead_lines = ''.join(text for _, text in screen._masthead(width)).split('\n')
+            self.assertEqual(len(masthead_lines), 5)
+            for m_line in masthead_lines:
+                self.assertEqual(len(m_line), width)
+                self.assertIn(m_line[1], ('╭', '│', '╰'))
+                self.assertIn(m_line[width - 2], ('╮', '│', '╯'))
+                self.assertEqual(m_line[width - 1], ' ')
 
     def test_keyboard_arrows_and_existing_aliases(self):
         async def choose(keys):

@@ -316,7 +316,6 @@ jobs:
   ppa:
     name: Publish to Launchpad PPA
     needs: release
-    if: startsWith(github.ref, 'refs/tags/v') && secrets.PPA_SIGNING_KEY != ''
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -325,13 +324,16 @@ jobs:
           PPA_SIGNING_KEY: ${{ secrets.PPA_SIGNING_KEY }}
           TAG: ${{ github.ref_name }}
         run: |
+          if [ -z "$PPA_SIGNING_KEY" ]; then
+            echo "::notice::PPA_SIGNING_KEY not configured; skipping Launchpad upload."
+            exit 0
+          fi
           bash packaging/debian/ppa.sh "${TAG#v}" chaostictool
           bash packaging/debian/ppa.sh "${TAG#v}" chaostictool-desktop
 
   aur:
     name: Publish to Arch Linux AUR
     needs: release
-    if: startsWith(github.ref, 'refs/tags/v') && secrets.AUR_SSH_KEY != ''
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
@@ -341,5 +343,9 @@ jobs:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           TAG: ${{ github.ref_name }}
         run: |
+          if [ -z "$AUR_SSH_KEY" ]; then
+            echo "::notice::AUR_SSH_KEY not configured; skipping AUR update."
+            exit 0
+          fi
           bash packaging/arch/aur.sh "${TAG#v}" chaostictool
           bash packaging/arch/aur.sh "${TAG#v}" chaostictool-desktop

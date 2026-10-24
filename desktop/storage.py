@@ -153,7 +153,8 @@ class Store:
         current=self.root
         for part in path.relative_to(self.root).parts:
             current=current/part
-            if current.is_symlink() or current.is_junction():
+            is_junc = getattr(current, 'is_junction', None)
+            if current.is_symlink() or (callable(is_junc) and is_junc()):
                 raise ValueError('Un dossier de résultats est un lien ; suppression refusée.')
         if not path.exists():return
         if path.resolve()!=expected or not path.is_dir():
@@ -161,7 +162,8 @@ class Store:
         for current,dirs,files in os.walk(path,followlinks=False):
             for name in dirs+files:
                 child=Path(current)/name
-                if child.is_symlink() or child.is_junction() or not child.resolve().is_relative_to(expected):
+                child_junc = getattr(child, 'is_junction', None)
+                if child.is_symlink() or (callable(child_junc) and child_junc()) or not child.resolve().is_relative_to(expected):
                     raise ValueError('Un résultat contient un lien. Retirez ce lien avant de supprimer les résultats.')
 
     def clear_history(self):

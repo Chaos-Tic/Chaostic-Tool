@@ -1,191 +1,182 @@
-# ChaosticTool Desktop
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/media/banner-dark.svg">
+    <img src="docs/media/banner.svg" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
+  </picture>
+</p>
 
-**Your graphical operations center for Linux desktops.**
+<p align="center">
+  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg" alt="Build and test status"></a>
+  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.0-38bdf8.svg" alt="Version 2.0.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0"></a>
+</p>
 
-Prepare your targets, choose your tools by phase, configure your operations and find their results in a clean interface — in English by default, with a French option — a Liquid Glass interface with peach, sky and lilac surfaces (light by default for new profiles, with a dark option). Run local Linux tools with integrated output, interactive input and sudo when a profile requires it.
+# ChaosticTool
 
-**[Download Desktop 1.3.0](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0)** · **[Linux Setup Guide](README_DESKTOP_LINUX.md)** · **[Native Packages & Install](docs/INSTALLATION.md)** · **[Windows Guide](README_WINDOWS.md)** · **[Linux Terminal Version](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli)**
+**One reconnaissance pipeline. Terminal precision or liquid glass control.**
 
-![ChaosticTool Desktop development preview: Liquid Glass control center](docs/images/linux/liquid-glass-accueil.png)
+> *Why ChaosticTool?* In chaos theory, deterministic chaos demonstrates that
+> intricate, unpredictable behaviors emerge from simple, interconnected rules.
+> Fitting for a security tool by [Chaos-Tic](https://github.com/Chaos-Tic):
+> orchestrating dozens of disjointed offensive primitives into structured,
+> deterministic intelligence where chaotic attack surfaces resolve into clarity.
 
-*Liquid Glass interface introduced in Desktop 1.2.0. The Linux application is rendered offscreen with an isolated demo profile. Tool availability depends on the system. The bundle contains no targets or user history.*
+<p align="center">
+  <img src="docs/media/demo.gif" alt="ChaosticTool reconnaissance pipeline: target selection, 32 offensive profiles catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="800">
+</p>
 
-## CLI and Desktop, one repository
+ChaosticTool bridges the gap between raw command-line auditing and graphical operations.
+Whether you are auditing an external perimeter from an SSH bastion or leading an internal
+Active Directory assessment from your workstation, ChaosticTool delivers the same unified
+engine through two complementary interfaces:
 
-| Edition | Use | Documentation |
-|---|---|---|
-| **Desktop / Windows** | Graphical application, forms and results without opening a terminal | Branch [`desktop/windows-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/windows-app), the [Windows guide](README_WINDOWS.md) |
-| **Linux CLI** | Terminal experience and CLI-specific functions | Branch [`linux-cli`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/linux-cli), [CLI guide](README_LINUX.md) |
-| **Desktop / Linux** | Graphical application with local Linux execution | Branch [`desktop/linux-app`](https://github.com/Chaos-Tic/Chaostic-Tool/tree/desktop/linux-app), [Linux GUI guide](README_DESKTOP_LINUX.md) |
-| **Desktop / macOS** | The shared graphical interface on macOS | [Cross-system packages and install](docs/DESKTOP.md) |
+- **Terminal Precision (`chaostictool`)**: Fullscreen Rich TUI navigator or scriptable CLI. Direct argument expansion, POSIX pseudo-terminal (`pty`) allocation, secret redaction, and clean JSON Lines output.
+- **Liquid Glass Desktop (`chaostictool-desktop`)**: Frosted-glass application with hardware-accelerated translucent surfaces (Light Pastel & Midnight Neon palettes). Visual flow sequencing, live VT100 terminal monitor, and mission history management.
 
-The historical `main` branch is now called **`linux-cli`**. The rename does not merge the editions. The screenshots show the Linux application rendered with an isolated demo profile.
+Everything runs strictly on your machine. No accounts, no telemetry, no cloud dependencies.
+The only optional network call is a once-a-day check for a newer GitHub release, which can be
+disabled at any time in settings.
 
-## Download and install
+**Version 2.0.0.** Install it with your distribution's package manager, [from source](#install),
+or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest).
 
-| Linux desktop | Tool package manager | Distribution |
-|---|---|---|
-| Debian / Ubuntu / Kali / Parrot | apt | Native DEB, signed apt repository, portable archive |
-| Arch / Manjaro | yay / paru | AUR source package and portable archive |
-| Fedora | dnf | Native RPM and COPR packaging |
+[Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
 
-Desktop 1.3.0 provides Linux x64 and ARM64 archives, AppImages, native DEB/RPM packages and SHA-256 fingerprints in the [release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.3.0). See the [Linux guide](README_DESKTOP_LINUX.md) and [installation guide](docs/INSTALLATION.md) for package repositories and source installation.
+---
 
-1. Extract a Linux bundle for your architecture. The GitHub “Source code” archives do not contain a built application.
-2. Run `./ChaosticTool` from its folder, or `sh install.sh` to add it to the applications menu. Launch the GUI as your normal user.
-3. Choose **Settings → Linux environment → Linux on this computer**, then verify the connection to detect installed tools.
-4. Try the local diagnostic, then add a target and install the tools you need. The Linux pack uses your configured distro repositories and reports missing packages.
+## How it works
 
-The Linux build produces an archive and its SHA-256 fingerprint in `release/`. Published release assets are separate from development artifacts. For the existing Windows release, use the [Windows guide](README_WINDOWS.md).
+<table>
+<tr>
+<td width="50%"><img src="docs/media/liquid-glass-accueil.png" alt="Target selector and reconnaissance dashboard"></td>
+<td width="50%"><img src="docs/media/liquid-glass-execution.png" alt="Real-time PTY terminal execution with ANSI color output"></td>
+</tr>
+<tr>
+<td><b>1. Scope & Target.</b> Define domains, IPv4/IPv6 addresses, CIDR blocks, or URLs. Targets are validated and isolated in private local storage without launching unwanted connections.</td>
+<td><b>2. Orchestrated Execution.</b> Launch individual profiles or chained flows. Interactive tools run in dedicated pseudo-terminals with real-time output and instant cancellation.</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/media/liquid-glass-arsenal.png" alt="The 32 offensive profiles classified across 5 structured phases"></td>
+<td width="50%"><img src="docs/media/liquid-glass-historique.png" alt="Mission report and structured run logs"></td>
+</tr>
+<tr>
+<td><b>3. Arsenal of 32 Profiles.</b> Categorized across 5 offensive phases: Discovery, Web Surface, Exposure & Secrets, Active Directory, and Intelligence Reporting.</td>
+<td><b>4. Intelligence & Audit.</b> Review parsed findings, inspect raw chunk logs, or export structured JSON reports. Atomic history clearing prevents symlink directory traversal.</td>
+</tr>
+</table>
 
-### Application and tool compatibility
+---
 
-Linux bundles target glibc desktops, not Alpine/musl. Tool dependencies are separate: some require a service, an API key, a GPU or Wi-Fi driver, or special rights. Native interactive and privileged profiles use a local pseudo-terminal; Windows-only WinPEAS is unavailable on Linux. Tor/proxychains and VPN guard remain CLI features.
+## Two Interfaces, One Shared Core
 
-The build is tested automatically. This does not validate every GPU, antivirus, Wi-Fi adapter and external tool on every machine. See the [tool matrix](docs/WINDOWS_PORT.md) for functional limits.
+| Capability | Terminal CLI / TUI (`chaostictool`) | Liquid Glass GUI (`chaostictool-desktop`) |
+| --- | --- | --- |
+| **Primary Environment** | Headless servers, SSH sessions, minimal containers | Graphical workstations (Linux X11/Wayland & Windows) |
+| **Interface Style** | Rich terminal dashboard & direct shell commands | Frosted glass with light pastel & dark neon themes |
+| **Execution Sandboxing** | POSIX `pty` pseudo-terminal without shell wrappers | Integrated VT100 terminal widget with pyte emulation |
+| **Automation & CI** | Scriptable with `--json` and exit-code propagation | Visual chained flow designer with step dependencies |
+| **Windows Support** | Native PowerShell / WSL2 integration | Native installer with automated WSL2 Kali Linux backend |
 
-## Your first operation
+---
 
-1. **Targets → Add a target**: enter a domain, an IPv4/IPv6 or a URL and a recognizable name. Adding alone starts no connection.
-2. **Tool arsenal**: search for a tool or select its phase. Its status shows whether it is available or needs preparation.
-3. **Configure and run**: check the target, the engine and the profile. The fields depend on the tool.
-4. **Execution**: follow the output and the status. **Stop** interrupts the operation; the partial log stays available.
-5. **History**: find the result, its target, its date and its status, then open the produced files.
+## Phases and Profiles
 
-To explore the interface without a remote scan, use **Local diagnostic** or a `localhost` resolution. Use the tools and flows within your authorizations.
+ChaosticTool structures security reconnaissance into 5 deterministic phases:
 
-## The seven workspaces
+| Phase | Core Objective | Integrated Profiles |
+| --- | --- | --- |
+| **1. Discovery** | Host discovery, port enumeration, service identification | `nmap` (Fast, Full, SYN, UDP), `rustscan`, `arp-scan`, `netdiscover` |
+| **2. Web Surface** | HTTP probing, crawling, content discovery, technology fingerprinting | `httpx`, `katana`, `feroxbuster`, `ffuf`, `gobuster`, `nikto` |
+| **3. Exposure & Secrets** | Subdomain discovery, passive OSINT, secret detection in repos | `subfinder`, `amass`, `trufflehog`, `gitleaks`, `dnsrecon` |
+| **4. Active Directory** | Domain enumeration, Kerberos auditing, network share analysis | `bloodhound-python`, `netexec` (nxc), `ldapdomaindump`, `kerbrute` |
+| **5. Reporting** | Synthesis, structured JSON extraction, audit documentation | Native synthesis engine, markdown summaries, HTML deliverables |
 
-| Screen | Function |
-|---|---|
-| **Control center** | Active target, bundled/detected tools, kept operations and shortcuts |
-| **Targets** | Add, name and select environments |
-| **Tool arsenal** | Search, ordering by phase, compatible installs and profiles |
-| **Execution** | Configuration, output, interactive-session input and stop |
-| **Attack flows** | Flow-specific target and a sequence of guided steps |
-| **History** | Combinable filters, viewing and deletion of results |
-| **Settings** | Linux/WSL/SSH, light/dark theme, language, animations, data paths and tool detection |
+---
 
-**Shortcuts:** `Ctrl+K` opens the arsenal search; `F6` opens execution. Commands stay keyboard-accessible.
+## Install
 
-## Catalog: 48 CLI tools and 4 extra diagnostics
+### Arch Linux (AUR)
+```bash
+# Full suite (CLI + Desktop)
+yay -S chaostictool
 
-![Arsenal ordered by phase](docs/images/linux/liquid-glass-arsenal.png)
-
-Desktop reuses the **48 original tools**, with their graphical profiles, and adds **4 diagnostics**. The ordering by phase follows the CLI's. Options are presented in forms.
-
-**A catalog entry does not mean its program is installed.** The statuses distinguish bundled functions, detected executables and missing dependencies. A native pack and individual installs are offered when the program can be managed on your platform.
-
-| Engine | Use | Preparation |
-|---|---|---|
-| **Native** | Bundled functions and tools compatible with the host system | None for bundled functions; install or executable path for the others |
-| **WSL** | Linux tools under Windows, including Nmap/RustScan via the configured environment | WSL, distribution and Linux dependencies |
-| **Local Linux** | Desktop launched under Linux | Tools installed on that system |
-| **SSH** | Your remote Linux machine or VM | SSH access and tools on that machine |
-
-Managed portable archives are verified by SHA-256; managed Python tools use isolated environments. Some functions depend on services or specific hardware. **Tor/proxychains and VPN guard** remain specific to the CLI edition.
-
-## Prepare Linux tools
-
-In **Settings → Linux environment**, select **Linux on this computer** and
-verify the inventory. Install the selected tools from the arsenal. The Linux
-pack supports apt, pacman and dnf using your configured repositories. Privileged
-profiles request sudo in Execution; run the GUI as your ordinary user.
-
-Wireless and GPU tools require suitable hardware and drivers. See the
-[Linux setup guide](README_DESKTOP_LINUX.md) for local execution, SSH and builds.
-WSL preparation applies only to the [Windows edition](README_WINDOWS.md).
-
-## Attack flows: one target and explicit steps
-
-![Attack flows target selector](docs/images/linux/liquid-glass-flows.png)
-
-The three original flows are available, with creation, editing, import and export of custom flows. First choose **Flow target**: the session keeps that target even if you later select another global target.
-
-Each step offers its tool and its configuration. After a success, the selection advances; **the next step is not run automatically**. Changing an existing session's target offers a new session and keeps the previous results. An active operation locks changes incompatible with its tracking.
-
-Flow results stay associated with its target, including for local steps. Check the availability of the tools and the engine before launching.
-
-## A history under your control
-
-![History with combinable filters and per-result actions](docs/images/linux/liquid-glass-historique.png)
-
-Combine the **target, tool, status, period** filters (24 hours, 7 days, 30 days or all) and **text search**. The counter distinguishes the displayed results from the whole kept set. Reset the filters to find the other operations.
-
-- **Delete a result** removes the operation and its files after confirmation. Other results are kept and flow references are updated.
-- **Clear the history** deletes results and flow sessions after confirmation. Targets, settings, installed tools and custom flow definitions stay available.
-- An active operation must be finished or stopped before deletion.
-
-Folders have descriptive names to recognize the tool and the context. Output limited on screen does not replace the full saved log. [Storage and history](README_WINDOWS.md).
-
-## Liquid Glass workspace
-
-![Complementary dark theme in the Liquid Glass development preview](docs/images/linux/liquid-glass-dark.png)
-
-The development version uses a soft peach, sky and lilac environment, layered glass cards, rounded navigation and clear sans-serif text. The circle and lightning icon uses the same palette across the application and packaged assets. New profiles start light; existing theme preferences are preserved. The top button switches themes.
-
-In **Settings → Appearance**, choose **Reduce transparency** for opaque surfaces, disable interaction animations, or choose a 60/30 target frame rate. The background is static and needs no compositor blur. Tables and logs remain stable. Rendering uses **Qt/PySide6**.
-
-## Personal data, updates and uninstall
-
-Data is separate from the program. On Linux, the default location is:
-
-```text
-$XDG_DATA_HOME/ChaosticTool/Desktop
-# Default: ~/.local/share/ChaosticTool/Desktop
+# Headless CLI only
+yay -S chaostictool-cli
 ```
 
-The public installer bundles **no history, no targets and no personal Linux configuration**. The build checks for the absence of profile files in the package. The packaged-application test verifies an empty initial profile before running its diagnostic.
+### Fedora / Red Hat (COPR)
+```bash
+sudo dnf copr enable chaostic/chaostictool
+sudo dnf install chaostictool chaostictool-desktop
+```
 
-Desktop also checks for new versions and notifies you: **Settings → About → Check for updates**. The check installs nothing automatically; it opens the download page.
+### Debian / Ubuntu
+Download the native `.deb` from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest):
+```bash
+sudo apt install ./chaostictool_2.0.0_amd64.deb
+```
+Or via the Chaos-Tic signed APT repository:
+```bash
+sudo curl -fsSL https://apt.chaos-tic.com/KEY.gpg -o /etc/apt/trusted.gpg.d/chaostic.gpg
+echo "deb https://apt.chaos-tic.com/ stable main" | sudo tee /etc/apt/sources.list.d/chaostic.list
+sudo apt update && sudo apt install chaostictool
+```
 
-To back up, close Desktop and copy your data folder. To update, close the application then install the new Linux bundle: your data is kept. A reinstall on your PC therefore normally finds your history; that history is not shared with other users.
+### Universal Linux (AppImage)
+```bash
+chmod +x ChaosticTool-2.0.0-x86_64.AppImage
+./ChaosticTool-2.0.0-x86_64.AppImage
+```
 
-Run `sh "${XDG_DATA_HOME:-$HOME/.local/share}/ChaosticTool/application/uninstall.sh"` to remove the installed application and its menu entry. Personal data and SSH environments are kept. [Linux installation and removal](README_DESKTOP_LINUX.md).
+### Windows 10 & 11
+Download `ChaosticTool-Setup-2.0.0.exe` from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest).
+The installer sets up the desktop launcher and offers an automated Kali Linux WSL2 integration
+for running Linux-native security utilities with zero manual configuration.
 
-## Quick troubleshooting
+### Build from Source
+```bash
+git clone https://github.com/Chaos-Tic/Chaostic-Tool.git
+cd Chaostic-Tool
 
-| Symptom | Check |
-|---|---|
-| Tool present but unavailable | Check the engine, dependencies and Linux inventory; refresh detection |
-| Qt platform plugin error | Install the graphics libraries listed in the Linux guide |
-| Missing Linux tool | Verify the selected engine and refresh its inventory |
-| Wrong target in a flow | Check **Flow target** and the session, independent from the global target |
-| Result seemingly gone | Reset the filters and check the data folder in use |
-| Animations too costly | Choose 30 fps or disable the animations |
-| Application error | Check the operation log and, if present, `desktop-errors.log` in the data folder |
+# Install Python dependencies
+pip install -r requirements.txt -r requirements-desktop.txt
 
-To report a problem, state the Desktop version, Linux distribution and desktop session, the architecture, the engine, the reproduction steps and the exact message. Remove secrets and private information from shared logs.
+# Run CLI directly
+python chaostictool.py list
 
-## Documentation and development
+# Run Desktop directly
+python -m desktop
 
-See [CONTRIBUTING](CONTRIBUTING.md) for branch targets and validation.
+# Or build native CMake packages (.deb, .rpm, .tar.gz)
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build
+cpack --config build/CPackConfig.cmake -G "DEB;RPM" -B release
+```
 
+---
 
-| Document | Content |
-|---|---|
-| [Linux GUI guide](README_DESKTOP_LINUX.md) | Linux setup, local tools and builds |
-| [Windows guide](README_WINDOWS.md) | Install, detailed use, WSL/SSH, troubleshooting and maintenance |
-| [Cross-system Desktop](docs/DESKTOP.md) | Linux/macOS, architectures and packages |
-| [Catalog and compatibility](docs/WINDOWS_PORT.md) | Tools, engines and limits |
-| [Linux CLI](README_LINUX.md) | The terminal experience |
-| [Repository rules](docs/REPOSITORY_RULES.md) | Branches, protection of `linux-cli` and contributions |
-| [Third-party licenses](docs/THIRD_PARTY.md) | Dependencies and redistribution |
+## Security & Privacy Discipline
 
-The [CI/CD workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml) builds Windows, Linux and macOS and tests the packaged applications. The Desktop 1.3.0 release is pinned to `desktop-v1.3.0`; branch heads may contain newer changes. The [Desktop guide](docs/DESKTOP.md) describes running from source and building the packages.
+ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](https://github.com/Chaos-Tic) ecosystem:
 
-[MIT license](LICENSE) · English by default, French option · **Documentation revised for Desktop 1.3.0**
+- **Local-First Execution**: Findings, credentials, and targets are never uploaded to any cloud service.
+- **Credential Masking**: Terminal outputs are passed through real-time filter buffers that redact known secret patterns before persisting to disk.
+- **Safe Directory Operations**: The storage manager enforces strict filesystem boundaries, rejecting symbolic link traversal or directory junctions during log deletion (`CVE-resistant cleanup`).
+- **No Shell Interpolation**: Subprocesses are spawned directly using explicit argument arrays, preventing command-injection attacks through untrusted target names.
 
-## Native packages
+---
 
-Desktop 1.3.0 includes native DEB/RPM packages, AppImages, AUR/COPR/APT channels and CMake source installation.
-See [installation, dependencies and channel status](docs/INSTALLATION.md).
+## Documentation
 
-## GitHub updates
+- **[Architecture & Internals](docs/ARCHITECTURE.md)**: Process model, PTY allocation, and source map.
+- **[User Guide](docs/USER_GUIDE.md)**: Command reference, flags, desktop walkthrough, and theme controls.
+- **[Compatibility Matrix](docs/COMPATIBILITY.md)**: Tested operating systems, tool requirements, and package channels.
+- **[Testing & CI](docs/TESTING.md)**: Unit tests, headless X11 visual contracts, and clean container validation.
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Resolutions for common environment, permission, and terminal issues.
+- **[Verifying Checksums](docs/VERIFYING.md)**: Cryptographic signature and SHA-256 validation instructions.
 
-Desktop 1.3.0 checks daily and anonymously for public releases (can be disabled in
-Settings). **Update…** uses the installed package channel on Linux; downloaded
-installers are verified against the release SHA-256 before opening. AppImages can
-replace themselves after confirmation and retain the previous file. Source
-checkouts link to the release instructions without resetting local changes.
-See [update behavior and privacy](docs/UPDATES.md).
+---
+
+## Licence
+
+ChaosticTool is free and open-source software licensed under the **GNU General Public License v3.0** ([GPL-3.0](LICENSE)).

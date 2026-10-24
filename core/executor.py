@@ -5,7 +5,10 @@ import tempfile
 import threading
 import time
 from collections import deque
-import pwd
+try:
+    import pwd
+except ImportError:
+    pwd = None
 import re
 import shlex
 import signal
@@ -32,7 +35,7 @@ def _build_env():
     Under sudo, the default HOME=/root breaks pip --user installed tools."""
     env = os.environ.copy()
     sudo_user = env.get("SUDO_USER")
-    if sudo_user and sudo_user != "root":
+    if sudo_user and sudo_user != "root" and pwd is not None:
         try:
             pw = pwd.getpwnam(sudo_user)
             env["HOME"] = pw.pw_dir
@@ -305,7 +308,7 @@ def _stop_process(proc):
 
 def _chown_to_sudo_user(path):
     sudo_user = os.environ.get("SUDO_USER")
-    if not sudo_user or sudo_user == "root":
+    if not sudo_user or sudo_user == "root" or pwd is None or not hasattr(os, "chown"):
         return
     try:
         pw = pwd.getpwnam(sudo_user)

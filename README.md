@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg" alt="Build and test status"></a>
+  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build and test status"></a>
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.0-38bdf8.svg" alt="Version 2.0.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0"></a>
 </p>
@@ -69,13 +69,59 @@ or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases
 
 ## Two Interfaces, One Shared Core
 
-| Capability | Terminal CLI / TUI (`chaostictool`) | Liquid Glass GUI (`chaostictool-desktop`) |
+ChaosticTool delivers full visual and operational parity across both environments:
+
+| Capability | Terminal Precision CLI / TUI (`chaostictool`) | Liquid Glass Desktop GUI (`chaostictool-desktop`) |
 | --- | --- | --- |
-| **Primary Environment** | Headless servers, SSH sessions, minimal containers | Graphical workstations (Linux X11/Wayland & Windows) |
-| **Interface Style** | Rich terminal dashboard & direct shell commands | Frosted glass with light pastel & dark neon themes |
-| **Execution Sandboxing** | POSIX `pty` pseudo-terminal without shell wrappers | Integrated VT100 terminal widget with pyte emulation |
-| **Automation & CI** | Scriptable with `--json` and exit-code propagation | Visual chained flow designer with step dependencies |
+| **Primary Environment** | Headless servers, SSH sessions, minimal containers, Linux terminals | Graphical workstations (Linux X11/Wayland & Windows) |
+| **Interface Style** | Rich terminal TUI dashboard & direct shell commands | Frosted glass with light pastel & dark neon themes |
+| **Execution Sandboxing** | Dedicated POSIX `pty` pseudo-terminals with zero orphan processes | Integrated VT100 terminal widget with ANSI color emulation |
+| **Routing Controls** | Persistent HUD: Direct, Tor (with auto-rotation), and VPN guard | Visual routing indicators and status bar controls |
+| **Automation & CI** | Scriptable with `--json`, exit codes, and non-interactive profiles | Visual chained flow designer with step dependencies |
 | **Windows Support** | Native PowerShell / WSL2 integration | Native installer with automated WSL2 Kali Linux backend |
+
+---
+
+### Terminal Precision CLI (`chaostictool`)
+
+A high-density terminal control surface built with Rich and prompt_toolkit for keyboard-first security operators and headless environments:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/media/cli-dark.png">
+    <img src="docs/media/cli-light.png" alt="ChaosticTool Terminal Precision CLI: interactive Rich TUI dashboard with live telemetry, kill-chain phases, and action dock" width="800">
+  </picture>
+</p>
+
+- **Live Workspace HUD**: Always-visible status header tracking active target, routing interface (`DIRECT`, `TOR via proxychains`, `VPN`), and target-isolated output directories.
+- **Kill-Chain Methodology**: 10 offensive categories organized into structured phases (OSINT, Network Scan, Web Enumeration, Vulnerability Scan, Exploitation, Post-Exploit, Password Cracking, Windows / Active Directory, Wireless, Network & MITM).
+- **Direct Action Dock**: Single-keystroke navigation for target configuration (`[0]`), fuzzy tool catalog search (`[/]`), saved results & session browser (`[r]`), Proxy/VPN/Tor routing controls (`[p]`), and guided attack flows (`[g]`).
+- **Headless & Scriptable**: Launch individual profiles directly from bash scripts or automation pipelines without entering the full-screen interface:
+  ```bash
+  # Launch the interactive terminal control surface
+  sudo chaostictool
+
+  # Run headless with direct argument passing
+  sudo chaostictool 2 --target 10.10.10.5
+
+  # Check for updates from GitHub releases
+  chaostictool --check-updates
+  ```
+
+---
+
+### Liquid Glass Desktop (`chaostictool-desktop`)
+
+A fluid desktop application crafted with the Chaos-Tic frosted-glass aesthetic for graphical Linux workstations and Windows:
+
+<p align="center">
+  <img src="docs/media/liquid-glass-accueil.png" alt="ChaosticTool Liquid Glass Desktop dashboard" width="800">
+</p>
+
+- **Frosted-Glass Visual Language**: Translucent layered cards, inner reflections, and dual palettes (Light Pastel & Midnight Neon) with high-contrast sans-serif typography and reduced-transparency accessibility.
+- **Visual Flow Orchestration**: Sequence multi-tool recon and audit workflows with automatic parameter propagation and dependency checks.
+- **Integrated VT100 Terminal Monitor**: Watch live tool execution in an embedded terminal emulator with full ANSI styling, elapsed timers, and clean cancellation.
+- **Cross-Platform Distribution**: Verified native packages for Arch (AUR), Fedora (COPR), Debian/Ubuntu (APT), universal Linux (AppImage), and Windows 10/11 with automatic WSL2 Kali configuration.
 
 ---
 

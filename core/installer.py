@@ -2,7 +2,10 @@ import io
 import json
 import os
 import platform
-import pwd
+try:
+    import pwd
+except ImportError:
+    pwd = None
 import re
 import shlex
 import shutil
@@ -54,7 +57,7 @@ _PIPX_CANONICAL: dict[str, str] = {
 def _get_original_user():
     """Returns (username, pw_entry) of the user who ran sudo, or None."""
     user = os.environ.get("SUDO_USER", "")
-    if user and user != "root":
+    if user and user != "root" and pwd is not None:
         try:
             return user, pwd.getpwnam(user)
         except KeyError:

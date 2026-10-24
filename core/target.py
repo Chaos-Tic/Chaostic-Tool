@@ -1,6 +1,9 @@
 import re
 import os
-import pwd
+try:
+    import pwd
+except ImportError:
+    pwd = None
 import ipaddress
 from urllib.parse import urlparse
 from pathlib import Path
@@ -117,7 +120,7 @@ def summary():
 
 def _chown_tree(path):
     sudo_user = os.environ.get("SUDO_USER")
-    if not sudo_user or sudo_user == "root":
+    if not sudo_user or sudo_user == "root" or pwd is None or not hasattr(os, "chown"):
         return
     try:
         pw = pwd.getpwnam(sudo_user)

@@ -1,23 +1,29 @@
 """Exercise actual POSIX terminal rendering without privileged startup or targets."""
 import errno
-import fcntl
 import os
 from pathlib import Path
-import pty
 import select
 import signal
 import struct
 import subprocess
 import sys
-import termios
 import time
 import unittest
 from unittest.mock import patch
 
+try:
+    import fcntl
+    import pty
+    import termios
+except ImportError:
+    fcntl = None
+    pty = None
+    termios = None
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@unittest.skipUnless(sys.platform.startswith('linux'), 'Linux terminal test')
+@unittest.skipUnless(sys.platform.startswith('linux') and fcntl is not None and pty is not None and termios is not None, 'Linux terminal test')
 class TerminalTests(unittest.TestCase):
     def drive(self, source, keys=b'', *, columns=80, rows=24, mode='light', send_after=b''):
         master, slave = pty.openpty()

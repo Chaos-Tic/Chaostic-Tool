@@ -12,14 +12,14 @@ with the system package manager. No system-wide pip installation is needed.
 Desktop 1.3 also builds AppImages for x86-64 and ARM64.
 
 ```sh
-sudo apt install ./chaostictool-desktop_1.3.0_amd64.deb
+sudo apt install ./chaostictool_2.0.0_amd64.deb
 # Fedora (use the exact downloaded RPM filename):
-sudo dnf install ./chaostictool-desktop-1.3.0-1.x86_64.rpm
+sudo dnf install ./chaostictool-2.0.0-1.x86_64.rpm
 chaostictool-desktop
 ```
 
 Run the GUI as a regular user. The application menu entry uses the same launcher.
-Use `apt remove chaostictool-desktop` or `dnf remove chaostictool-desktop` to remove
+Use `apt remove chaostictool` or `dnf remove chaostictool` to remove
 it. User settings and results remain in the user data folder.
 
 ## Source installation with CMake

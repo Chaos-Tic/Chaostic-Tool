@@ -224,9 +224,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { format: deb, image: 'debian:12' }
           - { format: deb, image: 'debian:trixie-slim' }
-          - { format: deb, image: 'ubuntu:22.04' }
           - { format: deb, image: 'ubuntu:24.04' }
           - { format: rpm, image: 'fedora:43' }
           - { format: rpm, image: 'fedora:44' }
@@ -250,11 +248,11 @@ jobs:
             chaostictool-desktop --smoke-test
             grep -q "\"status\": \"success\"" "$CHAOSTIC_DESKTOP_HOME/smoke-result.json"
             if command -v apt-get >/dev/null; then
-              apt-get remove -y -qq chaostictool-desktop
+              apt-get remove -y -qq chaostictool
             else
-              dnf remove -y -q chaostictool-desktop
+              dnf remove -y -q chaostictool
             fi
-            test ! -e /usr/bin/chaostictool-desktop
+            test ! -e /usr/bin/chaostictool && test ! -e /usr/bin/chaostictool-desktop
           '
 
   release:

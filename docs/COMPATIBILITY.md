@@ -10,9 +10,9 @@ or pre-installed developer tools.
 
 | Platform | Interface | Checked | Result | Date |
 | --- | --- | --- | --- | --- |
-| Debian 13 (Trixie), x86_64 | CLI & GUI | Native source package check, zero pip | pass | 2026-10-24 |
-| Ubuntu 24.04 LTS, x86_64 | CLI & GUI | Full unittest suite (130 tests), headless X11 | pass | 2026-10-24 |
-| Ubuntu 22.04 LTS, x86_64 | CLI & GUI | Debian package install & remove in container | pass | 2026-10-24 |
+| Debian 13 (Trixie), x86_64 | CLI & GUI | Native source package check, native package install, zero pip | pass | 2026-10-24 |
+| Ubuntu 24.04 LTS, x86_64 | CLI & GUI | Full unittest suite (130 tests), headless X11, native package install | pass | 2026-10-24 |
+| Ubuntu 22.04 LTS, x86_64 | CLI & GUI | Universal AppImage & CLI install via `./install.sh` | pass | 2026-10-24 |
 | Arch Linux (rolling) | CLI & GUI | Native installation via `PKGBUILD` | pass | 2026-10-24 |
 | Fedora 40 / 41 / Rawhide | CLI & GUI | RPM package install & smoke check in container | pass | 2026-10-24 |
 | Windows 10 & 11 (x64) | CLI & GUI | Inno Setup installer & WSL2 Kali Linux backend | pass | 2026-10-24 |

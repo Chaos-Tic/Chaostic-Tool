@@ -10,6 +10,7 @@ from core.paths import data_home, ensure_directory
 from core import flows
 
 
+@unittest.skipIf(os.name == 'nt', 'POSIX installation paths require Linux/Unix')
 class InstallationTests(unittest.TestCase):
     def test_user_paths(self):
         with patch.dict(os.environ, {"XDG_DATA_HOME": "/tmp/xdg"}, clear=True), patch("os.geteuid", return_value=1000):

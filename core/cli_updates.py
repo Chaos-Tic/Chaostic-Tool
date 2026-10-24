@@ -56,12 +56,13 @@ def install(result):
         return False
     manager = commands[0][0]
     owner = os.environ.get("SUDO_USER")
-    if commands[0][0] in ("yay", "paru") and os.geteuid() == 0:
+    euid = getattr(os, "geteuid", lambda: -1)()
+    if commands[0][0] in ("yay", "paru") and euid == 0:
         if not owner or owner == "root":
             ui.console.print("Run the AUR helper as your regular user to update this installation.")
             return False
         commands = [["sudo", "-H", "-u", owner, "--", *command] for command in commands]
-    elif os.geteuid() != 0:
+    elif euid > 0:
         commands = [["sudo", *command] for command in commands]
     ui.console.print(f"Update CLI {VERSION} → {result['version']} using the installed package channel:")
     for command in commands:

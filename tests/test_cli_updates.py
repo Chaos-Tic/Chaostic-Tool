@@ -1,3 +1,4 @@
+import os
 import tempfile
 from pathlib import Path
 import unittest
@@ -7,6 +8,7 @@ from core import cli_updates
 from core import ui
 
 
+@unittest.skipIf(os.name == 'nt', 'CLI updates require POSIX; run on Linux')
 class CliUpdateTests(unittest.TestCase):
     def test_declining_updates_does_not_execute_package_commands(self):
         with patch.object(cli_updates.update_service, 'native_commands', return_value=[['apt-get','update'],['apt-get','install','--only-upgrade','chaostictool']]), patch.object(ui.console, 'input', return_value='n'), patch.object(ui.console, 'print'), patch.object(cli_updates.subprocess, 'run') as run:

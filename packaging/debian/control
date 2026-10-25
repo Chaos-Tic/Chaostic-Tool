@@ -1,4 +1,4 @@
-Source: chaostictool-desktop
+Source: chaostictool
 Section: net
 Priority: optional
 Maintainer: Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>
@@ -7,9 +7,13 @@ Standards-Version: 4.7.0
 Homepage: https://github.com/Chaos-Tic/Chaostic-Tool
 Rules-Requires-Root: no
 
-Package: chaostictool-desktop
+Package: chaostictool
 Architecture: all
-Depends: ${misc:Depends}, python3 (>= 3.11), python3-pyside6.qtwidgets (>= 6.8), python3-pyside6.qtsvg, python3-psutil, python3-dnspython, python3-py7zr, python3-pyte, ca-certificates
-Description: desktop workspace for authorized security testing
- A graphical interface with separate user data, guided operations and local
- results. External assessment tools are optional and installed separately.
+Depends: ${misc:Depends}, python3 (>= 3.11), python3-rich (>= 13.7), python3-prompt-toolkit (>= 3), python3-pyside6.qtwidgets (>= 6.8), python3-pyside6.qtsvg, python3-psutil, python3-dnspython, python3-py7zr, python3-pyte, ca-certificates
+Provides: chaostictool-desktop (= ${binary:Version})
+Breaks: chaostictool-desktop (<< 2.0.0)
+Replaces: chaostictool-desktop (<< 2.0.0)
+Description: terminal and desktop interfaces for authorized security testing
+ A shared security testing engine with a terminal interface and a graphical
+ workspace, separate user data and local results. External assessment tools
+ are optional and installed separately.

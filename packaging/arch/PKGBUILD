@@ -1,12 +1,15 @@
 # Maintainer: Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>
-pkgname=chaostictool-desktop
+pkgname=chaostictool
 pkgver=2.0.0
 pkgrel=1
-pkgdesc='Desktop workspace for authorized security testing'
+pkgdesc='Terminal and desktop interfaces for authorized security testing'
 arch=('any')
 url='https://github.com/Chaos-Tic/Chaostic-Tool'
 license=('MIT')
-depends=('python>=3.11' 'pyside6>=6.8' 'python-psutil' 'python-dnspython' 'python-py7zr' 'python-pyte')
+provides=("chaostictool-desktop=$pkgver")
+conflicts=('chaostictool-desktop' 'chaostictool-cli')
+replaces=('chaostictool-desktop' 'chaostictool-cli')
+depends=('python>=3.11' 'python-rich>=13.7' 'python-prompt_toolkit>=3' 'ca-certificates' 'pyside6>=6.8' 'python-psutil' 'python-dnspython' 'python-py7zr' 'python-pyte')
 makedepends=('cmake')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('RELEASE_CHECKSUM_REQUIRED')

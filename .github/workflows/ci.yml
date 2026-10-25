@@ -1,10 +1,10 @@
 name: CI/CD Pipeline
 on:
   push:
-    branches: [main, refactor/shared-core, desktop/linux-app, feat/*, fix/*]
+    branches: [main, refactor/shared-core, feat/*, fix/*]
     tags: ['v*']
   pull_request:
-    branches: [main, refactor/shared-core, desktop/linux-app]
+    branches: [main, refactor/shared-core]
   workflow_dispatch:
 
 permissions:
@@ -309,8 +309,7 @@ jobs:
             echo "::notice::PPA_SIGNING_KEY not configured; skipping Launchpad upload."
             exit 0
           fi
-          bash packaging/debian/ppa.sh "${TAG#v}" chaostictool
-          bash packaging/debian/ppa.sh "${TAG#v}" chaostictool-desktop
+          bash packaging/debian/ppa.sh "${TAG#v}"
 
   aur:
     name: Publish to Arch Linux AUR
@@ -328,5 +327,4 @@ jobs:
             echo "::notice::AUR_SSH_KEY not configured; skipping AUR update."
             exit 0
           fi
-          bash packaging/arch/aur.sh "${TAG#v}" chaostictool
-          bash packaging/arch/aur.sh "${TAG#v}" chaostictool-desktop
+          bash packaging/arch/aur.sh "${TAG#v}"

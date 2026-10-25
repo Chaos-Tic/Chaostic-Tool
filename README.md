@@ -30,15 +30,16 @@ Whether you are auditing an external perimeter from an SSH bastion or leading an
 Active Directory assessment from your workstation, ChaosticTool delivers the same unified
 engine through two complementary interfaces:
 
-- **Terminal Precision (`chaostictool`)**: Fullscreen Rich TUI navigator or scriptable CLI. Direct argument expansion, POSIX pseudo-terminal (`pty`) allocation, secret redaction, and clean JSON Lines output.
+- **Terminal Precision (`chaostictool`)**: Fullscreen Rich TUI navigator. Direct argument vectors, POSIX pseudo-terminal (`pty`) allocation and target-isolated local output.
 - **Liquid Glass Desktop (`chaostictool-desktop`)**: Frosted-glass application with hardware-accelerated translucent surfaces (Light Pastel & Midnight Neon palettes). Visual flow sequencing, live VT100 terminal monitor, and mission history management.
 
 Everything runs strictly on your machine. No accounts, no telemetry, no cloud dependencies.
 The only optional network call is a once-a-day check for a newer GitHub release, which can be
 disabled at any time in settings.
 
-**Version 2.0.0.** Install it with your distribution's package manager, [from source](#install),
-or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest).
+**Version 2.0.0 is under development.** The unified packages and release workflow are
+validated in this branch but are not claimed as published distribution channels. The
+latest public releases still contain the earlier split CLI and Desktop editions.
 
 [Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
 
@@ -69,7 +70,10 @@ or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases
 
 ## Two Interfaces, One Shared Core
 
-ChaosticTool delivers full visual and operational parity across both environments:
+ChaosticTool is converging both interfaces on one registry, release model and
+UI-independent process runner. Cross-adapter tests currently prove matching success,
+failure, literal argv, large-output and cancellation behaviour. Routing, flows,
+redaction and timeout controls are not yet exposed with full interface parity.
 
 | Capability | Terminal Precision CLI / TUI (`chaostictool`) | Liquid Glass Desktop GUI (`chaostictool-desktop`) |
 | --- | --- | --- |
@@ -141,6 +145,10 @@ ChaosticTool structures security reconnaissance into 5 deterministic phases:
 
 ## Install
 
+The commands below describe the **2.x target channels**. Do not assume AUR, COPR,
+APT or unified GitHub assets exist until a public 2.x release announces them; for the
+development tree, use the source instructions at the end of this section.
+
 ### Arch Linux (AUR)
 ```bash
 # Unified CLI + Desktop package
@@ -154,7 +162,7 @@ sudo dnf install chaostictool
 ```
 
 ### Debian / Ubuntu
-Download the native `.deb` from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest):
+After a 2.x release is published, download its native `.deb`:
 ```bash
 sudo apt install ./chaostictool_2.0.0_amd64.deb
 ```
@@ -172,7 +180,8 @@ chmod +x ChaosticTool-2.0.0-x86_64.AppImage
 ```
 
 ### Windows 10 & 11
-Download `ChaosticTool-Setup-2.0.0.exe` from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest).
+After a 2.x release is published, download `ChaosticTool-Setup-2.0.0-windows-x64.exe`
+from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases).
 The installer sets up the desktop launcher and offers an automated Kali Linux WSL2 integration
 for running Linux-native security utilities with zero manual configuration.
 
@@ -184,11 +193,11 @@ cd Chaostic-Tool
 # Install Python dependencies
 pip install -r requirements.txt -r requirements-desktop.txt
 
-# Run CLI directly
-python chaostictool.py list
+# Run the interactive CLI directly
+sudo python chaostictool.py
 
 # Run Desktop directly
-python -m desktop
+python chaostic_desktop.py
 
 # Or build native CMake packages (.deb, .rpm, .tar.gz)
 cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
@@ -203,7 +212,9 @@ cpack --config build/CPackConfig.cmake -G "DEB;RPM" -B release
 ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](https://github.com/Chaos-Tic) ecosystem:
 
 - **Local-First Execution**: Findings, credentials, and targets are never uploaded to any cloud service.
-- **Credential Masking**: Terminal outputs are passed through real-time filter buffers that redact known secret patterns before persisting to disk.
+- **Sensitive-data boundaries**: Desktop masks configured secret fields and streamed
+  values before persistence. CLI output does not yet offer the same general redaction
+  contract, so operators must still treat all local logs as sensitive.
 - **Safe Directory Operations**: The storage manager enforces strict filesystem boundaries, rejecting symbolic link traversal or directory junctions during log deletion (`CVE-resistant cleanup`).
 - **No Shell Interpolation**: Subprocesses are spawned directly using explicit argument arrays, preventing command-injection attacks through untrusted target names.
 
@@ -222,4 +233,6 @@ ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](h
 
 ## Licence
 
-ChaosticTool is free and open-source software licensed under the **GNU General Public License v3.0** ([GPL-3.0](LICENSE)).
+The current source tree is licensed under the **MIT License** ([LICENSE](LICENSE)).
+Any future licence change will apply only after an explicit maintainer decision and
+will not retroactively alter already published versions.

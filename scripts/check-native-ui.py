@@ -35,7 +35,7 @@ def main():
             store.settings.update(language=language, animations=False, check_updates=False)
             store.add_target('https://staging.example.com', 'Demo target')
             window = Window(store)
-            window._on_update_result(True, "9.0.0", "https://github.com/Chaos-Tic/Chaostic-Tool/releases", False)
+            window._on_update_result(True, "9.0.0", "v9.0.0", "https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v9.0.0", False)
             try:
                 for mode in ('light', 'dark'):
                     theme.set_mode(app, mode)

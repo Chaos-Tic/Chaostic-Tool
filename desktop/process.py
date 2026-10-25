@@ -6,7 +6,6 @@ import ctypes
 import os
 import json
 import sys
-import unicodedata
 from pathlib import Path
 
 import psutil
@@ -151,13 +150,7 @@ class Runner(QObject):
         self.activeChanged.emit(True)
         self.poll.start()
         self.deadline.start(timeout_ms)
-        # On macOS, QProcess passes arguments through Core Foundation, which
-        # normalizes them to NFD; subprocess (the CLI adapter) keeps the NFC the
-        # user typed. Re-normalize the arguments to NFC so both adapters launch
-        # the child with identical bytes. The program path is left untouched to
-        # avoid disturbing executable resolution on NFD filesystems.
-        arguments = [unicodedata.normalize("NFC", arg) for arg in command[1:]]
-        self.proc.start(command[0], arguments)
+        self.proc.start(command[0], command[1:])
 
     def _started(self):
         if os.name == "nt":

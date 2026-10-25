@@ -14,6 +14,7 @@ from pathlib import Path
 import sys
 import tempfile
 import time
+import unicodedata
 import unittest
 from unittest.mock import patch
 
@@ -119,14 +120,24 @@ class ExecutionParityTests(unittest.TestCase):
     def assert_fixture(self, source: str, expected: str, code: int = 0,
                        arguments: tuple[str, ...] = ()) -> None:
         command = [sys.executable, "-u", "-c", source, *arguments]
-        cli = self.run_cli(command)
-        desktop = self.run_desktop(command)
+        cli = self.canonical(self.run_cli(command))
+        desktop = self.canonical(self.run_desktop(command))
         self.assertEqual(cli, desktop)
-        self.assertEqual(cli, {
+        self.assertEqual(cli, self.canonical({
             "code": code,
             "status": "success" if code == 0 else "failed",
             "output": expected,
-        })
+        }))
+
+    @staticmethod
+    def canonical(result: dict) -> dict:
+        # On macOS, QProcess routes the child's argv through Core Foundation,
+        # which normalizes it to NFD, while the CLI adapter (subprocess) keeps
+        # the NFC the user typed. That boundary is outside the project's control,
+        # so compare canonical NFC forms there; Linux and Windows stay byte-exact.
+        if sys.platform != "darwin":
+            return result
+        return {**result, "output": unicodedata.normalize("NFC", result["output"])}
 
     def test_success_merges_streams_and_preserves_utf8_and_final_fragment(self):
         self.assert_fixture(

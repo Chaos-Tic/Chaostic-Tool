@@ -21,6 +21,9 @@ class RunRequest:
     env: Mapping[str, str] | None = None
     timeout: float | None = None
     stop_grace: float = 0.5
+    # CLI capture keeps the invoking terminal or redirected stdin unchanged.
+    # send_input is unavailable; close_input leaves the inherited descriptor alone.
+    inherit_stdin: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.argv, (str, bytes)) or not self.argv:
@@ -67,16 +70,21 @@ class Runner:
 
     ``stop`` is an asynchronous, idempotent cancellation request. ``wait`` returns
     None on expiry, otherwise the result after all callbacks and worker cleanup.
-    Waiting from a callback is unsupported. ``interrupt`` sends SIGINT without
+    Waiting from a callback is unsupported. ``interrupt`` sends SIGINT on POSIX
+    or best-effort CTRL_BREAK on Windows (requires a shared console), without
     classifying the run as cancelled. Input is UTF-8, queued with a bounded buffer.
     """
 
     def __init__(self, backend: ProcessBackend | None = None) -> None:
         if backend is None:
-            if os.name != "posix":
+            if os.name == "nt":
+                from core.backends.windows import WindowsBackend
+                backend = WindowsBackend()
+            elif os.name == "posix":
+                from core.backends.posix import PosixBackend
+                backend = PosixBackend()
+            else:
                 raise NotImplementedError("a process backend is required on this platform")
-            from core.backends.posix import PosixBackend
-            backend = PosixBackend()
         self._backend = backend
 
     def start(self, request: RunRequest, on_output: OutputCallback | None = None,

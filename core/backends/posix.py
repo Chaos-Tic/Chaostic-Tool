@@ -37,6 +37,7 @@ class PosixBackend:
         with self._lock:
             if self._thread is not None:
                 raise RuntimeError("a backend can only be started once")
+            self._input_closed = self._input_closed or request.inherit_stdin
             self._thread = threading.Thread(
                 target=self._run, args=(request, on_output, on_complete),
                 name="chaostic-runner", daemon=False,
@@ -94,7 +95,8 @@ class PosixBackend:
         return True
 
     def _write_input(self, proc: subprocess.Popen[bytes]) -> None:
-        assert proc.stdin is not None
+        if proc.stdin is None:
+            return
         with self._lock:
             if proc.stdin.closed:
                 return
@@ -121,12 +123,14 @@ class PosixBackend:
         try:
             proc = subprocess.Popen(
                 request.argv, cwd=request.cwd, env=request.env, shell=False,
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                stdin=None if request.inherit_stdin else subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 start_new_session=True, bufsize=0,
             )
-            assert proc.stdout is not None and proc.stdin is not None
+            assert proc.stdout is not None
             os.set_blocking(proc.stdout.fileno(), False)
-            os.set_blocking(proc.stdin.fileno(), False)
+            if proc.stdin is not None:
+                os.set_blocking(proc.stdin.fileno(), False)
             stopping = None
             phase = 0
             eof = False

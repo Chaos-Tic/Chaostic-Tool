@@ -1,5 +1,4 @@
 import os
-import codecs
 import shutil
 import tempfile
 import threading
@@ -25,6 +24,7 @@ from rich.table import Table
 from rich.text import Text
 
 from core.theme import THEME, COLORS
+from core.runner import RunRequest, Runner
 
 console = Console(theme=THEME, style=f"{COLORS['text']} on {COLORS['bg']}")
 ACTIVE_PROCS = []
@@ -145,34 +145,27 @@ class _Capture:
 
 
 def _capture_worker(state, cmd, output_path, textual):
+    def receive(text):
+        state.append(text)
+        if textual:
+            console.print(Text.from_ansi(text), end="", soft_wrap=True)
+
     try:
-        state.proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            start_new_session=True, env=_build_env(),
-        )
+        runner = Runner()
+        runner.start(RunRequest(cmd, env=_build_env(), stop_grace=2,
+                               inherit_stdin=True), receive)
+        state.proc = runner
         ACTIVE_PROCS.append(state.proc)
         if state.aborted.is_set():
-            _stop_process(state.proc)
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-        stream = state.proc.stdout
-        read = getattr(stream, "read1", stream.read)
-        while True:
-            chunk = read(4096)
-            if not chunk:
-                break
-            text = chunk if isinstance(chunk, str) else decoder.decode(chunk)
-            state.append(text)
-            if textual:
-                console.print(Text.from_ansi(text), end="", soft_wrap=True)
-        tail = decoder.decode(b"", final=True)
-        if tail:
-            state.append(tail)
-            if textual:
-                console.print(Text.from_ansi(tail), end="", soft_wrap=True)
-        state.rc = state.proc.wait()
-    except FileNotFoundError:
-        state.append(f"Binary not found: {cmd[0]}\n")
-        state.rc = 127
+            state.proc.stop()
+        result = state.proc.wait()
+        state.rc = result.returncode
+        if result.error:
+            if state.rc == 127:
+                state.append(f"Binary not found: {cmd[0]}\n")
+            else:
+                state.append(f"Execution failed: {result.error}\n")
+                state.rc = state.rc or 1
     except OSError as exc:
         state.append(f"Execution failed: {exc}\n")
         state.rc = 1
@@ -190,8 +183,6 @@ def _capture_worker(state, cmd, output_path, textual):
         except OSError as exc:
             state.save_error = str(exc)
         finally:
-            if state.proc is not None and state.proc.stdout is not None:
-                state.proc.stdout.close()
             _forget_process(state.proc)
             # Freeze the elapsed clock at the instant everything is finished
             # (process reaped + output saved) so the scan view can stop ticking.
@@ -273,7 +264,7 @@ def run_tool(cmd, output_path=None, interactive=False, context=None):
 
 def cleanup_processes():
     for proc in list(ACTIVE_PROCS):
-        if proc.poll() is None:
+        if isinstance(proc, Runner) or proc.poll() is None:
             _stop_process(proc)
         _forget_process(proc)
 
@@ -288,6 +279,10 @@ def _forget_process(proc):
 def _stop_process(proc):
     """Stop the child's session, escalating with bounded waits and reaping it."""
     if proc is None:
+        return
+    if isinstance(proc, Runner):
+        proc.stop()
+        proc.wait(timeout=8)
         return
     for sig, timeout in ((signal.SIGINT, 2), (signal.SIGTERM, 2), (signal.SIGKILL, 2)):
         try:

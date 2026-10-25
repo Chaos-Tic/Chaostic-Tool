@@ -14,8 +14,8 @@ if [ "${PPA_UPLOAD:-1}" = 1 ] && [ -z "${PPA_SIGNING_KEY:-}" ]; then
 fi
 privilege=()
 if [ "$(id -u)" != 0 ]; then privilege=(sudo -n); fi
-"${privilege[@]}" env DEBIAN_FRONTEND=noninteractive apt-get update -qq
-"${privilege[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+${privilege[@]+"${privilege[@]}"} env DEBIAN_FRONTEND=noninteractive apt-get update -qq
+${privilege[@]+"${privilege[@]}"} env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
     dpkg-dev debhelper cmake devscripts dput gnupg curl ca-certificates >/dev/null
 export GNUPGHOME=$(mktemp -d)
 work=

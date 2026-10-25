@@ -104,7 +104,10 @@ class RunnerTests(unittest.TestCase):
                 literal], cwd=directory, env={"RUNNER_TEST": "present"}), output.append)
             self.runners.append(runner)
             self.assertEqual(runner.wait(5).returncode, 0)
-            self.assertEqual(json.loads("".join(output)), [directory, "present", literal])
+            # The child reports its resolved working directory; on macOS the temp
+            # dir sits under the /var -> /private/var symlink, so compare realpaths.
+            self.assertEqual(json.loads("".join(output)),
+                             [os.path.realpath(directory), "present", literal])
             self.assertEqual(list(Path(directory).iterdir()), [])
 
     def test_missing_executable_completes_once(self):

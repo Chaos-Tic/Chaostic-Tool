@@ -11,6 +11,7 @@ from desktop.tool_paths import resolve_tool
 from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python, installed
 from desktop.profiles import normalized, validate_field, placeholders
 from desktop.backends import linux_status, get_config
+from desktop.i18n import T
 
 CATEGORIES = {
     "local": "Diagnostic", "osint": "OSINT", "recon": "Réseau",
@@ -245,13 +246,13 @@ def availability(tool,settings,root=None):
 def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None,backend='native'):
     preset=preset or tool['presets'][preset_index]
     fields=fields or {}
-    if preset.get('needs_target',True) and not target: raise ValueError('Choisissez une cible.')
+    if preset.get('needs_target',True) and not target: raise ValueError(T('Choisissez une cible.'))
     target=target or {}
     if preset.get('domain_only'):
         import ipaddress
         try: ipaddress.ip_address(target['host'])
         except ValueError: pass
-        else: raise ValueError('Ce profil attend un nom de domaine, pas une adresse IP.')
+        else: raise ValueError(T('Ce profil attend un nom de domaine, pas une adresse IP.'))
     from urllib.parse import urlsplit,urlunsplit
     parsed=urlsplit(target.get('url',''))
     base_url=urlunsplit((parsed.scheme,parsed.netloc,parsed.path.rstrip('/')+'/','',''))
@@ -260,10 +261,10 @@ def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None
     for name,(caption,default) in preset.get('fields',{}).items():
         value=fields.get(name,default)
         if name=='ports':
-            if not re.fullmatch(r'[0-9,-]+',value): raise ValueError('Liste de ports invalide.')
+            if not re.fullmatch(r'[0-9,-]+',value): raise ValueError(T('Liste de ports invalide.'))
             for part in value.split(','):
                 limits=part.split('-')
-                if len(limits)>2 or any(not p or not 1<=int(p)<=65535 for p in limits) or int(limits[0])>int(limits[-1]): raise ValueError('Plage de ports invalide.')
+                if len(limits)>2 or any(not p or not 1<=int(p)<=65535 for p in limits) or int(limits[0])>int(limits[-1]): raise ValueError(T('Plage de ports invalide.'))
             values[name]=value
         elif name=='engine':
             from desktop.storage import parse_target

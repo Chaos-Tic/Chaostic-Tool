@@ -792,7 +792,7 @@ class Window(QMainWindow):
         self.active_name.setText(target["label"] if target else T("Aucune cible"))
         self.active_host.setText(target["url"] if target else T("Ajoutez votre premier environnement."))
         fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
-        rows = [(r["tool"], (r.get("target") or {}).get("label", "Cet ordinateur"), STATUS.get(r["status"], r["status"]), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
+        rows = [(T(r["tool"]), (r.get("target") or {}).get("label", T("Cet ordinateur")), T(STATUS.get(r["status"], r["status"])), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
         fill_table(self.recent, rows[:3], pill_cols=(2,))
         self.recent_empty.setVisible(not rows)
         self.filter_history()
@@ -888,10 +888,10 @@ class Window(QMainWindow):
         tool = self.selected_tool()
         if not tool or tool["mode"] != "native":
             return
-        path, _ = QFileDialog.getOpenFileName(self, f"Sélectionner {tool['name']}", "", "Programmes et scripts (*)")
+        path, _ = QFileDialog.getOpenFileName(self, T("Sélectionner {tool}").format(tool=T(tool["name"])), "", T("Programmes et scripts (*)"))
         if path:
             if not find_executable(tool, path):
-                QMessageBox.warning(self, "Fichier invalide", "Choisissez un programme ou script Python existant pour cet ordinateur.")
+                QMessageBox.warning(self, T("Fichier invalide"), T("Choisissez un programme ou script Python existant pour cet ordinateur."))
                 return
             self.store.settings["executables"][tool["key"]] = path
             self.store.save()
@@ -903,7 +903,7 @@ class Window(QMainWindow):
             QDesktopServices.openUrl(QUrl(tool["url"]))
 
     def configure_python(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Sélectionner Python 3.14 ou ultérieur", "", "Programmes Python (*)")
+        path, _ = QFileDialog.getOpenFileName(self, T("Sélectionner Python 3.14 ou ultérieur"), "", T("Programmes Python (*)"))
         if path:
             self.store.settings["python"] = path
             self.store.save()
@@ -919,7 +919,7 @@ class Window(QMainWindow):
             self.navigate(3)
             return
         python = find_python(self.store.settings.get("python"))
-        request = {"label": "Cet ordinateur", "packages": list(packages), "root": str(self.store.root), "python": python}
+        request = {"label": T("Cet ordinateur"), "packages": list(packages), "root": str(self.store.root), "python": python}
         self.pending_installers=[p for p in packages if MANIFEST[p]['kind']=='installer']
         self.console.clear()
         self.terminal_screen=None
@@ -931,7 +931,7 @@ class Window(QMainWindow):
             self.run_folder.setEnabled(True)
             self.navigate(3)
         except (OSError, RuntimeError, ValueError) as exc:
-            QMessageBox.warning(self, "Installation impossible", str(exc))
+            QMessageBox.warning(self, T("Installation impossible"), str(exc))
 
     def launch_selected(self):
         if tool := self.selected_tool():
@@ -1098,7 +1098,7 @@ class Window(QMainWindow):
                 except (ValueError,TypeError):return False
             return not query or query in (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('flow_target') or r.get('target') or {})).casefold()
         self.visible_history=[r for r in self.history_rows if matches(r)]
-        fill_table(self.history_table,[(r['tool']+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
+        fill_table(self.history_table,[(T(r['tool'])+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
             (r.get('flow_target') or r.get('target') or {}).get('label',T('Cet ordinateur')),T(STATUS.get(r['status'],r['status'])),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
         self.history_count.setText(T('{shown} résultat(s) affiché(s) sur {total}').format(shown=len(self.visible_history),total=len(self.history_rows)))
         self.show_history()
@@ -1159,7 +1159,7 @@ class Window(QMainWindow):
         self.run_info.setText(T("{state} · Code de sortie : {code} · Résultats conservés").format(state=state,code=result['exit_code']))
         if result.get("detail"):
             self.append_output("\n" + result["detail"] + "\n")
-        self.statusBar().showMessage(f"{result['tool']} : {state.lower()}.")
+        self.statusBar().showMessage(f"{T(result['tool'])} : {state.lower()}.")
         if result.get('command')==['builtin','wsl-setup']:
             import json
             try:

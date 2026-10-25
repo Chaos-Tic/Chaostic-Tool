@@ -86,6 +86,15 @@ WIN = {
     "Préparation en attente — Kali n’est pas encore disponible":
         "Setup pending — Kali is not available yet",
 
+    "Sélectionner {tool}": "Select {tool}",
+    "Programmes et scripts (*)": "Programs and scripts (*)",
+    "Fichier invalide": "Invalid file",
+    "Choisissez un programme ou script Python existant pour cet ordinateur.": "Choose an existing program or Python script for this computer.",
+    "Sélectionner Python 3.14 ou ultérieur": "Select Python 3.14 or later",
+    "Programmes Python (*)": "Python programs (*)",
+    "Dépendances natives": "Native dependencies",
+    "Installation impossible": "Installation failed",
+
     # --- Installateurs natifs ---
     "Installateur": "Installer",
     "Installation des paquets Linux": "Installing Linux packages",

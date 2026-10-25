@@ -1,15 +1,15 @@
 # Native Linux installation
 
-Two editions have separate packages: `chaostictool` (CLI) and
-`chaostictool-desktop` (GUI). They can coexist. Installing either interface does
-not install all external assessment tools or add third-party security repositories.
+ChaosticTool 2.x uses one `chaostictool` package containing the CLI and Desktop
+interfaces. It replaces the earlier split Desktop package. Installing the application
+does not install all external assessment tools or add third-party security repositories.
 
 ## Package files
 
-Desktop 1.2 builds `.deb` and `.rpm` packages for x86-64 and ARM64.
-These packages contain the tested desktop bundle and resolve graphics libraries
-with the system package manager. No system-wide pip installation is needed.
-Desktop 1.3 also builds AppImages for x86-64 and ARM64.
+The release workflow builds unified `.deb` and `.rpm` packages for x86-64 and ARM64.
+These packages contain the tested desktop bundle plus the shared Python CLI and resolve
+runtime libraries with the system package manager. No system-wide pip installation is
+used. AppImages are also built for x86-64 and ARM64.
 
 ```sh
 sudo apt install ./chaostictool_2.0.0_amd64.deb
@@ -68,10 +68,10 @@ The signed apt repository is shared with the CLI:
 sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
 printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
 sudo apt update
-sudo apt install chaostictool-desktop
+sudo apt install chaostictool
 ```
 
-Arch: `yay -S chaostictool-desktop` or `paru -S chaostictool-desktop`.
-Fedora COPR: `sudo dnf copr enable chaostic/chaostictool-desktop && sudo dnf install chaostictool-desktop` (or install the release RPM directly with `sudo dnf install ./downloaded-package.rpm`). Use the native manager to
+Arch: `yay -S chaostictool` or `paru -S chaostictool`.
+Fedora COPR: `sudo dnf copr enable chaostic/chaostictool && sudo dnf install chaostictool` (or install the release RPM directly with `sudo dnf install ./downloaded-package.rpm`). Use the native manager to
 remove packages and retain user data. Source installs via CMake and portable
 archives remain available independently of repository synchronization.

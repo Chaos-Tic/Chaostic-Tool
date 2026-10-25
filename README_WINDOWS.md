@@ -4,7 +4,10 @@
 
 ### Your tools. Your targets. Your results, in a graphical interface.
 
-**Windows 10 / 11 · x64 and ARM64 · Version 1.3.0**
+**Windows 10 / 11 · x64 and ARM64 · Latest published split release: 1.3.0**
+
+> The `main` branch is preparing the unified 2.x package and release line. The links
+> below remain the verified 1.3.0 downloads until that release is published.
 
 **[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.3.0/ChaosticTool-Setup-1.3.0-windows-x64.exe)**
 
@@ -419,7 +422,7 @@ Replace the compiler path with its real location. The build script runs the test
 | [Licenses and components](docs/THIRD_PARTY.md) | Dependencies and redistribution notices |
 | [Microsoft: install WSL](https://learn.microsoft.com/en-us/windows/wsl/install) | Windows preparation and requirements |
 | [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |
-| [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of `linux-cli` |
+| [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of release and integration branches |
 
 **Installation links reviewed on 23 October 2026 for Desktop 1.3.0.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.
 

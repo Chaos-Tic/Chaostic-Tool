@@ -56,11 +56,11 @@ or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases
 <td><b>2. Orchestrated Execution.</b> Launch individual profiles or chained flows. Interactive tools run in dedicated pseudo-terminals with real-time output and instant cancellation.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/media/liquid-glass-arsenal.png" alt="The 32 offensive profiles classified across 5 structured phases"></td>
+<td width="50%"><img src="docs/media/liquid-glass-arsenal.png" alt="The shared security tool catalog classified across ten structured phases"></td>
 <td width="50%"><img src="docs/media/liquid-glass-historique.png" alt="Mission report and structured run logs"></td>
 </tr>
 <tr>
-<td><b>3. Arsenal of 32 Profiles.</b> Categorized across 5 offensive phases: Discovery, Web Surface, Exposure & Secrets, Active Directory, and Intelligence Reporting.</td>
+<td><b>3. Shared tool arsenal.</b> Forty-eight CLI tools and 137 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>
 <td><b>4. Intelligence & Audit.</b> Review parsed findings, inspect raw chunk logs, or export structured JSON reports. Atomic history clearing prevents symlink directory traversal.</td>
 </tr>
 </table>
@@ -121,7 +121,7 @@ A fluid desktop application crafted with the Chaos-Tic frosted-glass aesthetic f
 - **Frosted-Glass Visual Language**: Translucent layered cards, inner reflections, and dual palettes (Light Pastel & Midnight Neon) with high-contrast sans-serif typography and reduced-transparency accessibility.
 - **Visual Flow Orchestration**: Sequence multi-tool recon and audit workflows with automatic parameter propagation and dependency checks.
 - **Integrated VT100 Terminal Monitor**: Watch live tool execution in an embedded terminal emulator with full ANSI styling, elapsed timers, and clean cancellation.
-- **Cross-Platform Distribution**: Verified native packages for Arch (AUR), Fedora (COPR), Debian/Ubuntu (APT), universal Linux (AppImage), and Windows 10/11 with automatic WSL2 Kali configuration.
+- **Cross-Platform Distribution**: A unified package is built for Debian/Ubuntu and Fedora, alongside Arch packaging, AppImage, Windows and macOS artifacts. See the dated compatibility table for what CI actually verifies and the installation guide for channel availability.
 
 ---
 
@@ -143,17 +143,14 @@ ChaosticTool structures security reconnaissance into 5 deterministic phases:
 
 ### Arch Linux (AUR)
 ```bash
-# Full suite (CLI + Desktop)
+# Unified CLI + Desktop package
 yay -S chaostictool
-
-# Headless CLI only
-yay -S chaostictool-cli
 ```
 
 ### Fedora / Red Hat (COPR)
 ```bash
 sudo dnf copr enable chaostic/chaostictool
-sudo dnf install chaostictool chaostictool-desktop
+sudo dnf install chaostictool
 ```
 
 ### Debian / Ubuntu

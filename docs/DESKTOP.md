@@ -9,13 +9,11 @@ du système choisi et des prérequis propres à chaque outil.
 
 ## Disponibilité des téléchargements
 
-La [release Desktop 1.1.5](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5)
-regroupe Windows, Linux et macOS, en x64 et ARM64, avec une empreinte SHA-256
-par paquet. Les six paquets proviennent du même tag, créé depuis la branche
-`desktop/linux-app` qui contient les intégrations Linux et le socle multiplateforme.
-Les deux branches Desktop partagent la nouvelle identité Red Ops : noir profond,
-rouge, personnage et lettrage du README CLI, cadres industriels et navigation numérotée. Un nouveau profil démarre en sombre ;
-le thème déjà enregistré reste inchangé. Voir le [système visuel](DESIGN.md).
+Les releases 2.x regroupent Windows, Linux et macOS, en x64 et ARM64, avec une
+empreinte SHA-256 par paquet. Les six paquets proviennent du même tag `v*` et du
+même arbre `main`. L’interface utilise l’identité Liquid Glass claire et pastel ;
+le thème sombre reste disponible et les préférences enregistrées sont conservées.
+Voir le [système visuel](DESIGN.md).
 
 ## Télécharger et installer
 
@@ -125,8 +123,7 @@ produits par les outils eux-mêmes peuvent contenir des données sensibles.
 
 ## Exécuter depuis les sources
 
-Utiliser Python 3.14 et cloner `desktop/windows-app` sous Windows ou
-`desktop/linux-app` sous Linux. Depuis la racine du clone :
+Utiliser Python 3.14 et cloner la branche `main`. Depuis la racine du clone :
 
 ```sh
 python -m venv .venv
@@ -136,7 +133,7 @@ python -m pip install -r requirements-desktop.txt
 python chaostic_desktop.py
 ```
 
-Le `install.sh` à la racine installe la CLI, pas cette interface graphique.
+L’installation CMake unifiée installe la CLI et l’interface graphique.
 
 ## Construire et vérifier
 
@@ -145,8 +142,8 @@ Lancer `python scripts/build-desktop.py` sur le système cible ; sous Windows aj
 `--iscc CHEMIN/ISCC.exe` avec Inno Setup 6. Les fichiers apparaissent dans `release/`.
 `python scripts/smoke-desktop.py` vérifie le binaire construit avec un profil jetable.
 Le workflow GitHub compile et teste séparément les six couples OS/architecture.
-Un tag `desktop-v*` prépare une Release brouillon avec tous les paquets vérifiés ;
-sa publication rend les fichiers accessibles sans installation d'outils de développement.
+Un tag `v*` construit les artefacts, téléverse d’abord tous les fichiers et leurs
+sommes de contrôle dans un brouillon, puis publie la release après réussite.
 
 ## Fonctionnalités communes
 

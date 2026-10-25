@@ -280,12 +280,12 @@ class Window(QMainWindow):
             self.update_button.setText(T("Vérification…"))
         self.update_checker.check(manual=manual)
 
-    def _on_update_result(self, available, version, url, manual):
+    def _on_update_result(self, available, version, tag, url, manual):
         if hasattr(self, "update_button"):
             self.update_button.setEnabled(True)
             self.update_button.setText(T("Rechercher les mises à jour"))
         if available and version:
-            self._available_update = (version, url)
+            self._available_update = (version, tag, url)
             self.install_update_button.setVisible(True)
             message = T("Mise à jour disponible : Desktop {version}.").format(version=version)
             self.statusBar().showMessage(message)
@@ -318,9 +318,9 @@ class Window(QMainWindow):
         import subprocess
         from pathlib import Path
         from core.update_service import native_commands, external_environment
-        version, url = self._available_update
+        version, tag, url = self._available_update
         application = Path(sys.executable if getattr(sys, "frozen", False) else __file__)
-        commands = native_commands("chaostictool-desktop", application) if sys.platform.startswith("linux") else []
+        commands = native_commands("chaostictool", application) if sys.platform.startswith("linux") else []
         if commands:
             commands = [[*command] if command[0] in ("yay", "paru") else ["sudo", *command] for command in commands]
             script = " && ".join(shlex.join(command) for command in commands)
@@ -362,7 +362,7 @@ class Window(QMainWindow):
             return
         self.install_update_button.setEnabled(False)
         self.update_label.setText(T("Téléchargement et vérification de l’installateur…"))
-        self.update_download.start("desktop-v" + version, filename)
+        self.update_download.start(tag, filename)
 
     def _on_installer_downloaded(self, path, error):
         self.install_update_button.setEnabled(True)

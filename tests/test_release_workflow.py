@@ -59,10 +59,14 @@ fi
         self.assertIn('--clobber', calls)
         self.assertIn('tested bundle.tar.gz', calls)
         self.assertNotIn('private-runtime.so', calls)
+        self.assertIn('release edit v2.0.0', calls)
+        self.assertIn('--draft=false --latest', calls)
 
-    def test_new_release_stays_draft_and_uses_existing_tag(self):
+    def test_new_release_is_published_after_assets_are_uploaded(self):
         calls = self.run_publication('missing')
         self.assertIn('release create', calls)
         self.assertIn('--draft --verify-tag', calls)
         self.assertIn('release upload', calls)
+        self.assertIn('release edit v2.0.0', calls)
+        self.assertIn('--draft=false --latest', calls)
 

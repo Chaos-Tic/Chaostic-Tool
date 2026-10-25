@@ -32,8 +32,8 @@ class UpdaterTests(unittest.TestCase):
             check.assert_called_once_with(manual=True)
 
     def test_declining_native_update_never_opens_a_terminal(self):
-        self.window._on_update_result(True, '9.0.0', 'https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v9.0.0', False)
-        with patch('core.update_service.native_commands', return_value=[['apt-get','install','--only-upgrade','chaostictool-desktop']]), patch.object(QMessageBox, 'question', return_value=QMessageBox.StandardButton.No), patch('subprocess.Popen') as start:
+        self.window._on_update_result(True, '9.0.0', 'v9.0.0', 'https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v9.0.0', False)
+        with patch('core.update_service.native_commands', return_value=[['apt-get','install','--only-upgrade','chaostictool']]), patch.object(QMessageBox, 'question', return_value=QMessageBox.StandardButton.No), patch('subprocess.Popen') as start:
             self.window.install_app_update()
             start.assert_not_called()
 
@@ -45,7 +45,26 @@ class UpdaterTests(unittest.TestCase):
 
     def test_declining_installer_download_has_no_side_effect(self):
         import sys
-        self.window._on_update_result(True, '9.0.0', 'https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v9.0.0', False)
+        self.window._on_update_result(True, '9.0.0', 'v9.0.0', 'https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v9.0.0', False)
         with patch.object(sys, 'platform', 'win32'), patch.object(sys, 'frozen', True, create=True), patch('platform.machine', return_value='AMD64'), patch.object(QMessageBox, 'question', return_value=QMessageBox.StandardButton.No), patch.object(self.window.update_download, 'start') as download:
             self.window.install_app_update()
             download.assert_not_called()
+
+    def test_unified_release_tag_is_used_for_installer_download(self):
+        import sys
+        self.window._on_update_result(
+            True,
+            '9.0.0',
+            'v9.0.0',
+            'https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v9.0.0',
+            False,
+        )
+        with patch.object(sys, 'platform', 'win32'), patch.object(
+            sys, 'frozen', True, create=True
+        ), patch('platform.machine', return_value='AMD64'), patch.object(
+            QMessageBox, 'question', return_value=QMessageBox.StandardButton.Yes
+        ), patch.object(self.window.update_download, 'start') as download:
+            self.window.install_app_update()
+            download.assert_called_once_with(
+                'v9.0.0', 'ChaosticTool-Setup-9.0.0-windows-x64.exe'
+            )

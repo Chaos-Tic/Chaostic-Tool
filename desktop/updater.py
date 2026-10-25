@@ -21,7 +21,7 @@ class _Worker(QObject):
 
 
 class UpdateChecker(QObject):
-    result = Signal(bool, str, str, bool)
+    result = Signal(bool, str, str, str, bool)
 
     def __init__(self, parent=None, root=None):
         super().__init__(parent)
@@ -48,7 +48,9 @@ class UpdateChecker(QObject):
         thread.quit()
         thread.wait(3000)
         thread.deleteLater()
-        self.result.emit(result["available"], result["version"], result["url"], self._manual)
+        self.result.emit(
+            result["available"], result["version"], result["tag"], result["url"], self._manual
+        )
 
     def shutdown(self):
         if self._thread is not None:

@@ -75,7 +75,10 @@ flowchart TD
 
 ## Process Interfaces
 
-- `chaostictool list --json`: Emits the full catalog of 32 profiles with categories, requirements, and default arguments.
-- `chaostictool scan --profile ID --target ADDR --json`: Executes a profile non-interactively and outputs progress and results as structured JSON Lines.
-- `chaostictool flow run ID --target ADDR`: Executes a chained sequence of profiles, passing discovered subdomains and open ports to downstream stages.
+- `chaostictool`: Opens the interactive terminal interface on Linux.
+- `chaostictool --check-installation`: Verifies runtime imports and user-data paths without root, network access, or tool installation.
+- `chaostictool --check-updates`: Checks the latest public release without installing it.
 - `chaostictool-desktop --smoke-test`: Executes an offscreen headless contract check confirming window construction, terminal rendering, and clean teardown.
+
+Machine-readable catalog and non-interactive profile execution are planned interfaces;
+they are not part of the current command-line contract.

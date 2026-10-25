@@ -1,10 +1,10 @@
 name: CI/CD Pipeline
 on:
   push:
-    branches: [main, desktop/linux-app, feat/*]
+    branches: [main, refactor/shared-core, desktop/linux-app, feat/*, fix/*]
     tags: ['v*']
   pull_request:
-    branches: [main, desktop/linux-app]
+    branches: [main, refactor/shared-core, desktop/linux-app]
   workflow_dispatch:
 
 permissions:
@@ -284,6 +284,7 @@ jobs:
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "ChaosticTool ${TAG#v}" --generate-notes --draft --verify-tag
           fi
           find dist -maxdepth 1 -type f -print0 | xargs -0 gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
       - name: Trigger Fedora COPR webhook
         env:
           COPR_WEBHOOK: ${{ secrets.COPR_WEBHOOK }}

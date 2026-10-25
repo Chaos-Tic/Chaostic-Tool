@@ -22,7 +22,7 @@
 > deterministic intelligence where chaotic attack surfaces resolve into clarity.
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="ChaosticTool reconnaissance pipeline: target selection, 32 offensive profiles catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="800">
+  <img src="docs/media/demo.gif" alt="ChaosticTool reconnaissance pipeline: target selection, offensive tool catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="800">
 </p>
 
 ChaosticTool bridges the gap between raw command-line auditing and graphical operations.
@@ -76,9 +76,9 @@ ChaosticTool delivers full visual and operational parity across both environment
 | **Primary Environment** | Headless servers, SSH sessions, minimal containers, Linux terminals | Graphical workstations (Linux X11/Wayland & Windows) |
 | **Interface Style** | Rich terminal TUI dashboard & direct shell commands | Frosted glass with light pastel & dark neon themes |
 | **Execution Sandboxing** | Dedicated POSIX `pty` pseudo-terminals with zero orphan processes | Integrated VT100 terminal widget with ANSI color emulation |
-| **Routing Controls** | Persistent HUD: Direct, Tor (with auto-rotation), and VPN guard | Visual routing indicators and status bar controls |
-| **Automation & CI** | Scriptable with `--json`, exit codes, and non-interactive profiles | Visual chained flow designer with step dependencies |
-| **Windows Support** | Native PowerShell / WSL2 integration | Native installer with automated WSL2 Kali Linux backend |
+| **Routing Controls** | Persistent HUD: Direct, Tor (with auto-rotation), and VPN guard | Not exposed yet; GUI routing controls are tracked work |
+| **Automation & CI** | Interactive TUI; machine-readable profile execution is tracked work | Visual chained flow designer with step dependencies |
+| **Windows Support** | Linux CLI through WSL2 | Native installer with automated WSL2 Kali Linux backend |
 
 ---
 
@@ -96,13 +96,13 @@ A high-density terminal control surface built with Rich and prompt_toolkit for k
 - **Live Workspace HUD**: Always-visible status header tracking active target, routing interface (`DIRECT`, `TOR via proxychains`, `VPN`), and target-isolated output directories.
 - **Kill-Chain Methodology**: 10 offensive categories organized into structured phases (OSINT, Network Scan, Web Enumeration, Vulnerability Scan, Exploitation, Post-Exploit, Password Cracking, Windows / Active Directory, Wireless, Network & MITM).
 - **Direct Action Dock**: Single-keystroke navigation for target configuration (`[0]`), fuzzy tool catalog search (`[/]`), saved results & session browser (`[r]`), Proxy/VPN/Tor routing controls (`[p]`), and guided attack flows (`[g]`).
-- **Headless & Scriptable**: Launch individual profiles directly from bash scripts or automation pipelines without entering the full-screen interface:
+- **Terminal-first operation**: Launch the interactive TUI without a graphical session and use the maintenance checks independently:
   ```bash
   # Launch the interactive terminal control surface
   sudo chaostictool
 
-  # Run headless with direct argument passing
-  sudo chaostictool 2 --target 10.10.10.5
+  # Check the installed runtime without network access or root
+  chaostictool --check-installation
 
   # Check for updates from GitHub releases
   chaostictool --check-updates
@@ -163,8 +163,8 @@ sudo apt install ./chaostictool_2.0.0_amd64.deb
 ```
 Or via the Chaos-Tic signed APT repository:
 ```bash
-sudo curl -fsSL https://apt.chaos-tic.com/KEY.gpg -o /etc/apt/trusted.gpg.d/chaostic.gpg
-echo "deb https://apt.chaos-tic.com/ stable main" | sudo tee /etc/apt/sources.list.d/chaostic.list
+sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
+printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
 sudo apt update && sudo apt install chaostictool
 ```
 

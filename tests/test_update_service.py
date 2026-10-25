@@ -44,6 +44,16 @@ class UpdateServiceTests(unittest.TestCase):
             service.check("cli", "1.4.0", cache)
             self.assertEqual(fetch.call_count, 1)
 
+    def test_unified_release_uses_the_same_tag_for_both_editions(self):
+        data = json.dumps({"tag_name": "v2.1.0"}).encode()
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            service, "urlopen", side_effect=lambda *a, **kw: response(data)
+        ):
+            cache = Path(directory) / "cache.json"
+            desktop = service.check("desktop", "2.0.0", cache, force=True)
+            self.assertEqual(desktop["tag"], "v2.1.0")
+            self.assertEqual(desktop["url"], service.REPOSITORY + "/releases/tag/v2.1.0")
+
     def test_invalid_or_old_cache_is_refreshed(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(service, "urlopen", side_effect=lambda *a, **kw: response(b'{"tag_name":"v1.4.0"}')) as fetch:
             cache = Path(directory) / "cache.json"

@@ -37,10 +37,11 @@ def version_tuple(value: str) -> tuple[int, ...]:
     return tuple(map(int, value.split(".")))
 
 
-def release_versions(payload: dict) -> dict[str, str]:
+def _release_metadata(payload: dict) -> tuple[dict[str, str], dict[str, str]]:
     if payload.get("draft") or payload.get("prerelease"):
         raise ValueError("A stable public release is required")
-    versions = {}
+    versions: dict[str, str] = {}
+    tags: dict[str, str] = {}
     marker = MARKER.search(payload.get("body") or "")
     if marker:
         versions = json.loads(marker.group(1))
@@ -49,13 +50,24 @@ def release_versions(payload: dict) -> dict[str, str]:
         versions = {key: value for key, value in versions.items() if key in ("cli", "desktop")}
         for value in versions.values():
             version_tuple(value)
+        tags = {
+            edition: ("desktop-v" if edition == "desktop" else "v") + version
+            for edition, version in versions.items()
+        }
     tag = payload.get("tag_name", "")
-    for edition, prefix in (("cli", "v"), ("desktop", "desktop-v")):
-        if tag.startswith(prefix) and VERSION.fullmatch(tag[len(prefix):]):
-            versions[edition] = tag[len(prefix):]
-    if tag.startswith("v") and VERSION.fullmatch(tag[1:]):
+    if tag.startswith("desktop-v") and VERSION.fullmatch(tag[len("desktop-v"):]):
+        versions["desktop"] = tag[len("desktop-v"):]
+        tags["desktop"] = tag
+    elif tag.startswith("v") and VERSION.fullmatch(tag[1:]):
+        versions["cli"] = tag[1:]
         versions.setdefault("desktop", tag[1:])
-    return versions
+        tags["cli"] = tag
+        tags["desktop"] = tag
+    return versions, tags
+
+
+def release_versions(payload: dict) -> dict[str, str]:
+    return _release_metadata(payload)[0]
 
 
 def _write_json(path: Path, data: dict) -> None:
@@ -85,14 +97,14 @@ def check(edition: str, current: str, cache: Path, *, force: bool = False) -> di
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         fresh = False
     if force or not fresh:
-        data = {"checked_at": timestamp, "versions": {}, "error": ""}
+        data = {"checked_at": timestamp, "versions": {}, "tags": {}, "error": ""}
         try:
             request = Request(API, headers={"User-Agent": "ChaosticTool", "Accept": "application/vnd.github+json"})
             with _open(request) as response:
                 raw = response.read(2 * 1024 * 1024 + 1)
             if len(raw) > 2 * 1024 * 1024:
                 raise ValueError("Release metadata is too large")
-            data["versions"] = release_versions(json.loads(raw))
+            data["versions"], data["tags"] = _release_metadata(json.loads(raw))
         except (OSError, ValueError, TypeError, AttributeError) as exc:
             data["error"] = str(exc)
         try:
@@ -100,7 +112,10 @@ def check(edition: str, current: str, cache: Path, *, force: bool = False) -> di
         except OSError:
             pass  # Read-only user storage must not prevent launching the application.
     version = data.get("versions", {}).get(edition, "")
-    tag = ("desktop-v" if edition == "desktop" else "v") + version if version else ""
+    tags = data.get("tags", {})
+    tag = tags.get(edition, "") if isinstance(tags, dict) else ""
+    if version and not tag:
+        tag = ("desktop-v" if edition == "desktop" else "v") + version
     return {"version": version, "available": bool(version and version_tuple(version) > version_tuple(current)),
             "tag": tag, "url": f"{REPOSITORY}/releases/tag/{tag}" if tag else f"{REPOSITORY}/releases",
             "error": data.get("error", "") or ("No release metadata for this edition" if not version else "")}

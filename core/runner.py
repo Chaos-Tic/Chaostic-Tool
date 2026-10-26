@@ -1,16 +1,18 @@
 """UI-independent, single-use process runner.
 
-Output callbacks receive merged stdout/stderr text (including partial lines). They
-run on the backend worker thread and must return promptly. No output is retained
-by the runner; callers own logging, redaction and presentation.
+Output callbacks receive merged stdout/stderr text (including partial lines), or
+unchanged bytes when raw_output is requested. They run on the backend worker
+thread and must return promptly. No output is retained by the runner; callers
+own logging, redaction and presentation.
 """
 from __future__ import annotations
 
 import math
 import os
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Callable, Mapping, Protocol, Sequence
+from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,8 @@ class RunRequest:
     # CLI capture keeps the invoking terminal or redirected stdin unchanged.
     # send_input is unavailable; close_input leaves the inherited descriptor alone.
     inherit_stdin: bool = False
+    # Binary journals must not lose invalid UTF-8 through text decoding.
+    raw_output: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.argv, (str, bytes)) or not self.argv:
@@ -51,7 +55,7 @@ class RunResult:
     error: str | None = None
 
 
-OutputCallback = Callable[[str], None]
+OutputCallback = Callable[[str | bytes], None]
 CompletionCallback = Callable[[RunResult], None]
 
 

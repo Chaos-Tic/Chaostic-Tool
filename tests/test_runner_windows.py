@@ -79,6 +79,26 @@ WindowsBackend()
         process.close_input.assert_called_once()
         self.assertFalse(backend.send_input("late"))
 
+    def test_raw_output_preserves_bytes_without_text_decoder_flush(self):
+        # Exercise the Windows read loop on every CI host, without a Windows DLL.
+        for raw in (False, True):
+            with self.subTest(raw=raw):
+                process = mock.Mock()
+                process.poll.return_value = 0
+                process.tree_exited.return_value = True
+                process.read.side_effect = [b"\xff\xe2", b"\x82\xac\xe2", b""]
+                output, completed = [], []
+                runner = Runner(WindowsBackend())
+                with mock.patch("core.backends.windows.WindowsProcess", return_value=process):
+                    runner.start(RunRequest(["fixture"], raw_output=raw),
+                                 output.append, completed.append)
+                    result = runner.wait(5)
+                self.assertEqual(result.returncode, 0)
+                self.assertIsNone(result.error)
+                self.assertEqual(completed, [result])
+                actual = b"".join(output) if raw else "".join(output)
+                self.assertEqual(actual, b"\xff\xe2\x82\xac\xe2" if raw else "\ufffd\u20ac\ufffd")
+
 
 @unittest.skipUnless(os.name == "nt", "native Windows Job Objects and pipes")
 class WindowsRunnerTests(unittest.TestCase):
@@ -124,6 +144,14 @@ class WindowsRunnerTests(unittest.TestCase):
         self.assertFalse(result.cancelled or result.timed_out)
         self.assertIsNone(result.error)
         self.assertEqual(completed, [result])
+
+    def test_raw_output_preserves_invalid_utf8_and_final_fragment(self):
+        output = []
+        runner = self.start("import os; os.write(1,b'prefix\\xff\\xe2'); "
+                            "os.write(2,b'\\x82\\xac\\xfe\\xe2')", output.append,
+                            raw_output=True)
+        self.assertEqual(runner.wait(5).returncode, 0)
+        self.assertEqual(b"".join(output), b"prefix\xff\xe2\x82\xac\xfe\xe2")
 
     def test_partial_utf8_output_and_stdin_eof(self):
         ready, output = threading.Event(), []

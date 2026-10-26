@@ -1,7 +1,6 @@
 """UI-free process tests using only disposable local Python children."""
 import json
 import os
-from pathlib import Path
 import signal
 import subprocess
 import sys
@@ -9,8 +8,9 @@ import tempfile
 import threading
 import time
 import unittest
+from pathlib import Path
 
-from core.runner import RunRequest, Runner
+from core.runner import Runner, RunRequest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -110,6 +110,24 @@ class RunnerTests(unittest.TestCase):
                              [os.path.realpath(directory), "present", literal])
             self.assertEqual(list(Path(directory).iterdir()), [])
 
+    def test_raw_output_preserves_invalid_utf8_and_unfinished_fragment(self):
+        output = []
+        runner = self.start("import os; os.write(1,b'prefix\\xff\\xe2'); "
+                            "os.write(2,b'\\x82\\xac\\xfe\\xe2')", output.append,
+                            raw_output=True)
+        self.assertEqual(runner.wait(5).returncode, 0)
+        self.assertTrue(all(isinstance(chunk, bytes) for chunk in output))
+        self.assertEqual(b"".join(output), b"prefix\xff\xe2\x82\xac\xfe\xe2")
+
+    def test_raw_timeout_does_not_decode_or_duplicate_final_bytes(self):
+        output = []
+        runner = self.start("import os,signal,time; "
+                            "signal.signal(signal.SIGINT,signal.SIG_IGN); "
+                            "os.write(1,b'partial\\xff\\xe2'); time.sleep(30)",
+                            output.append, raw_output=True, timeout=0.2)
+        self.assertTrue(runner.wait(5).timed_out)
+        self.assertEqual(b"".join(output), b"partial\xff\xe2")
+
     def test_missing_executable_completes_once(self):
         completed = []
         runner = Runner()
@@ -206,7 +224,7 @@ class RunnerTests(unittest.TestCase):
                 if cancel:
                     parent += "print('ready',flush=True)\ntime.sleep(30)\n"
                 ready = threading.Event()
-                runner = self.start(parent, lambda text: ready.set())
+                runner = self.start(parent, lambda text, ready=ready: ready.set())
                 if cancel:
                     self.assertTrue(ready.wait(3))
                     runner.stop()

@@ -167,10 +167,10 @@ class PosixBackend:
                     except BlockingIOError:
                         continue
                     eof = not data
-                    text = decoder.decode(data, final=eof)
-                    if text and on_output:
-                        on_output(text)
-            if not eof:
+                    output = data if request.raw_output else decoder.decode(data, final=eof)
+                    if output and on_output:
+                        on_output(output)
+            if not eof and not request.raw_output:
                 tail = decoder.decode(b"", final=True)
                 if tail and on_output:
                     on_output(tail)

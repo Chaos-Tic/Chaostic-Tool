@@ -134,12 +134,12 @@ class WindowsBackend:
                 data = None if eof else proc.read()
                 if data is not None:
                     eof = not data
-                    text = decoder.decode(data, final=eof)
-                    if text and on_output:
-                        on_output(text)
+                    output = data if request.raw_output else decoder.decode(data, final=eof)
+                    if output and on_output:
+                        on_output(output)
                 else:
                     time.sleep(_POLL)
-            if not eof:
+            if not eof and not request.raw_output:
                 tail = decoder.decode(b"", final=True)
                 if tail and on_output:
                     on_output(tail)

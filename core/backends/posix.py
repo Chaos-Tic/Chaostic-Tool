@@ -20,6 +20,7 @@ from core.runner import CompletionCallback, OutputCallback, RunRequest, RunResul
 LOG = logging.getLogger(__name__)
 _POLL = 0.02
 _INPUT_LIMIT = 1024 * 1024
+_REAP_TIMEOUT = 1.0
 
 
 class PosixBackend:
@@ -184,7 +185,10 @@ class PosixBackend:
             if proc is not None:
                 try:
                     self._signal_group(proc, signal.SIGKILL)
-                    returncode = proc.wait(timeout=request.stop_grace)
+                    # stop_grace controls signal escalation, not scheduler latency.
+                    # Busy macOS runners can need more than a 100 ms test grace to
+                    # report an already-killed child as reaped.
+                    returncode = proc.wait(timeout=max(request.stop_grace, _REAP_TIMEOUT))
                 except (OSError, subprocess.TimeoutExpired) as exc:
                     error = error or f"Process cleanup failed: {exc}"
                 finally:

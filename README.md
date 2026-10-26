@@ -1,14 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/banner-dark.svg">
-    <img src="docs/media/banner.svg" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/banner.svg">
+    <img src="docs/media/banner-dark.svg" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
   </picture>
 </p>
 
 <p align="center">
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build and test status"></a>
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.0-38bdf8.svg" alt="Version 2.0.0"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
 </p>
 
 # ChaosticTool
@@ -92,8 +92,8 @@ A high-density terminal control surface built with Rich and prompt_toolkit for k
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/cli-dark.png">
-    <img src="docs/media/cli-light.png" alt="ChaosticTool Terminal Precision CLI: interactive Rich TUI dashboard with live telemetry, kill-chain phases, and action dock" width="800">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/cli-light.png">
+    <img src="docs/media/cli-dark.png" alt="ChaosticTool Terminal Precision CLI: interactive Rich TUI dashboard with live telemetry, kill-chain phases, and action dock" width="800">
   </picture>
 </p>
 
@@ -119,7 +119,7 @@ A high-density terminal control surface built with Rich and prompt_toolkit for k
 A fluid desktop application crafted with the Chaos-Tic frosted-glass aesthetic for graphical Linux workstations and Windows:
 
 <p align="center">
-  <img src="docs/media/liquid-glass-accueil.png" alt="ChaosticTool Liquid Glass Desktop dashboard" width="800">
+  <img src="docs/media/liquid-glass-dark.png" alt="ChaosticTool Liquid Glass Desktop dashboard in its primary dark cybersecurity theme" width="800">
 </p>
 
 - **Frosted-Glass Visual Language**: Translucent layered cards, inner reflections, and dual palettes (Light Pastel & Midnight Neon) with high-contrast sans-serif typography and reduced-transparency accessibility.
@@ -131,15 +131,20 @@ A fluid desktop application crafted with the Chaos-Tic frosted-glass aesthetic f
 
 ## Phases and Profiles
 
-ChaosticTool structures security reconnaissance into 5 deterministic phases:
+ChaosticTool shares one ordered set of ten phases across both interfaces:
 
 | Phase | Core Objective | Integrated Profiles |
 | --- | --- | --- |
-| **1. Discovery** | Host discovery, port enumeration, service identification | `nmap` (Fast, Full, SYN, UDP), `rustscan`, `arp-scan`, `netdiscover` |
-| **2. Web Surface** | HTTP probing, crawling, content discovery, technology fingerprinting | `httpx`, `katana`, `feroxbuster`, `ffuf`, `gobuster`, `nikto` |
-| **3. Exposure & Secrets** | Subdomain discovery, passive OSINT, secret detection in repos | `subfinder`, `amass`, `trufflehog`, `gitleaks`, `dnsrecon` |
-| **4. Active Directory** | Domain enumeration, Kerberos auditing, network share analysis | `bloodhound-python`, `netexec` (nxc), `ldapdomaindump`, `kerbrute` |
-| **5. Reporting** | Synthesis, structured JSON extraction, audit documentation | Native synthesis engine, markdown summaries, HTML deliverables |
+| **01. OSINT** | Passive discovery and public records | `whois`, `dig`, `subfinder`, `amass`, `dnsrecon`, `theHarvester`, `shodan` |
+| **02. Network scan** | Host, port and service discovery | `nmap`, `rustscan`, `masscan`, `naabu` |
+| **03. Web enumeration** | HTTP probing, crawling and content discovery | `gobuster`, `ffuf`, `httpx`, `wafw00f`, `whatweb`, `katana`, `gau`, `waybackurls` |
+| **04. Vulnerabilities** | Web, TLS and template-based checks | `nikto`, `nuclei`, `wpscan`, `testssl.sh`, `sslscan` |
+| **05. Exploitation** | Explicitly selected exploitation workflows | `sqlmap`, `xsstrike`, `dalfox`, `msfconsole`, `msfvenom` |
+| **06. Post-exploitation** | Local assessment and privilege workflows | `linpeas.sh`, `winpeas` and shared Windows/AD tools |
+| **07. Passwords** | Offline and online password auditing | `hashcat`, `john`, `hydra` |
+| **08. Windows / AD** | Windows and Active Directory assessment | Impacket tools, `NetExec`/legacy CME, `bloodhound-python` |
+| **09. Wi-Fi** | Wireless discovery and authorized auditing | Aircrack-ng tools, `reaver`, `wifite` |
+| **10. Network & MITM** | Packet capture and authorized local-network testing | `bettercap`, `ettercap`, `tcpdump`, `responder` |
 
 ---
 

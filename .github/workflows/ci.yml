@@ -1,7 +1,7 @@
 name: CI/CD Pipeline
 on:
   push:
-    branches: [main, refactor/shared-core, feat/*, fix/*]
+    branches: [main, refactor/shared-core]
     tags: ['v*']
   pull_request:
     branches: [main, refactor/shared-core]

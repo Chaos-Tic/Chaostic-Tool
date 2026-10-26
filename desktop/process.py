@@ -111,8 +111,7 @@ class Runner(QObject):
             # The backend can emit concurrently with user input. Register the
             # secret before queuing input so even an immediate echo is masked.
             with self._log_lock:
-                self.redactor.secrets.append(text.rstrip('\r\n').encode('utf-8'))
-                self.redactor.keep = max(self.redactor.keep, len(text.encode('utf-8')))
+                self.redactor.add(text.rstrip('\r\n'))
         data = json.dumps({'op': 'input', 'text': text}) + '\n' if self.bridge else text
         self.proc.send_input(data)
 

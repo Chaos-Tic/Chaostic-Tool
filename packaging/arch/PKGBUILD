@@ -5,7 +5,7 @@ pkgrel=1
 pkgdesc='Terminal and desktop interfaces for authorized security testing'
 arch=('any')
 url='https://github.com/Chaos-Tic/Chaostic-Tool'
-license=('MIT')
+license=('GPL-3.0-or-later')
 provides=("chaostictool-desktop=$pkgver")
 conflicts=('chaostictool-desktop' 'chaostictool-cli')
 replaces=('chaostictool-desktop' 'chaostictool-cli')

@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build and test status"></a>
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.0-38bdf8.svg" alt="Version 2.0.0"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="GPL-3.0-or-later license"></a>
 </p>
 
 # ChaosticTool
@@ -72,8 +72,8 @@ latest public releases still contain the earlier split CLI and Desktop editions.
 
 ChaosticTool is converging both interfaces on one registry, release model and
 UI-independent process runner. Cross-adapter tests currently prove matching success,
-failure, literal argv, large-output and cancellation behaviour. Routing, flows,
-redaction and timeout controls are not yet exposed with full interface parity.
+failure, literal argv, large-output, cancellation, timeout and streamed-redaction
+behaviour. Routing and flows are not yet exposed with full interface parity.
 
 | Capability | Terminal Precision CLI / TUI (`chaostictool`) | Liquid Glass Desktop GUI (`chaostictool-desktop`) |
 | --- | --- | --- |
@@ -217,9 +217,9 @@ cpack --config build/CPackConfig.cmake -G "DEB;RPM" -B release
 ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](https://github.com/Chaos-Tic) ecosystem:
 
 - **Local-First Execution**: Findings, credentials, and targets are never uploaded to any cloud service.
-- **Sensitive-data boundaries**: Desktop masks configured secret fields and streamed
-  values before persistence. CLI output does not yet offer the same general redaction
-  contract, so operators must still treat all local logs as sensitive.
+- **Sensitive-data boundaries**: Desktop and CLI mask configured secret fields in command
+  previews and streamed values before persistence, including values split across output
+  chunks. Operators must still treat all local logs as sensitive.
 - **Safe Directory Operations**: The storage manager enforces strict filesystem boundaries, rejecting symbolic link traversal or directory junctions during log deletion (`CVE-resistant cleanup`).
 - **No Shell Interpolation**: Subprocesses are spawned directly using explicit argument arrays, preventing command-injection attacks through untrusted target names.
 
@@ -236,8 +236,10 @@ ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](h
 
 ---
 
-## Licence
+## License
 
-The current source tree is licensed under the **MIT License** ([LICENSE](LICENSE)).
-Any future licence change will apply only after an explicit maintainer decision and
-will not retroactively alter already published versions.
+Copyright (c) 2026 Chaos-Tic. This source tree is licensed under
+**GPL-3.0-or-later** ([LICENSE](LICENSE)). Releases published before this change remain
+available under the license that accompanied them; the change is not retroactive.
+The project name and logo are governed separately by the
+[trademark policy](TRADEMARKS.md).

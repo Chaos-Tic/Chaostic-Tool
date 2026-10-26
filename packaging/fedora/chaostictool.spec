@@ -6,7 +6,7 @@ Name:           chaostictool
 Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
-License:        MIT
+License:        GPL-3.0-or-later
 URL:            https://github.com/Chaos-Tic/Chaostic-Tool
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
 Source1:        %{url}/releases/download/v%{version}/ChaosticTool-%{version}-linux-x64.tar.gz

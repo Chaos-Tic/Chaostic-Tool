@@ -1,17 +1,17 @@
 """CLI adapter contracts, using disposable children and output directories."""
 import io
 import os
-from pathlib import Path
 import signal
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from core import executor
-from core.runner import RunRequest, Runner
+from core.runner import Runner, RunRequest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,6 +42,24 @@ class ExecutorRunnerTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(self.output.read_text(), "present\n")
         self.assertTrue(requests[0].inherit_stdin)
+        self.assertEqual(executor.ACTIVE_PROCS, [])
+
+    def test_timeout_preserves_redacted_partial_output(self):
+        secret = "private-token-split"
+        code = ("import os,time; value=%r.encode(); os.write(1,value[:8]); "
+                "time.sleep(.05); os.write(1,value[8:]+b'\\npartial\\n'); "
+                "time.sleep(30)") % secret
+        started = time.monotonic()
+        with patch("core.scan_view.available", return_value=False), \
+                patch.object(executor.console, "print") as display:
+            rc = executor.run_tool([sys.executable, "-u", "-c", code, secret],
+                                   self.output, timeout=0.2, redactions=[secret])
+        self.assertNotEqual(rc, 0)
+        self.assertLess(time.monotonic() - started, 5)
+        saved = self.output.read_text()
+        self.assertTrue(saved.startswith("[masque]\npartial\n"), saved)
+        self.assertNotIn(secret, saved)
+        self.assertNotIn(secret, " ".join(str(call) for call in display.call_args_list))
         self.assertEqual(executor.ACTIVE_PROCS, [])
 
     def test_stderr_unicode_partial_lines_and_raw_signal_status(self):

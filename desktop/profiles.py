@@ -3,6 +3,9 @@ import ipaddress
 import re
 import string
 from pathlib import Path, PurePosixPath
+
+from core.redaction import StreamRedactor as StreamRedactor
+from core.redaction import redact as _redact
 from desktop.i18n import T
 
 SECRETS={'passwd','cookie','api_key'}
@@ -48,23 +51,4 @@ def secrets_for(preset,values):
     return [values[k] for k in preset.get('fields',{}) if k in SECRETS and values.get(k)]
 
 def redact(text,secrets):
-    for secret in sorted(set(secrets),key=len,reverse=True):
-        if secret: text=text.replace(secret,T('[masqué]'))
-    return text
-
-class StreamRedactor:
-    """Delay a suffix so secrets split across process-output chunks stay hidden."""
-    def __init__(self,secrets=()):
-        self.secrets=sorted({s.encode('utf-8') for s in secrets if s},key=len,reverse=True)
-        self.buffer=b''
-        self.keep=max((len(s) for s in self.secrets),default=1)-1
-    def feed(self,data,final=False):
-        self.buffer+=data
-        cutoff=len(self.buffer) if final else max(0,len(self.buffer)-self.keep)
-        out=bytearray(); index=0
-        while index<cutoff:
-            match=next((s for s in self.secrets if self.buffer.startswith(s,index)),None)
-            if match: out.extend(b'[masque]'); index+=len(match)
-            else: out.append(self.buffer[index]); index+=1
-        self.buffer=self.buffer[index:]
-        return bytes(out)
+    return _redact(text,secrets,T('[masqué]'))

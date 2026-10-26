@@ -1,5 +1,14 @@
 # Contributing
 
+## Contribution licensing
+
+ChaosticTool is copyright 2026 Chaos-Tic and is distributed under
+GPL-3.0-or-later. External code contributions are accepted only after a separate
+written agreement with the maintainer that preserves the maintainer's right to
+relicense the project. Do not open a code pull request without that agreement.
+Bug reports and feature suggestions that do not include contributed code remain
+welcome through the issue tracker.
+
 ## Branches
 
 `main` is the single public product branch for the CLI and Desktop application.

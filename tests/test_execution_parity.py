@@ -3,19 +3,18 @@
 Children are disposable local Python programs; no security tools or network are
 used. The CLI presentation is replaced only to drive its existing abort callback.
 These contracts cover execution and saved output, not installation, routing,
-flows, Windows/WSL or UI rendering. CLI timeout and redaction controls are not
-currently public, so their Desktop-only tests cannot establish adapter parity.
+flows, Windows/WSL or UI rendering.
 """
 from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import sys
 import tempfile
 import time
 import unicodedata
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -26,7 +25,6 @@ from PySide6.QtWidgets import QApplication
 from core import executor
 from desktop.process import Runner as DesktopRunner
 from desktop.storage import Store
-
 
 APP = QApplication.instance() or QApplication([])
 
@@ -39,7 +37,8 @@ class ExecutionParityTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.store = Store(self.root / "desktop data")
 
-    def run_cli(self, command: list[str], ready: Path | None = None) -> dict:
+    def run_cli(self, command: list[str], ready: Path | None = None, *,
+                timeout: float | None = None, redactions: tuple[str, ...] = ()) -> dict:
         output = self.root / "cli output.txt"
 
         def cancel_when_ready(state, start, abort, context, cmd, output_path):
@@ -57,7 +56,8 @@ class ExecutionParityTests(unittest.TestCase):
         with patch.object(executor.console, "print"), \
                 patch("core.scan_view.available", return_value=ready is not None), \
                 patch("core.scan_view.run_scan", side_effect=cancel_when_ready):
-            code = executor.run_tool(command, output, context={"wait": False})
+            code = executor.run_tool(command, output, context={"wait": False},
+                                     timeout=timeout, redactions=redactions)
         self.assertEqual(executor.ACTIVE_PROCS, [], "CLI retained an active process")
         if ready is not None:
             self.assertEqual(code, 130, "CLI must expose its cancellation exit code")
@@ -67,7 +67,9 @@ class ExecutionParityTests(unittest.TestCase):
             "output": output.read_text(encoding="utf-8") if output.exists() else "",
         }
 
-    def run_desktop(self, command: list[str], ready: Path | None = None) -> dict:
+    def run_desktop(self, command: list[str], ready: Path | None = None, *,
+                    timeout: float | None = None,
+                    redactions: tuple[str, ...] = ()) -> dict:
         runner = DesktopRunner(self.store)
         self.addCleanup(runner.shutdown)
         completed, activity = [], []
@@ -93,7 +95,9 @@ class ExecutionParityTests(unittest.TestCase):
         if ready is not None:
             watcher.timeout.connect(cancel_when_ready)
         try:
-            runner.start("Parity", "Local fixture", None, command=command)
+            runner.start("Parity", "Local fixture", None, command=command,
+                         timeout_ms=int(timeout * 1000) if timeout is not None else 10_000,
+                         redactions=redactions)
             watchdog.start(10_000)
             if ready is not None:
                 watcher.start()
@@ -151,6 +155,28 @@ class ExecutionParityTests(unittest.TestCase):
             "import os,sys; os.write(1,b'partial failure'); sys.exit(7)",
             "partial failure", code=7,
         )
+
+    def test_redaction_masks_secrets_split_across_output_chunks(self):
+        secret = "adapter-private-secret"
+        command = [sys.executable, "-u", "-c",
+                   "import os,sys,time; value=sys.argv[1].encode(); "
+                   "os.write(1,value[:7]); time.sleep(.05); "
+                   "os.write(1,value[7:]+b'\\n')", secret]
+        cli = self.canonical(self.run_cli(command, redactions=(secret,)))
+        desktop = self.canonical(self.run_desktop(command, redactions=(secret,)))
+        self.assertEqual(cli, desktop)
+        self.assertEqual(cli["output"], "[masque]\n")
+        self.assertNotIn(secret, cli["output"])
+
+    def test_timeout_preserves_matching_partial_output_and_failure(self):
+        command = [sys.executable, "-u", "-c",
+                   "import os,time; os.write(1,b'partial\\n'); time.sleep(30)"]
+        cli = self.canonical(self.run_cli(command, timeout=0.2))
+        desktop = self.canonical(self.run_desktop(command, timeout=0.2))
+        self.assertEqual(cli, desktop)
+        self.assertEqual(cli["status"], "failed")
+        self.assertNotEqual(cli["code"], 0)
+        self.assertTrue(cli["output"].startswith("partial\n"), cli["output"])
 
     def test_empty_success_has_an_empty_journal(self):
         self.assert_fixture("pass", "")

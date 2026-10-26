@@ -1,7 +1,6 @@
 """Native packages must ship one application with both supported interfaces."""
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -9,6 +8,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from pathlib import Path
 
 from core.version import VERSION
 
@@ -16,6 +16,31 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PackagingMetadataTests(unittest.TestCase):
+    def test_public_metadata_uses_gpl_3_or_later(self):
+        license_id = 'GPL-3.0-or-later'
+        license_text = (ROOT / 'LICENSE').read_text()
+        self.assertIn('SPDX-License-Identifier: GPL-3.0-or-later', license_text)
+        self.assertTrue(license_text.endswith(
+            (ROOT / 'docs/licenses/GPL-3.0-only.txt').read_text()
+        ))
+        self.assertIn('GPL-3.0-or-later', (ROOT / 'README.md').read_text())
+        self.assertIn('GPL-3.0-or-later', (ROOT / 'docs/THIRD_PARTY.md').read_text())
+        self.assertIn("license=('GPL-3.0-or-later')",
+                      (ROOT / 'packaging/arch/PKGBUILD').read_text())
+        self.assertIsNotNone(re.search(
+            rf'^License:\s+{re.escape(license_id)}$',
+            (ROOT / 'packaging/fedora/chaostictool.spec').read_text(),
+            re.M,
+        ))
+        self.assertIn('License: GPL-3+\n',
+                      (ROOT / 'packaging/debian/copyright').read_text())
+        self.assertIn('set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")',
+                      (ROOT / 'CMakeLists.txt').read_text())
+        self.assertTrue((ROOT / 'TRADEMARKS.md').is_file())
+        contributing = (ROOT / 'CONTRIBUTING.md').read_text()
+        self.assertIn('written agreement', contributing)
+        self.assertIn('relicense', contributing)
+
     def test_source_recipes_share_name_version_and_runtime(self):
         arch = (ROOT / 'packaging/arch/PKGBUILD').read_text()
         rpm = (ROOT / 'packaging/fedora/chaostictool.spec').read_text()

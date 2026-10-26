@@ -36,6 +36,12 @@ same **ten phases** used by Desktop. Desktop adds four built-in utilities, for
 **52 catalogue entries**. Native adapters may add or adapt forms; catalogue presence
 is not proof that a tool is installed or operational on a platform.
 
+The normalized installation manifest covers all 48 shared tools on Linux, Windows and
+macOS for x86-64 and ARM64. An entry is either backed by a pinned automatic source or
+distribution package, or explicitly marked unsupported with a reason and next action.
+This contract does not claim that every upstream tool publishes a native build for every
+platform, and the existing installers are still being migrated to consume it directly.
+
 | Phase | Shared category |
 | --- | --- |
 | 01 | OSINT & passive reconnaissance |

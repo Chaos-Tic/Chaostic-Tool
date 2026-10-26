@@ -31,7 +31,7 @@ and runtime evidence before being marked verified.
 
 ## Catalogue coverage
 
-The shared registry contains **48 CLI tools and 137 CLI profiles**, organized in the
+The shared registry contains **46 CLI tools and 136 CLI profiles**, organized in the
 same **ten phases** used by Desktop. Desktop adds four built-in utilities, for
 **52 catalogue entries**. Native adapters may add or adapt forms; catalogue presence
 is not proof that a tool is installed or operational on a platform.

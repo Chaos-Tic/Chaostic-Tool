@@ -875,7 +875,7 @@ class Window(QMainWindow):
             self.tool_note.setText(T(tool['note']) + T('\nDernier échec : ') + error[-600:])
 
         self.tool_path.setText(find_executable(tool, self.store.settings["executables"].get(tool["key"]), self.store.root) or "")
-        self.launch_button.setEnabled(bool(tool['presets']) and not self.runner.active and (tool['key']!='winpeas' or os.name=='nt'))
+        self.launch_button.setEnabled(bool(tool['presets']) and not self.runner.active)
         self.linux_install_button.setVisible(bool(tool.get('linux_presets')))
         self.linux_install_button.setEnabled(not self.runner.active)
         self.linux_path_button.setVisible(bool(tool.get('linux_presets')))

@@ -20,7 +20,7 @@ KALI_PACKAGES = {
     'wpscan': 'wpscan', 'testssl.sh': 'testssl.sh', 'sslscan': 'sslscan',
     'sqlmap': 'sqlmap', 'xsstrike': 'xsstrike', 'dalfox': 'dalfox',
     'msfconsole': 'metasploit-framework', 'msfvenom': 'metasploit-framework',
-    'linpeas.sh': 'peass', 'secretsdump.py': 'impacket-scripts',
+    'secretsdump.py': 'impacket-scripts',
     'psexec.py': 'impacket-scripts', 'GetUserSPNs.py': 'impacket-scripts',
     'crackmapexec': 'netexec', 'bloodhound-python': 'bloodhound.py',
     'hashcat': 'hashcat', 'john': 'john', 'hydra': 'hydra',

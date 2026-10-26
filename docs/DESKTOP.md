@@ -3,7 +3,7 @@
 **Sous Windows : [présentation, téléchargement et captures de l’interface](../README_WINDOWS.md).**
 
 Application graphique pour Windows, Linux et macOS. Le catalogue contient les
-48 outils du registre CLI et 4 diagnostics supplémentaires. Tous ont des profils
+46 outils du registre CLI et 4 diagnostics supplémentaires. Tous ont des profils
 exécutables avec formulaires ; leur disponibilité dépend des outils installés,
 du système choisi et des prérequis propres à chaque outil.
 
@@ -96,8 +96,7 @@ Sur Linux, lancer l'interface avec le compte utilisateur habituel. Les profils
 natifs interactifs ou nécessitant des privilèges passent automatiquement par un
 pseudo-terminal local. Le mot de passe sudo se saisit dans **Exécution**, avec
 l'option de saisie secrète. Ces profils natifs restent sur cet ordinateur même
-si l'environnement Linux configuré séparément utilise SSH. WinPEAS est indiqué
-comme propre à Windows et ne peut pas être lancé sur Linux.
+si l'environnement Linux configuré séparément utilise SSH.
 
 Les commandes interactives utilisent un vrai pseudo-terminal Linux, avec saisie
 intégrée, masquage des secrets, Ctrl+C, arrêt et limite de durée. En WSL les chemins
@@ -147,4 +146,4 @@ sommes de contrôle dans un brouillon, puis publie la release après réussite.
 
 ## Fonctionnalités communes
 
-Exécuter et arrêter depuis la même page ; classement selon les dix phases CLI ; noms de dossiers avec cible, outil et profil ; historique recherchable ; trois attack flows, éditeur et import/export JSON. RustScan dispose d’une installation native sur les plateformes publiées en amont, et Nmap de son assistant officiel sous Windows x64. Les 48 outils et tous leurs profils CLI sont contrôlés par les tests de correspondance. Voir le guide Windows pour le fonctionnement des flows et les limites de chaque moteur.
+Exécuter et arrêter depuis la même page ; classement selon les dix phases CLI ; noms de dossiers avec cible, outil et profil ; historique recherchable ; trois attack flows, éditeur et import/export JSON. RustScan dispose d’une installation native sur les plateformes publiées en amont, et Nmap de son assistant officiel sous Windows x64. Les 46 outils et tous leurs profils CLI sont contrôlés par les tests de correspondance. Voir le guide Windows pour le fonctionnement des flows et les limites de chaque moteur.

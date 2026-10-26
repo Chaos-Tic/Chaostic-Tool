@@ -402,28 +402,6 @@ TOOLS = {
     },
 
     # ---------------- POST-EXPLOIT ----------------
-    "linpeas.sh": {
-        "name": "LinPEAS",
-        "binary": "linpeas.sh",
-        "desc": "Linux privilege enumeration: SUID, crons, configs, credentials",
-        "category": "postexploit",
-        "output_dir": "postexploit",
-        "requires_root": False,
-        "note": "LinPEAS must be downloaded manually: curl -Lo linpeas.sh https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh && chmod +x linpeas.sh && sudo mv linpeas.sh /usr/local/bin/",
-        "presets": [
-            {"label": "Run linpeas.sh", "cmd": ["linpeas.sh"], "output": "linpeas"},
-        ],
-    },
-    "winpeas": {
-        "name": "WinPEAS",
-        "binary": "winpeas.exe",
-        "desc": "Windows privilege enumeration — runs on the target",
-        "category": "postexploit",
-        "output_dir": "postexploit",
-        "requires_root": False,
-        "note": "WinPEAS runs on the Windows target. Download: https://github.com/peass-ng/PEASS-ng/releases",
-        "presets": [],
-    },
     "secretsdump.py": {
         "name": "Impacket secretsdump",
         "binary": "secretsdump.py",

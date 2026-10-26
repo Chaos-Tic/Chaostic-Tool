@@ -32,7 +32,7 @@ class AllProfilesTests(unittest.TestCase):
     def test_every_original_tool_has_an_executable_profile(self):
         items={t['key']:t for t in catalog()}
         self.assertTrue(set(TOOLS)<=set(items))
-        self.assertEqual(len(items),52)
+        self.assertEqual(len(items),50)
         for key in TOOLS:
             with self.subTest(key=key):
                 self.assertNotEqual(items[key]['mode'],'unavailable')

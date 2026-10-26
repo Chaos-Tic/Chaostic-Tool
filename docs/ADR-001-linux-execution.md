@@ -8,7 +8,7 @@ Distribution : six builds séparés x64/ARM64, Python embarqué pour l’applica
 
 ## Contexte
 
-Les 48 outils ne sont pas tous exécutables sous Windows. Les profils interactifs,
+Les 46 outils ne sont pas tous exécutables sous Windows. Les profils interactifs,
 chemins de fichiers, privilèges et interfaces réseau demandent une gestion réelle.
 Ajouter des lignes au catalogue ne constitue pas un portage fonctionnel.
 

@@ -16,8 +16,8 @@ from desktop.linux_install import PACKAGE_NAMES as LEGACY_PACKAGE_NAMES
 
 
 class ToolManifestTests(unittest.TestCase):
-    def test_manifest_covers_exactly_the_48_catalog_tools(self):
-        self.assertEqual(len(TOOLS), 48)
+    def test_manifest_covers_exactly_the_46_catalog_tools(self):
+        self.assertEqual(len(TOOLS), 46)
         self.assertEqual(set(TOOL_MANIFEST), set(TOOLS))
         self.assertFalse(set(TOOL_MANIFEST) & TECHNICAL_COMPONENTS)
         for key, record in TOOL_MANIFEST.items():

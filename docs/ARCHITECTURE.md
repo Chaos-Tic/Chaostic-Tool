@@ -14,7 +14,7 @@ flowchart TD
     UserGUI[Liquid Glass Desktop] -->|Qt signals| DesktopRunner[Desktop process adapter]
     
     subgraph Core[ChaosticTool Core Architecture]
-        CoreProfiles[48 Tools / 137 CLI Profiles]
+        CoreProfiles[46 Tools / 136 CLI Profiles]
         CoreFlows[Reconnaissance Flow Orchestrator]
         CoreUpdate[Release & Update Service]
     end
@@ -56,7 +56,7 @@ flowchart TD
 | --- | --- |
 | [`chaostictool.py`](../chaostictool.py) | Unified command-line launcher, Rich terminal UI, profile runner, workflow dispatch |
 | [`chaostic_desktop.py`](../chaostic_desktop.py) | Native desktop application entry point (`chaostictool-desktop`), Qt initialization |
-| [`core/tools.py`](../core/tools.py) | Shared registry of 48 tools and 137 CLI profiles across ten phases |
+| [`core/tools.py`](../core/tools.py) | Shared registry of 46 tools and 136 CLI profiles across ten phases |
 | [`core/tool_manifest.py`](../core/tool_manifest.py) | Normalized installation contract for every catalog tool and supported platform/architecture |
 | [`desktop/profiles.py`](../desktop/profiles.py) | Validation, normalization and secret redaction for Desktop launch forms |
 | [`core/flows.py`](../core/flows.py) | Orchestrated reconnaissance workflows, step sequencing, and dependency resolution |

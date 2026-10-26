@@ -88,7 +88,6 @@ for _key in ['dnsrecon','theharvester','shodan','xsstrike','secretsdump.py','pse
     elif _key in ('secretsdump.py','psexec.py','GetUserSPNs.py'): ADAPTERS[_key]['package']='impacket'
 ADAPTERS['shodan']['presets'].append(dict(label='Configurer la clé API Shodan',args=['init','{api_key}'],fields={'api_key':('Clé API','')}))
 ADAPTERS['theharvester']['presets']=[dict(label='Sources publiques crtsh',args=['-d','{host}','-b','crtsh']),dict(label='Sources personnalisées',args=['-d','{host}','-b','{sources}'],fields={'sources':('Sources séparées par des virgules','crtsh')})]
-ADAPTERS['winpeas']=dict(package='winpeas',url='https://github.com/peass-ng/PEASS-ng/releases',note='Exécution sur cet ordinateur Windows. Les résultats décrivent ce PC, pas une cible distante.',presets=[dict(label='Informations système de ce PC',args=['systeminfo','notcolor']),dict(label='Énumération complète de ce PC',args=['notcolor'])])
 ADAPTERS['amass']['presets']=[dict(label='Énumération avec moteur Amass',args=['enum','-d','{host}','-engine','{engine}'],fields={'engine':('URL du moteur de collecte','http://127.0.0.1:4000')},domain_only=True)]
 for _key in ['subfinder','httpx','gobuster','ffuf','sqlmap','nuclei']:
     for _p in TOOLS[_key]['presets']:
@@ -163,7 +162,7 @@ def catalog():
     entries=[]
     for key,definition in {**TOOLS,**BUILTINS}.items():
         item=dict(definition,key=key,group=CATEGORIES.get(definition['category'],definition['category']))
-        item['linux_presets']=linux_presets(key) if key in TOOLS and key!='winpeas' else []
+        item['linux_presets']=linux_presets(key) if key in TOOLS else []
         if key in BUILTINS:
             item.update(BUILTINS[key],mode='builtin',note='Inclus dans l’application. Aucune installation supplémentaire.')
             item['presets']=[dict(p,backend='builtin',needs_target=p.get('needs_target',key!='desktop-diagnostic')) for p in item['presets']]
@@ -188,7 +187,6 @@ def catalog():
 
 
 def native_command(tool,configured=None,root=None):
-    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool.get('package') and not configured and can_install(tool['package']):
         try:
             binary=tool['binary'] if tool['key'] in ('secretsdump.py','psexec.py','GetUserSPNs.py') else None
@@ -207,7 +205,6 @@ def native_command(tool,configured=None,root=None):
 
 
 def find_executable(tool, configured=None, root=None):
-    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool["mode"] != "native":
         return None
     candidates = []
@@ -232,7 +229,6 @@ def find_executable(tool, configured=None, root=None):
 
 
 def availability(tool,settings,root=None):
-    if tool['key']=='winpeas' and os.name!='nt': return 'Windows uniquement',False
     if tool['mode']=='builtin': return 'Inclus',True
     if tool['mode']=='native' and native_command(tool,settings.get(tool['key']),root):
         return ('Service requis',False) if tool['key']=='amass' else ('Prêt',True)

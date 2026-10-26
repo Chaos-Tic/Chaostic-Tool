@@ -41,7 +41,7 @@ disabled at any time in settings.
 validated in this branch but are not claimed as published distribution channels. The
 latest public releases still contain the earlier split CLI and Desktop editions.
 
-[Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
+[Project website](https://tool.chaostic.cloud/cybersecurite.html) · [Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
 
 ---
 
@@ -61,7 +61,7 @@ latest public releases still contain the earlier split CLI and Desktop editions.
 <td width="50%"><img src="docs/media/liquid-glass-historique.png" alt="Mission report and structured run logs"></td>
 </tr>
 <tr>
-<td><b>3. Shared tool arsenal.</b> Forty-eight CLI tools and 137 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>
+<td><b>3. Shared tool arsenal.</b> Forty-six CLI tools and 136 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>
 <td><b>4. Intelligence & Audit.</b> Review parsed findings, inspect raw chunk logs, or export structured JSON reports. Atomic history clearing prevents symlink directory traversal.</td>
 </tr>
 </table>
@@ -140,7 +140,7 @@ ChaosticTool shares one ordered set of ten phases across both interfaces:
 | **03. Web enumeration** | HTTP probing, crawling and content discovery | `gobuster`, `ffuf`, `httpx`, `wafw00f`, `whatweb`, `katana`, `gau`, `waybackurls` |
 | **04. Vulnerabilities** | Web, TLS and template-based checks | `nikto`, `nuclei`, `wpscan`, `testssl.sh`, `sslscan` |
 | **05. Exploitation** | Explicitly selected exploitation workflows | `sqlmap`, `xsstrike`, `dalfox`, `msfconsole`, `msfvenom` |
-| **06. Post-exploitation** | Local assessment and privilege workflows | `linpeas.sh`, `winpeas` and shared Windows/AD tools |
+| **06. Post-exploitation** | Credential, remote execution and graph collection workflows | Impacket tools, `NetExec` and `bloodhound-python` |
 | **07. Passwords** | Offline and online password auditing | `hashcat`, `john`, `hydra` |
 | **08. Windows / AD** | Windows and Active Directory assessment | Impacket tools, `NetExec`/legacy CME, `bloodhound-python` |
 | **09. Wi-Fi** | Wireless discovery and authorized auditing | Aircrack-ng tools, `reaver`, `wifite` |

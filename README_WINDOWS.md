@@ -25,7 +25,7 @@ history are shipped. Historical screenshots below illustrate the same workflows.
 
 > **Before you start**
 >
-> The catalog contains **48 original tools and 4 additional diagnostics**, i.e. **52 entries**. A catalog entry is not an already-installed dependency. Some operations require Linux, special privileges, an API key, a service or suitable hardware. The installed application needs neither Python nor Git to start.
+> The catalog contains **46 original tools and 4 additional diagnostics**, i.e. **50 entries**. A catalog entry is not an already-installed dependency. Some operations require Linux, special privileges, an API key, a service or suitable hardware. The installed application needs neither Python nor Git to start.
 
 ## The interface language
 
@@ -357,7 +357,7 @@ The history combines a text search with Target, Status, Tool and Period lists (2
 | The installer does not match this PC | x64/ARM64 architecture and Windows version | Re-read the download table; do not use a Linux/macOS archive |
 | Windows blocks opening | Origin, reputation warning or administrator policy | Check the Release and its fingerprint; read the exact message. Do not globally disable protections |
 | Only 6 tools are ready | Fresh profile without external dependencies | This is consistent with the six bundled functions; install the tools you want |
-| The catalog does not show the 52 entries | Search, category and **Ready only** | Clear the search, choose all categories and disable that filter |
+| The catalog does not show the 50 entries | Search, category and **Ready only** | Clear the search, choose all categories and disable that filter |
 | A pack finishes with a failure | List of tools that actually failed | Read **History**; installs that already succeeded are kept |
 | An antivirus blocks a tool | Windows protection history and install log | Identify the affected package; Desktop does not create an antivirus exclusion |
 | “Configure Linux” | WSL/SSH mode and last check | Save the configuration then check the connection |

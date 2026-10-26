@@ -87,8 +87,8 @@ even when a separate SSH environment is configured. Selecting the Linux
 environment explicitly uses that configured local or remote environment.
 SSH input files must exist on the remote host; automatic transfer is not included.
 
-WinPEAS is Windows-only. GPU cracking and wireless operations still require
-compatible drivers and hardware. Tor/proxychains and VPN guard are CLI features.
+GPU cracking and wireless operations still require compatible drivers and
+hardware. Tor/proxychains and VPN guard are CLI features.
 
 ## Build a portable Linux bundle
 

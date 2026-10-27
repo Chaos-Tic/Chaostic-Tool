@@ -66,11 +66,45 @@ def grab(window, name):
     print("saved", name)
 
 
-def main():
+def capture_set(app, home, theme, suffix):
+    """Capture the full documentation screen set for one theme.
+
+    `suffix` is appended before the extension (e.g. "-dark") so the light and
+    dark passes write side-by-side files without overwriting each other.
+    """
     from PySide6.QtWidgets import QApplication
     from desktop.storage import Store
     from desktop import theme as thememod
     from desktop.window import Window, TargetDialog
+
+    build_settings(home, theme)
+    thememod.apply_theme(app, theme)
+    store = Store(home)
+    win = Window(store)
+    win.resize(*SIZE)
+    win.show()
+    QApplication.processEvents()
+
+    win.navigate(0); grab(win, f"liquid-glass-accueil{suffix}.png")
+    win.navigate(2); grab(win, f"liquid-glass-arsenal{suffix}.png")
+    # Synthetic output: no process or network request is started for captures.
+    win.console.setPlainText("Documentation demo\n\nPreparing an operation for staging.example.com\nChoose a tool and profile to begin.\n\nNo operation has been started.")
+    win.navigate(3); grab(win, f"liquid-glass-execution{suffix}.png")
+    win.navigate(4); grab(win, f"liquid-glass-historique{suffix}.png")
+    win.navigate(5); grab(win, f"liquid-glass-linux{suffix}.png")
+    win.navigate(6); grab(win, f"liquid-glass-flows{suffix}.png")
+
+    dlg = TargetDialog(win); dlg.resize(520, 300); dlg.show()
+    QApplication.processEvents()
+    dlg.grab().save(str(OUT / f"liquid-glass-formulaire{suffix}.png")); print(f"saved formulaire{suffix}")
+    dlg.close()
+
+    win.navigate(0); win.resize(900, 600); grab(win, f"liquid-glass-compact{suffix}.png")
+    win.close()
+
+
+def main():
+    from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication(sys.argv)
 
@@ -79,40 +113,15 @@ def main():
         seed(home)
 
         # Light is the primary documentation theme.
-        build_settings(home, "light")
-        thememod.apply_theme(app, "light")
-        store = Store(home)
-        win = Window(store)
-        win.resize(*SIZE)
-        win.show()
-        QApplication.processEvents()
+        capture_set(app, home, "light", "")
 
-        win.navigate(0); grab(win, "liquid-glass-accueil.png")
-        win.navigate(2); grab(win, "liquid-glass-arsenal.png")
-        # Synthetic output: no process or network request is started for captures.
-        win.console.setPlainText("Documentation demo\n\nPreparing an operation for staging.example.com\nChoose a tool and profile to begin.\n\nNo operation has been started.")
-        win.navigate(3); grab(win, "liquid-glass-execution.png")
-        win.navigate(4); grab(win, "liquid-glass-historique.png")
-        win.navigate(5); grab(win, "liquid-glass-linux.png")
-        win.navigate(6); grab(win, "liquid-glass-flows.png")
+        # Complementary dark theme: same full set with a -dark suffix.
+        capture_set(app, home, "dark", "-dark")
 
-        dlg = TargetDialog(win); dlg.resize(520, 300); dlg.show()
-        QApplication.processEvents()
-        dlg.grab().save(str(OUT / "liquid-glass-formulaire.png")); print("saved formulaire")
-        dlg.close()
-
-        win.navigate(0); win.resize(900,600); grab(win, "liquid-glass-compact.png")
-        win.close()
-
-        # Complementary dark theme.
-        build_settings(home, "dark")
-        thememod.apply_theme(app, "dark")
-        store2 = Store(home)
-        win2 = Window(store2)
-        win2.resize(*SIZE)
-        win2.show()
-        win2.navigate(0); grab(win2, "liquid-glass-dark.png")
-        win2.close()
+        # Keep the historical accueil-only dark alias for existing references.
+        import shutil
+        shutil.copyfile(OUT / "liquid-glass-accueil-dark.png", OUT / "liquid-glass-dark.png")
+        print("saved liquid-glass-dark.png (alias)")
     print("DONE")
 
 

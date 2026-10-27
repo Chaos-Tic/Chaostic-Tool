@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="docs/media/banner.svg">
-    <img src="docs/media/banner-dark.svg" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/banner.png">
+    <img src="docs/media/banner-dark.png" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
   </picture>
 </p>
 
@@ -22,7 +22,7 @@
 > deterministic intelligence where chaotic attack surfaces resolve into clarity.
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="ChaosticTool reconnaissance pipeline: target selection, offensive tool catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="800">
+  <picture><source media="(prefers-color-scheme: light)" srcset="docs/media/hero.gif"><img src="docs/media/hero-dark.gif" alt="ChaosticTool reconnaissance pipeline: target selection, offensive tool catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="100%"></picture>
 </p>
 
 ChaosticTool bridges the gap between raw command-line auditing and graphical operations.

@@ -46,6 +46,7 @@ class LaunchDialog(QDialog):
         self.context=QLabel(); self.context.setObjectName('muted'); self.context.setWordWrap(True); layout.addWidget(self.context)
         actions=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         actions.button(QDialogButtonBox.StandardButton.Ok).setText(T('Lancer'))
+        actions.button(QDialogButtonBox.StandardButton.Cancel).setText(T('Annuler'))
         actions.accepted.connect(self.accept); actions.rejected.connect(self.reject); layout.addWidget(actions)
         self.backend.currentIndexChanged.connect(self.backend_changed)
         self.profiles.currentIndexChanged.connect(self.profile_changed)
@@ -107,4 +108,4 @@ class LaunchDialog(QDialog):
             args=build_arguments(self.tool,0,self.target(),self.wordlist.text(),self.field_values(),preset=preset,backend=self.effective_backend())
             text=subprocess.list2cmdline([self.tool.get('binary',preset.get('worker','diagnostic')),*args])
             self.preview.setText(redact(text,secrets_for(preset,self.field_values())))
-        except (ValueError,KeyError,TypeError) as exc: self.preview.setText(str(exc))
+        except (ValueError,KeyError,TypeError) as exc: self.preview.setText(T(str(exc)))

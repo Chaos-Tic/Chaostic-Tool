@@ -3,7 +3,6 @@ import shlex
 import shutil
 import socket
 import subprocess
-import time
 
 from rich import box
 from rich.console import Group
@@ -11,16 +10,17 @@ from rich.markup import escape
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.rule import Rule
-from rich.text import Text
 from rich.table import Table
+from rich.text import Text
 
-from core import target as tgt
 from core import executor, tui
-from core.version import VERSION
-from core.theme import THEME, COLORS, EYEBROW, EYEBROW_COMPACT
+from core import target as tgt
 from core.proxy import PROXY_STATE, route_status, should_proxy_tool, wrap_command
-
+from core.redaction import redact, secrets_for
 from core.terminal import console
+from core.theme import EYEBROW, EYEBROW_COMPACT
+from core.version import VERSION
+
 _BINARY_VALIDATION_CACHE = {}
 
 SUPPORT_TOOLS = {
@@ -485,10 +485,12 @@ def run_preset(tool, preset, pause_after=True):
     cmd = [_format_value(p, fill) for p in preset["cmd"]]
     if cmd and cmd[0] == tool["binary"]:
         cmd[0] = resolve_tool_binary(tool)
+    redactions = secrets_for(fill, (preset.get("prompt") or {}).keys())
+    display_cmd = [redact(argument, redactions) for argument in cmd]
 
     # UX-005 : confirmation avant lancement quand des paramètres ont été saisis
     if has_prompts:
-        console.print(Panel(Text(shlex.join(cmd), style="brand.command"), border_style="brand.warn", box=box.ROUNDED))
+        console.print(Panel(Text(shlex.join(display_cmd), style="brand.command"), border_style="brand.warn", box=box.ROUNDED))
         rep = console.input("[brand.warn]Run? [Y/n][/brand.warn] [brand.white]▸[/brand.white] ").strip().lower()
         if rep not in ("", "y", "yes", "o", "oui"):
             console.print("[brand.muted]Cancelled.[/brand.muted]")
@@ -509,13 +511,15 @@ def run_preset(tool, preset, pause_after=True):
         cmd = wrap_command(cmd)
     elif PROXY_STATE["enabled"]:
         console.print("[brand.muted]Proxy/VPN skipped for this local or network-interface tool.[/brand.muted]")
+    display_cmd = [redact(argument, redactions) for argument in cmd]
     fullscreen = tui.available()
     if not fullscreen:
-        console.print(_launch_panel(tool, preset, cmd, route, output_path))
+        console.print(_launch_panel(tool, preset, display_cmd, route, output_path))
     executor.run_tool(
         cmd, output_path=output_path, interactive=interactive,
         context={"tool": tool["name"], "preset": preset["label"],
                  "category": tool["category"], "route": route, "wait": pause_after},
+        timeout=preset.get("timeout"), redactions=redactions,
     )
     if pause_after and not fullscreen:
         pause()
@@ -646,8 +650,8 @@ def startup_check():
     Checks the availability of all tools (airgeddon-style).
     UX-004 : affiche seulement les outils manquants pour ne pas bloquer au démarrage.
     """
-    from core.tools import TOOLS
     from core.installer import install_missing
+    from core.tools import TOOLS
 
     header("Arsenal readiness scan")
 

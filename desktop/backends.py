@@ -72,8 +72,7 @@ def inspect_backend(request):
     from core.tools import TOOLS
     root=Path(request['root'])
     config=get_config(root)
-    choices={key:[*([config.get('paths',{}).get(key)] if config.get('paths',{}).get(key) else []),t['binary'],*t.get('binary_alternatives',[])] for key,t in TOOLS.items() if key!='winpeas'}
-    choices['linpeas.sh']+=['/usr/share/peass/linpeas/linpeas.sh','/usr/share/peass/linpeas.sh']
+    choices={key:[*([config.get('paths',{}).get(key)] if config.get('paths',{}).get(key) else []),t['binary'],*t.get('binary_alternatives',[])] for key,t in TOOLS.items()}
     try:
         markers={key:t['help_contains_any'] for key,t in TOOLS.items() if t.get('help_contains_any')}
         result=subprocess.run(bridge_command(config),input=(json.dumps({'op':'inventory','tools':choices,'markers':markers})+'\n').encode(),capture_output=True,timeout=45,creationflags=NO_WINDOW)

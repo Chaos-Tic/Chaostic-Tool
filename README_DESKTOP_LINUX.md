@@ -1,8 +1,7 @@
 # ChaosticTool Desktop on Linux
 
-The `desktop/linux-app` branch uses the shared PySide6 interface and adds Linux
-execution and distro package installation. The CLI remains on `linux-cli`;
-the Windows edition remains on `desktop/windows-app`.
+The PySide6 interface, Linux execution layer and terminal CLI are maintained together
+on `main`. They share one catalog, one version and one installation tree.
 
 ## Desktop 1.3.0 downloads
 
@@ -28,7 +27,7 @@ sudo apt install libegl1 libopengl0 libxkbcommon0 libxcb-cursor0 libxcb-icccm4 l
 Then prepare an isolated Python environment:
 
 ```sh
-git clone --branch desktop/linux-app https://github.com/Chaos-Tic/Chaostic-Tool.git
+git clone https://github.com/Chaos-Tic/Chaostic-Tool.git
 cd Chaostic-Tool
 python3.14 -m venv .venv
 . .venv/bin/activate
@@ -88,8 +87,8 @@ even when a separate SSH environment is configured. Selecting the Linux
 environment explicitly uses that configured local or remote environment.
 SSH input files must exist on the remote host; automatic transfer is not included.
 
-WinPEAS is Windows-only. GPU cracking and wireless operations still require
-compatible drivers and hardware. Tor/proxychains and VPN guard are CLI features.
+GPU cracking and wireless operations still require compatible drivers and
+hardware. Tor/proxychains and VPN guard are CLI features.
 
 ## Build a portable Linux bundle
 

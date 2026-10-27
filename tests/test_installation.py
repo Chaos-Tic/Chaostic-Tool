@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from core.paths import data_home, ensure_directory
-from core import flows
+from core import flows, target
 
 
 @unittest.skipIf(os.name == 'nt', 'POSIX installation paths require Linux/Unix')
@@ -18,6 +18,14 @@ class InstallationTests(unittest.TestCase):
         with patch.dict(os.environ, {"CHAOSTIC_CLI_HOME": "relative"}, clear=True):
             with self.assertRaises(ValueError):
                 data_home()
+
+    def test_targets_live_in_user_data_not_application_sources(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(target, "TARGETS_ROOT", Path(directory) / "data" / "targets"), \
+                patch.dict(target.TARGET, clear=False):
+            created = target.set_target(host="demo.invalid")
+            self.assertEqual(created, Path(directory) / "data" / "targets" / "demo.invalid")
+            self.assertTrue((created / "osint").is_dir())
 
     def test_sudo_ignores_root_or_inherited_overrides(self):
         with patch.dict(os.environ, {"SUDO_USER": "operator", "HOME": "/root", "XDG_DATA_HOME": "/root/.local/share", "CHAOSTIC_CLI_HOME": "/tmp/untrusted"}, clear=True), patch("os.geteuid", return_value=0), patch("pwd.getpwnam", return_value=SimpleNamespace(pw_dir="/home/operator")):

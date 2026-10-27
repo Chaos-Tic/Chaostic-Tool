@@ -4,7 +4,10 @@
 
 ### Your tools. Your targets. Your results, in a graphical interface.
 
-**Windows 10 / 11 · x64 and ARM64 · Version 1.3.0**
+**Windows 10 / 11 · x64 and ARM64 · Latest published split release: 1.3.0**
+
+> The `main` branch is preparing the unified 2.x package and release line. The links
+> below remain the verified 1.3.0 downloads until that release is published.
 
 **[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/desktop-v1.3.0/ChaosticTool-Setup-1.3.0-windows-x64.exe)**
 
@@ -22,7 +25,7 @@ history are shipped. Historical screenshots below illustrate the same workflows.
 
 > **Before you start**
 >
-> The catalog contains **48 original tools and 4 additional diagnostics**, i.e. **52 entries**. A catalog entry is not an already-installed dependency. Some operations require Linux, special privileges, an API key, a service or suitable hardware. The installed application needs neither Python nor Git to start.
+> The catalog contains **46 original tools and 4 additional diagnostics**, i.e. **50 entries**. A catalog entry is not an already-installed dependency. Some operations require Linux, special privileges, an API key, a service or suitable hardware. The installed application needs neither Python nor Git to start.
 
 ## The interface language
 
@@ -354,7 +357,7 @@ The history combines a text search with Target, Status, Tool and Period lists (2
 | The installer does not match this PC | x64/ARM64 architecture and Windows version | Re-read the download table; do not use a Linux/macOS archive |
 | Windows blocks opening | Origin, reputation warning or administrator policy | Check the Release and its fingerprint; read the exact message. Do not globally disable protections |
 | Only 6 tools are ready | Fresh profile without external dependencies | This is consistent with the six bundled functions; install the tools you want |
-| The catalog does not show the 52 entries | Search, category and **Ready only** | Clear the search, choose all categories and disable that filter |
+| The catalog does not show the 50 entries | Search, category and **Ready only** | Clear the search, choose all categories and disable that filter |
 | A pack finishes with a failure | List of tools that actually failed | Read **History**; installs that already succeeded are kept |
 | An antivirus blocks a tool | Windows protection history and install log | Identify the affected package; Desktop does not create an antivirus exclusion |
 | “Configure Linux” | WSL/SSH mode and last check | Save the configuration then check the connection |
@@ -419,7 +422,7 @@ Replace the compiler path with its real location. The build script runs the test
 | [Licenses and components](docs/THIRD_PARTY.md) | Dependencies and redistribution notices |
 | [Microsoft: install WSL](https://learn.microsoft.com/en-us/windows/wsl/install) | Windows preparation and requirements |
 | [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |
-| [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of `linux-cli` |
+| [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of release and integration branches |
 
 **Installation links reviewed on 23 October 2026 for Desktop 1.3.0.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.
 

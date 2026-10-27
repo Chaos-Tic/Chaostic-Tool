@@ -11,23 +11,15 @@ accessible either through your shell or a frosted-glass desktop application.
 The CLI binary is named `chaostictool`. It requires no X11 or Wayland server and runs
 natively in any terminal emulator.
 
-### Listing Available Profiles
+### Runtime and update checks
 ```bash
-# Human-readable categorized table
-chaostictool list
-
-# Machine-readable JSON output
-chaostictool list --json
+chaostictool --check-installation
+chaostictool --check-updates
 ```
 
-### Running a Profile
-```bash
-# Fast TCP discovery scan on a single target
-chaostictool scan --profile nmap-fast --target 192.168.1.50
-
-# Web headers probing across an entire CIDR subnet
-chaostictool scan --profile httpx-headers --target 10.0.0.0/24
-```
+Profile selection and execution currently happen inside the interactive TUI. A
+machine-readable catalog and non-interactive profile runner are planned, but are not
+part of the current command-line contract.
 
 ### Interactive TUI Fullscreen Mode
 If launched without arguments in an interactive terminal, `chaostictool` opens a
@@ -47,7 +39,7 @@ chaostictool-desktop
 
 ### Key Areas:
 1. **Target Selector**: Set the active engagement scope (Domain, IP, CIDR block, or URL). Targets are validated immediately and saved to your private local history.
-2. **Arsenal (32 Profiles)**: Filter profiles by phase (Discovery, Web Surface, Exposure, Active Directory, Reporting) or by keyword. Each tool card displays requirements and executable status.
+2. **Arsenal**: Filter tools and launch presets by phase or keyword. Each card displays requirements and executable status.
 3. **Flow Designer**: Chain multiple scans sequentially. For example:
    *Phase 1: Subfinder* ➔ *Phase 2: httpx probe* ➔ *Phase 3: Katana crawl*
 4. **Interactive PTY Terminal**: Real-time terminal with ANSI color support, scrollback buffer, text selection, and instantaneous interruption controls (`Stop` button / `Ctrl+C`).

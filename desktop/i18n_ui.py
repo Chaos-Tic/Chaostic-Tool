@@ -28,6 +28,22 @@ UI = {
     "Interface Wi-Fi Linux et pilotes compatibles requis pour la capture et le mode moniteur.":
         "Linux Wi-Fi interface and compatible drivers required for capture and monitor mode.",
 
+    # --- Validation des profils ---
+    "{field} : valeur requise, sans caractère de contrôle.": "{field}: a value is required, without control characters.",
+    "Une valeur ne peut pas commencer par une option (-).": "A value cannot start with an option (-).",
+    "Indiquez un chemin Linux absolu sur la machine SSH.": "Provide an absolute Linux path on the SSH machine.",
+    "Fichier introuvable : {path}": "File not found: {path}",
+    "Choisissez un simple nom de fichier ; la sortie sera dans le dossier de cette opération.": "Choose a plain filename; output will be saved in this operation’s folder.",
+    "{field} : caractères non autorisés.": "{field}: invalid characters.",
+    "{field} : valeur numérique invalide.": "{field}: invalid numeric value.",
+    "BSSID invalide.": "Invalid BSSID.",
+    "Adresse IP invalide : {value}": "Invalid IP address: {value}",
+    "[masqué]": "[redacted]",
+    "Choisissez une cible.": "Choose a target.",
+    "Ce profil attend un nom de domaine, pas une adresse IP.": "This profile requires a domain name, not an IP address.",
+    "Liste de ports invalide.": "Invalid port list.",
+    "Plage de ports invalide.": "Invalid port range.",
+
     # --- Panneau des attack flows ---
     "Éditeur de flow": "Flow editor",
     "Nom du flow": "Flow name",

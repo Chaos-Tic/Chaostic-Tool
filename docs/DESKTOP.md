@@ -3,19 +3,17 @@
 **Sous Windows : [présentation, téléchargement et captures de l’interface](../README_WINDOWS.md).**
 
 Application graphique pour Windows, Linux et macOS. Le catalogue contient les
-48 outils du registre CLI et 4 diagnostics supplémentaires. Tous ont des profils
+46 outils du registre CLI et 4 diagnostics supplémentaires. Tous ont des profils
 exécutables avec formulaires ; leur disponibilité dépend des outils installés,
 du système choisi et des prérequis propres à chaque outil.
 
 ## Disponibilité des téléchargements
 
-La [release Desktop 1.1.5](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/desktop-v1.1.5)
-regroupe Windows, Linux et macOS, en x64 et ARM64, avec une empreinte SHA-256
-par paquet. Les six paquets proviennent du même tag, créé depuis la branche
-`desktop/linux-app` qui contient les intégrations Linux et le socle multiplateforme.
-Les deux branches Desktop partagent la nouvelle identité Red Ops : noir profond,
-rouge, personnage et lettrage du README CLI, cadres industriels et navigation numérotée. Un nouveau profil démarre en sombre ;
-le thème déjà enregistré reste inchangé. Voir le [système visuel](DESIGN.md).
+Les releases 2.x regroupent Windows, Linux et macOS, en x64 et ARM64, avec une
+empreinte SHA-256 par paquet. Les six paquets proviennent du même tag `v*` et du
+même arbre `main`. L’interface utilise l’identité Liquid Glass claire et pastel ;
+le thème sombre reste disponible et les préférences enregistrées sont conservées.
+Voir le [système visuel](DESIGN.md).
 
 ## Télécharger et installer
 
@@ -98,8 +96,7 @@ Sur Linux, lancer l'interface avec le compte utilisateur habituel. Les profils
 natifs interactifs ou nécessitant des privilèges passent automatiquement par un
 pseudo-terminal local. Le mot de passe sudo se saisit dans **Exécution**, avec
 l'option de saisie secrète. Ces profils natifs restent sur cet ordinateur même
-si l'environnement Linux configuré séparément utilise SSH. WinPEAS est indiqué
-comme propre à Windows et ne peut pas être lancé sur Linux.
+si l'environnement Linux configuré séparément utilise SSH.
 
 Les commandes interactives utilisent un vrai pseudo-terminal Linux, avec saisie
 intégrée, masquage des secrets, Ctrl+C, arrêt et limite de durée. En WSL les chemins
@@ -125,8 +122,7 @@ produits par les outils eux-mêmes peuvent contenir des données sensibles.
 
 ## Exécuter depuis les sources
 
-Utiliser Python 3.14 et cloner `desktop/windows-app` sous Windows ou
-`desktop/linux-app` sous Linux. Depuis la racine du clone :
+Utiliser Python 3.14 et cloner la branche `main`. Depuis la racine du clone :
 
 ```sh
 python -m venv .venv
@@ -136,7 +132,7 @@ python -m pip install -r requirements-desktop.txt
 python chaostic_desktop.py
 ```
 
-Le `install.sh` à la racine installe la CLI, pas cette interface graphique.
+L’installation CMake unifiée installe la CLI et l’interface graphique.
 
 ## Construire et vérifier
 
@@ -145,9 +141,9 @@ Lancer `python scripts/build-desktop.py` sur le système cible ; sous Windows aj
 `--iscc CHEMIN/ISCC.exe` avec Inno Setup 6. Les fichiers apparaissent dans `release/`.
 `python scripts/smoke-desktop.py` vérifie le binaire construit avec un profil jetable.
 Le workflow GitHub compile et teste séparément les six couples OS/architecture.
-Un tag `desktop-v*` prépare une Release brouillon avec tous les paquets vérifiés ;
-sa publication rend les fichiers accessibles sans installation d'outils de développement.
+Un tag `v*` construit les artefacts, téléverse d’abord tous les fichiers et leurs
+sommes de contrôle dans un brouillon, puis publie la release après réussite.
 
 ## Fonctionnalités communes
 
-Exécuter et arrêter depuis la même page ; classement selon les dix phases CLI ; noms de dossiers avec cible, outil et profil ; historique recherchable ; trois attack flows, éditeur et import/export JSON. RustScan dispose d’une installation native sur les plateformes publiées en amont, et Nmap de son assistant officiel sous Windows x64. Les 48 outils et tous leurs profils CLI sont contrôlés par les tests de correspondance. Voir le guide Windows pour le fonctionnement des flows et les limites de chaque moteur.
+Exécuter et arrêter depuis la même page ; classement selon les dix phases CLI ; noms de dossiers avec cible, outil et profil ; historique recherchable ; trois attack flows, éditeur et import/export JSON. RustScan dispose d’une installation native sur les plateformes publiées en amont, et Nmap de son assistant officiel sous Windows x64. Les 46 outils et tous leurs profils CLI sont contrôlés par les tests de correspondance. Voir le guide Windows pour le fonctionnement des flows et les limites de chaque moteur.

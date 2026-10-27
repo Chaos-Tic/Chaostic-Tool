@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from desktop.backends import execution_plan, save_config
-from desktop.catalog import availability, catalog, native_command
+from desktop.catalog import catalog
 from desktop.storage import Store
 
 
@@ -74,8 +74,3 @@ class LinuxDesktopTests(unittest.TestCase):
                     with self.subTest(tool=tool['key'], profile=preset['label']):
                         self.assertEqual(bool(preset.get('requires_root')),
                                          bool(original.get('requires_root', TOOLS[tool['key']].get('requires_root'))))
-
-    def test_winpeas_cannot_run_as_a_local_linux_tool(self):
-        tool = next(t for t in catalog() if t['key'] == 'winpeas')
-        self.assertEqual(availability(tool, {}, self.store.root), ('Windows uniquement', False))
-        self.assertIsNone(native_command(tool, configured=sys.executable, root=self.store.root))

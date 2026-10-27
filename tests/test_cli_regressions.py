@@ -1,11 +1,11 @@
 """Local-only CLI regressions; no external tools or privileged installs."""
 import importlib
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +49,42 @@ class CliRegressions(unittest.TestCase):
                     "import sys; sys.stdout.write('failure details'); sys.exit(7)"], output)
             self.assertEqual(rc, 7)
             self.assertEqual(output.read_text(), 'failure details')
+
+    def test_secret_prompt_is_masked_but_process_receives_original(self):
+        from core import ui
+
+        secret = 'unique-private-password'
+        panels = []
+        tool = {'name': 'Fixture', 'binary': sys.executable,
+                'category': 'passwords', 'output_dir': 'passwords'}
+        preset = {'label': 'Secret fixture', 'cmd': [sys.executable, '-c', 'pass',
+                                                    '{passwd}'],
+                  'prompt': {'passwd': 'Password'}, 'output': None}
+
+        class FakeConsole:
+            def print(self, value):
+                panels.append(value)
+
+            def input(self, _prompt):
+                return 'y'
+
+        def panel(renderable, *args, **kwargs):
+            panels.append(renderable)
+            return renderable
+
+        with patch.object(ui, 'ask', return_value=secret), \
+                patch.object(ui, 'console', FakeConsole()), \
+                patch.object(ui, 'Panel', side_effect=panel), \
+                patch.object(ui.tui, 'available', return_value=False), \
+                patch.object(ui, 'resolve_tool_binary', return_value=sys.executable), \
+                patch.object(ui.executor, 'run_tool') as run:
+            ui.run_preset(tool, preset, pause_after=False)
+
+        args, kwargs = run.call_args
+        self.assertIn(secret, args[0])
+        self.assertEqual(kwargs['redactions'], [secret])
+        self.assertNotIn(secret, ' '.join(str(value) for value in panels))
+        self.assertIn('[redacted]', ' '.join(str(value) for value in panels))
 
     def test_uninstall_restores_tor_and_proxy_backups(self):
         # Exercise the actual manifest parser/removal/restoration code in a

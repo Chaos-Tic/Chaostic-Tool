@@ -115,7 +115,6 @@ def _run(cmd, as_user_pw=None, env=None):
 #   - official distro packages are preferred when present in enabled repos
 #   - Go-based tools fall back to "go install" before AUR source builds
 #   - Arch-only gaps use direct AUR builds without requiring yay/paru
-#   - portable PEASS assets are downloaded directly into /usr/local/bin
 
 # Package names per manager for "pkg" tools
 PKG_NAMES = {
@@ -210,18 +209,7 @@ PIP_PACKAGES = {
     "wpscan":            None,   # gem, not pip
 }
 
-DIRECT_DOWNLOADS = {
-    "linpeas.sh": {
-        "url": "https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh",
-        "path": "/usr/local/bin/linpeas.sh",
-        "mode": 0o755,
-    },
-    "winpeas.exe": {
-        "url": "https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEASx64.exe",
-        "path": "/usr/local/bin/winpeas.exe",
-        "mode": 0o755,
-    },
-}
+DIRECT_DOWNLOADS = {}
 
 RELEASE_ASSETS = {
     "rustscan": {
@@ -998,7 +986,7 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
     Cross-platform resolution algorithm:
       Arch            → pacman when available, otherwise Go/AUR/Cargo/release/pywrap/pipx/pip/gem/source/direct
       Debian/Ubuntu   → apt when available, otherwise Go/Cargo/release/pywrap/pipx/pip/gem/source/direct
-      Everywhere      → portable installers for Go, Cargo, release archives, pywrap, pipx, pip, gems, and PEASS assets
+      Everywhere      → portable installers for Go, Cargo, release archives, pywrap, pipx, pip, gems, and direct assets
 
     Root fix: makepkg and user-local installers should not write as root.
     We fork a subprocess that drops root (setuid/setgid) to become SUDO_USER

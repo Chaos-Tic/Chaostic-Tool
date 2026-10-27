@@ -1,6 +1,6 @@
 # Catalogue Desktop et compatibilité
 
-Les 48 outils CLI et leurs 137 profils sont référencés. Les quatre utilitaires Desktop portent le catalogue à 52 entrées.
+Les 46 outils CLI et leurs 136 profils sont référencés. Les quatre utilitaires Desktop portent le catalogue à 50 entrées.
 
 Les dix phases et les trois flows sont partagés avec la CLI. Chaque profil est identifié par son outil et son index CLI : les flows ne dépendent pas de l’ordre différent des profils Desktop. Les adaptateurs natifs peuvent ajouter des profils et adapter les options aux versions distribuées. Amass 5 demande un moteur ; les sources theHarvester sont configurables.
 
@@ -37,8 +37,6 @@ Les dix phases et les trois flows sont partagés avec la CLI. Chaque profil est 
 | Dalfox | 3 | 2 |
 | Metasploit Console | 0 | 1 |
 | msfvenom | 0 | 4 |
-| LinPEAS | 0 | 1 |
-| WinPEAS | 2 | 0 |
 | Impacket secretsdump | 1 | 1 |
 | Impacket psexec | 1 | 1 |
 | Impacket GetUserSPNs (Kerberoasting) | 1 | 1 |

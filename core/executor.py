@@ -1,10 +1,11 @@
-import os
 import codecs
+import os
 import shutil
 import tempfile
 import threading
 import time
 from collections import deque
+
 try:
     import pwd
 except ImportError:
@@ -13,18 +14,19 @@ import re
 import shlex
 import signal
 import subprocess
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from rich import box
 from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 from rich.text import Text
 
-from core.theme import THEME, COLORS
+from core.redaction import StreamRedactor, redact
+from core.runner import Runner, RunRequest
+from core.theme import COLORS, THEME
 
 console = Console(theme=THEME, style=f"{COLORS['text']} on {COLORS['bg']}")
 ACTIVE_PROCS = []
@@ -86,9 +88,9 @@ def _print_command_panel(cmd, output_path, interactive):
     )
 
 
-def _result_panel(rc, output_path, saved):
+def _result_panel(rc, output_path, saved, timed_out=False):
     style = "brand.ok" if rc == 0 else "bright_red"
-    result = "SUCCESS" if rc == 0 else "NON-ZERO EXIT"
+    result = "SUCCESS" if rc == 0 else "TIMEOUT" if timed_out else "NON-ZERO EXIT"
     save_state = str(output_path) if saved else "no captured output saved"
     table = Table.grid(expand=True)
     table.add_column(ratio=1)
@@ -128,6 +130,7 @@ class _Capture:
         self.proc = None
         self.rc = 127
         self.saved = False
+        self.timed_out = False
         self.save_error = None
         self.journal = tempfile.TemporaryFile(mode="w+", encoding="utf-8", newline="")
 
@@ -144,40 +147,45 @@ class _Capture:
                 self.fragment = ""
 
 
-def _capture_worker(state, cmd, output_path, textual):
+def _capture_worker(state, cmd, output_path, textual, timeout, redactions):
+    redactor = StreamRedactor(redactions)
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+
+    def receive(data):
+        text = decoder.decode(redactor.feed(data))
+        if not text:
+            return
+        state.append(text)
+        if textual:
+            console.print(Text.from_ansi(text), end="", soft_wrap=True)
+
     try:
-        state.proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            start_new_session=True, env=_build_env(),
-        )
+        runner = Runner()
+        runner.start(RunRequest(cmd, env=_build_env(), timeout=timeout, stop_grace=2,
+                               inherit_stdin=True, raw_output=True), receive)
+        state.proc = runner
         ACTIVE_PROCS.append(state.proc)
         if state.aborted.is_set():
-            _stop_process(state.proc)
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-        stream = state.proc.stdout
-        read = getattr(stream, "read1", stream.read)
-        while True:
-            chunk = read(4096)
-            if not chunk:
-                break
-            text = chunk if isinstance(chunk, str) else decoder.decode(chunk)
-            state.append(text)
-            if textual:
-                console.print(Text.from_ansi(text), end="", soft_wrap=True)
-        tail = decoder.decode(b"", final=True)
-        if tail:
-            state.append(tail)
-            if textual:
-                console.print(Text.from_ansi(tail), end="", soft_wrap=True)
-        state.rc = state.proc.wait()
-    except FileNotFoundError:
-        state.append(f"Binary not found: {cmd[0]}\n")
-        state.rc = 127
+            state.proc.stop()
+        result = state.proc.wait()
+        state.rc = result.returncode
+        state.timed_out = result.timed_out
+        if result.error:
+            if state.rc == 127:
+                state.append(f"Binary not found: {cmd[0]}\n")
+            else:
+                state.append(f"Execution failed: {result.error}\n")
+                state.rc = state.rc or 1
     except OSError as exc:
         state.append(f"Execution failed: {exc}\n")
         state.rc = 1
         _stop_process(state.proc)
     finally:
+        final_text = decoder.decode(redactor.feed(b"", final=True), final=True)
+        if final_text:
+            state.append(final_text)
+            if textual:
+                console.print(Text.from_ansi(final_text), end="", soft_wrap=True)
         if state.aborted.is_set():
             state.rc = 130
         try:
@@ -190,8 +198,6 @@ def _capture_worker(state, cmd, output_path, textual):
         except OSError as exc:
             state.save_error = str(exc)
         finally:
-            if state.proc is not None and state.proc.stdout is not None:
-                state.proc.stdout.close()
             _forget_process(state.proc)
             # Freeze the elapsed clock at the instant everything is finished
             # (process reaped + output saved) so the scan view can stop ticking.
@@ -199,16 +205,18 @@ def _capture_worker(state, cmd, output_path, textual):
             state.done.set()
 
 
-def run_tool(cmd, output_path=None, interactive=False, context=None):
+def run_tool(cmd, output_path=None, interactive=False, context=None, *, timeout=None,
+             redactions=()):
     """Run an argv command; TTY capture uses a fullscreen bounded live view.
 
     context accepts category/tool/preset/route labels and wait=False for flows.
     Redirected input/output never waits for a completion key.
     """
     context = dict(context or {})
+    display_cmd = [redact(argument, redactions) for argument in cmd]
     if interactive:
         # The menu application has already exited. Child input remains untouched.
-        _print_command_panel(cmd, output_path, True)
+        _print_command_panel(display_cmd, output_path, True)
         proc = None
         terminal = None
         try:
@@ -240,7 +248,9 @@ def run_tool(cmd, output_path=None, interactive=False, context=None):
     from core.scan_view import available, run_scan
     fullscreen = available()
     state = _Capture()
-    worker = threading.Thread(target=_capture_worker, args=(state, cmd, output_path, not fullscreen), daemon=True)
+    worker = threading.Thread(target=_capture_worker,
+                              args=(state, cmd, output_path, not fullscreen,
+                                    timeout, tuple(redactions)), daemon=True)
 
     def abort():
         if not state.aborted.is_set():
@@ -249,9 +259,9 @@ def run_tool(cmd, output_path=None, interactive=False, context=None):
 
     try:
         if fullscreen:
-            run_scan(state, worker.start, abort, context, cmd, output_path)
+            run_scan(state, worker.start, abort, context, display_cmd, output_path)
         else:
-            _print_command_panel(cmd, output_path, False)
+            _print_command_panel(display_cmd, output_path, False)
             worker.start()
             while not state.done.wait(0.1):
                 pass
@@ -267,13 +277,13 @@ def run_tool(cmd, output_path=None, interactive=False, context=None):
     if not fullscreen:
         if state.save_error:
             console.print(Text(f"Could not save output: {state.save_error}", style="bright_red"))
-        console.print(_result_panel(state.rc, output_path, state.saved))
+        console.print(_result_panel(state.rc, output_path, state.saved, state.timed_out))
     return state.rc
 
 
 def cleanup_processes():
     for proc in list(ACTIVE_PROCS):
-        if proc.poll() is None:
+        if isinstance(proc, Runner) or proc.poll() is None:
             _stop_process(proc)
         _forget_process(proc)
 
@@ -288,6 +298,10 @@ def _forget_process(proc):
 def _stop_process(proc):
     """Stop the child's session, escalating with bounded waits and reaping it."""
     if proc is None:
+        return
+    if isinstance(proc, Runner):
+        proc.stop()
+        proc.wait(timeout=8)
         return
     for sig, timeout in ((signal.SIGINT, 2), (signal.SIGTERM, 2), (signal.SIGKILL, 2)):
         try:

@@ -11,6 +11,7 @@ from desktop.tool_paths import resolve_tool
 from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python, installed
 from desktop.profiles import normalized, validate_field, placeholders
 from desktop.backends import linux_status, get_config
+from desktop.i18n import T
 
 CATEGORIES = {
     "local": "Diagnostic", "osint": "OSINT", "recon": "Réseau",
@@ -87,7 +88,6 @@ for _key in ['dnsrecon','theharvester','shodan','xsstrike','secretsdump.py','pse
     elif _key in ('secretsdump.py','psexec.py','GetUserSPNs.py'): ADAPTERS[_key]['package']='impacket'
 ADAPTERS['shodan']['presets'].append(dict(label='Configurer la clé API Shodan',args=['init','{api_key}'],fields={'api_key':('Clé API','')}))
 ADAPTERS['theharvester']['presets']=[dict(label='Sources publiques crtsh',args=['-d','{host}','-b','crtsh']),dict(label='Sources personnalisées',args=['-d','{host}','-b','{sources}'],fields={'sources':('Sources séparées par des virgules','crtsh')})]
-ADAPTERS['winpeas']=dict(package='winpeas',url='https://github.com/peass-ng/PEASS-ng/releases',note='Exécution sur cet ordinateur Windows. Les résultats décrivent ce PC, pas une cible distante.',presets=[dict(label='Informations système de ce PC',args=['systeminfo','notcolor']),dict(label='Énumération complète de ce PC',args=['notcolor'])])
 ADAPTERS['amass']['presets']=[dict(label='Énumération avec moteur Amass',args=['enum','-d','{host}','-engine','{engine}'],fields={'engine':('URL du moteur de collecte','http://127.0.0.1:4000')},domain_only=True)]
 for _key in ['subfinder','httpx','gobuster','ffuf','sqlmap','nuclei']:
     for _p in TOOLS[_key]['presets']:
@@ -162,7 +162,7 @@ def catalog():
     entries=[]
     for key,definition in {**TOOLS,**BUILTINS}.items():
         item=dict(definition,key=key,group=CATEGORIES.get(definition['category'],definition['category']))
-        item['linux_presets']=linux_presets(key) if key in TOOLS and key!='winpeas' else []
+        item['linux_presets']=linux_presets(key) if key in TOOLS else []
         if key in BUILTINS:
             item.update(BUILTINS[key],mode='builtin',note='Inclus dans l’application. Aucune installation supplémentaire.')
             item['presets']=[dict(p,backend='builtin',needs_target=p.get('needs_target',key!='desktop-diagnostic')) for p in item['presets']]
@@ -187,7 +187,6 @@ def catalog():
 
 
 def native_command(tool,configured=None,root=None):
-    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool.get('package') and not configured and can_install(tool['package']):
         try:
             binary=tool['binary'] if tool['key'] in ('secretsdump.py','psexec.py','GetUserSPNs.py') else None
@@ -206,7 +205,6 @@ def native_command(tool,configured=None,root=None):
 
 
 def find_executable(tool, configured=None, root=None):
-    if tool['key']=='winpeas' and os.name!='nt': return None
     if tool["mode"] != "native":
         return None
     candidates = []
@@ -231,7 +229,6 @@ def find_executable(tool, configured=None, root=None):
 
 
 def availability(tool,settings,root=None):
-    if tool['key']=='winpeas' and os.name!='nt': return 'Windows uniquement',False
     if tool['mode']=='builtin': return 'Inclus',True
     if tool['mode']=='native' and native_command(tool,settings.get(tool['key']),root):
         return ('Service requis',False) if tool['key']=='amass' else ('Prêt',True)
@@ -245,13 +242,13 @@ def availability(tool,settings,root=None):
 def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None,backend='native'):
     preset=preset or tool['presets'][preset_index]
     fields=fields or {}
-    if preset.get('needs_target',True) and not target: raise ValueError('Choisissez une cible.')
+    if preset.get('needs_target',True) and not target: raise ValueError(T('Choisissez une cible.'))
     target=target or {}
     if preset.get('domain_only'):
         import ipaddress
         try: ipaddress.ip_address(target['host'])
         except ValueError: pass
-        else: raise ValueError('Ce profil attend un nom de domaine, pas une adresse IP.')
+        else: raise ValueError(T('Ce profil attend un nom de domaine, pas une adresse IP.'))
     from urllib.parse import urlsplit,urlunsplit
     parsed=urlsplit(target.get('url',''))
     base_url=urlunsplit((parsed.scheme,parsed.netloc,parsed.path.rstrip('/')+'/','',''))
@@ -260,10 +257,10 @@ def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None
     for name,(caption,default) in preset.get('fields',{}).items():
         value=fields.get(name,default)
         if name=='ports':
-            if not re.fullmatch(r'[0-9,-]+',value): raise ValueError('Liste de ports invalide.')
+            if not re.fullmatch(r'[0-9,-]+',value): raise ValueError(T('Liste de ports invalide.'))
             for part in value.split(','):
                 limits=part.split('-')
-                if len(limits)>2 or any(not p or not 1<=int(p)<=65535 for p in limits) or int(limits[0])>int(limits[-1]): raise ValueError('Plage de ports invalide.')
+                if len(limits)>2 or any(not p or not 1<=int(p)<=65535 for p in limits) or int(limits[0])>int(limits[-1]): raise ValueError(T('Plage de ports invalide.'))
             values[name]=value
         elif name=='engine':
             from desktop.storage import parse_target

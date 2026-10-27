@@ -519,19 +519,6 @@
       "linux": "hashcat.bin"
     }
   },
-  "winpeas": {
-    "kind": "file",
-    "version": "20260927-30e48b1d",
-    "url": "https://github.com/peass-ng/PEASS-ng/releases/download/20260927-30e48b1d/winPEASx64.exe",
-    "sha256": "9fbbfea07beec64397453a28de0f9270f25f7cba9eac02d03fa0f7009fa99d95",
-    "binary": "winPEASx64.exe",
-    "probe": [
-      "help"
-    ],
-    "platforms": [
-      "windows-x86_64"
-    ]
-  },
   "7zip": {
     "kind": "file",
     "version": "26.03",

@@ -1,9 +1,9 @@
 # GitHub updates
 
-Desktop 1.3 and CLI 1.5 use the public `Chaos-Tic/Chaostic-Tool` releases. A single
-latest-release request contains separate Desktop and CLI versions; an edition
-never treats the other edition's tag as its own update. Drafts and prereleases are
-excluded. No update is inferred from commits or an unmerged branch.
+ChaosticTool 2.x uses unified public `v*` releases for the Desktop and CLI interfaces.
+The update service also understands the earlier split release metadata so existing
+installations can transition safely. Drafts and prereleases are excluded. No update
+is inferred from commits or an unmerged branch.
 
 Automatic checks run in the background at most once per day, including after a
 network failure. Manual checks request fresh metadata. Switch automatic checks

@@ -95,7 +95,7 @@ detect_and_remove() {
         fi
     done
 
-    # --- Direct downloads ---
+    # --- Direct downloads (including legacy PEASS assets from older releases) ---
     echo -e "\n${CYAN}[D4] Direct downloads${NC}"
     for f in /usr/local/bin/linpeas.sh /usr/local/bin/winpeas.exe; do
         _rm_file "$f"

@@ -4,10 +4,10 @@
 # (the CI release job), from the repository root:
 #   AUR_SSH_KEY=... packaging/arch/aur.sh VERSION
 set -euo pipefail
-version=${1:?usage: packaging/arch/aur.sh VERSION [PACKAGE]}
-package=${2:-chaostictool}
+version=${1:?usage: packaging/arch/aur.sh VERSION}
+package=chaostictool
+[[ $# -eq 1 ]] || exit 2
 [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
-case $package in chaostictool|chaostictool-desktop) ;; *) exit 2 ;; esac
 pacman -Syu --noconfirm --needed -q git openssh pacman-contrib >/dev/null
 install -dm700 ~/.ssh
 printf '%s\n' "${AUR_SSH_KEY:?set AUR_SSH_KEY}" >~/.ssh/aur && chmod 600 ~/.ssh/aur
@@ -21,11 +21,6 @@ export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnown
 work=$(mktemp -d)
 git clone -q ssh://aur@aur.archlinux.org/$package.git "$work/aur"
 pkgbuild="packaging/arch/PKGBUILD"
-if [ "$package" = "chaostictool-desktop" ] && [ -f "packaging/arch/PKGBUILD-desktop" ]; then
-    pkgbuild="packaging/arch/PKGBUILD-desktop"
-elif [ "$package" = "chaostictool" ] && [ -f "packaging/arch/PKGBUILD-cli" ]; then
-    pkgbuild="packaging/arch/PKGBUILD-cli"
-fi
 sed -e "s/^pkgver=.*/pkgver=$version/" -e 's/^pkgrel=.*/pkgrel=1/' "$pkgbuild" >"$work/aur/PKGBUILD"
 id builder >/dev/null 2>&1 || useradd -m builder
 chown -R builder "$work"

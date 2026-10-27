@@ -1,14 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/banner-dark.svg">
-    <img src="docs/media/banner.svg" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/banner.svg">
+    <img src="docs/media/banner-dark.svg" alt="ChaosticTool — Security reconnaissance, orchestrated." width="100%">
   </picture>
 </p>
 
 <p align="center">
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build and test status"></a>
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.0-38bdf8.svg" alt="Version 2.0.0"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="GPL-3.0-or-later license"></a>
 </p>
 
 # ChaosticTool
@@ -22,7 +22,7 @@
 > deterministic intelligence where chaotic attack surfaces resolve into clarity.
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="ChaosticTool reconnaissance pipeline: target selection, 32 offensive profiles catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="800">
+  <img src="docs/media/demo.gif" alt="ChaosticTool reconnaissance pipeline: target selection, offensive tool catalog, automated flow execution, real-time PTY terminal stream, and mission intelligence report" width="800">
 </p>
 
 ChaosticTool bridges the gap between raw command-line auditing and graphical operations.
@@ -30,17 +30,18 @@ Whether you are auditing an external perimeter from an SSH bastion or leading an
 Active Directory assessment from your workstation, ChaosticTool delivers the same unified
 engine through two complementary interfaces:
 
-- **Terminal Precision (`chaostictool`)**: Fullscreen Rich TUI navigator or scriptable CLI. Direct argument expansion, POSIX pseudo-terminal (`pty`) allocation, secret redaction, and clean JSON Lines output.
+- **Terminal Precision (`chaostictool`)**: Fullscreen Rich TUI navigator. Direct argument vectors, POSIX pseudo-terminal (`pty`) allocation and target-isolated local output.
 - **Liquid Glass Desktop (`chaostictool-desktop`)**: Frosted-glass application with hardware-accelerated translucent surfaces (Light Pastel & Midnight Neon palettes). Visual flow sequencing, live VT100 terminal monitor, and mission history management.
 
 Everything runs strictly on your machine. No accounts, no telemetry, no cloud dependencies.
 The only optional network call is a once-a-day check for a newer GitHub release, which can be
 disabled at any time in settings.
 
-**Version 2.0.0.** Install it with your distribution's package manager, [from source](#install),
-or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest).
+**Version 2.0.0 is under development.** The unified packages and release workflow are
+validated in this branch but are not claimed as published distribution channels. The
+latest public releases still contain the earlier split CLI and Desktop editions.
 
-[Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
+[Project website](https://tool.chaostic.cloud/cybersecurite.html) · [Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
 
 ---
 
@@ -56,11 +57,11 @@ or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases
 <td><b>2. Orchestrated Execution.</b> Launch individual profiles or chained flows. Interactive tools run in dedicated pseudo-terminals with real-time output and instant cancellation.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/media/liquid-glass-arsenal.png" alt="The 32 offensive profiles classified across 5 structured phases"></td>
+<td width="50%"><img src="docs/media/liquid-glass-arsenal.png" alt="The shared security tool catalog classified across ten structured phases"></td>
 <td width="50%"><img src="docs/media/liquid-glass-historique.png" alt="Mission report and structured run logs"></td>
 </tr>
 <tr>
-<td><b>3. Arsenal of 32 Profiles.</b> Categorized across 5 offensive phases: Discovery, Web Surface, Exposure & Secrets, Active Directory, and Intelligence Reporting.</td>
+<td><b>3. Shared tool arsenal.</b> Forty-six CLI tools and 136 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>
 <td><b>4. Intelligence & Audit.</b> Review parsed findings, inspect raw chunk logs, or export structured JSON reports. Atomic history clearing prevents symlink directory traversal.</td>
 </tr>
 </table>
@@ -69,16 +70,19 @@ or from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases
 
 ## Two Interfaces, One Shared Core
 
-ChaosticTool delivers full visual and operational parity across both environments:
+ChaosticTool is converging both interfaces on one registry, release model and
+UI-independent process runner. Cross-adapter tests currently prove matching success,
+failure, literal argv, large-output, cancellation, timeout and streamed-redaction
+behaviour. Routing and flows are not yet exposed with full interface parity.
 
 | Capability | Terminal Precision CLI / TUI (`chaostictool`) | Liquid Glass Desktop GUI (`chaostictool-desktop`) |
 | --- | --- | --- |
 | **Primary Environment** | Headless servers, SSH sessions, minimal containers, Linux terminals | Graphical workstations (Linux X11/Wayland & Windows) |
 | **Interface Style** | Rich terminal TUI dashboard & direct shell commands | Frosted glass with light pastel & dark neon themes |
 | **Execution Sandboxing** | Dedicated POSIX `pty` pseudo-terminals with zero orphan processes | Integrated VT100 terminal widget with ANSI color emulation |
-| **Routing Controls** | Persistent HUD: Direct, Tor (with auto-rotation), and VPN guard | Visual routing indicators and status bar controls |
-| **Automation & CI** | Scriptable with `--json`, exit codes, and non-interactive profiles | Visual chained flow designer with step dependencies |
-| **Windows Support** | Native PowerShell / WSL2 integration | Native installer with automated WSL2 Kali Linux backend |
+| **Routing Controls** | Persistent HUD: Direct, Tor (with auto-rotation), and VPN guard | Not exposed yet; GUI routing controls are tracked work |
+| **Automation & CI** | Interactive TUI; machine-readable profile execution is tracked work | Visual chained flow designer with step dependencies |
+| **Windows Support** | Linux CLI through WSL2 | Native installer with automated WSL2 Kali Linux backend |
 
 ---
 
@@ -88,21 +92,21 @@ A high-density terminal control surface built with Rich and prompt_toolkit for k
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/cli-dark.png">
-    <img src="docs/media/cli-light.png" alt="ChaosticTool Terminal Precision CLI: interactive Rich TUI dashboard with live telemetry, kill-chain phases, and action dock" width="800">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/cli-light.png">
+    <img src="docs/media/cli-dark.png" alt="ChaosticTool Terminal Precision CLI: interactive Rich TUI dashboard with live telemetry, kill-chain phases, and action dock" width="800">
   </picture>
 </p>
 
 - **Live Workspace HUD**: Always-visible status header tracking active target, routing interface (`DIRECT`, `TOR via proxychains`, `VPN`), and target-isolated output directories.
 - **Kill-Chain Methodology**: 10 offensive categories organized into structured phases (OSINT, Network Scan, Web Enumeration, Vulnerability Scan, Exploitation, Post-Exploit, Password Cracking, Windows / Active Directory, Wireless, Network & MITM).
 - **Direct Action Dock**: Single-keystroke navigation for target configuration (`[0]`), fuzzy tool catalog search (`[/]`), saved results & session browser (`[r]`), Proxy/VPN/Tor routing controls (`[p]`), and guided attack flows (`[g]`).
-- **Headless & Scriptable**: Launch individual profiles directly from bash scripts or automation pipelines without entering the full-screen interface:
+- **Terminal-first operation**: Launch the interactive TUI without a graphical session and use the maintenance checks independently:
   ```bash
   # Launch the interactive terminal control surface
   sudo chaostictool
 
-  # Run headless with direct argument passing
-  sudo chaostictool 2 --target 10.10.10.5
+  # Check the installed runtime without network access or root
+  chaostictool --check-installation
 
   # Check for updates from GitHub releases
   chaostictool --check-updates
@@ -115,56 +119,62 @@ A high-density terminal control surface built with Rich and prompt_toolkit for k
 A fluid desktop application crafted with the Chaos-Tic frosted-glass aesthetic for graphical Linux workstations and Windows:
 
 <p align="center">
-  <img src="docs/media/liquid-glass-accueil.png" alt="ChaosticTool Liquid Glass Desktop dashboard" width="800">
+  <img src="docs/media/liquid-glass-dark.png" alt="ChaosticTool Liquid Glass Desktop dashboard in its primary dark cybersecurity theme" width="800">
 </p>
 
 - **Frosted-Glass Visual Language**: Translucent layered cards, inner reflections, and dual palettes (Light Pastel & Midnight Neon) with high-contrast sans-serif typography and reduced-transparency accessibility.
 - **Visual Flow Orchestration**: Sequence multi-tool recon and audit workflows with automatic parameter propagation and dependency checks.
 - **Integrated VT100 Terminal Monitor**: Watch live tool execution in an embedded terminal emulator with full ANSI styling, elapsed timers, and clean cancellation.
-- **Cross-Platform Distribution**: Verified native packages for Arch (AUR), Fedora (COPR), Debian/Ubuntu (APT), universal Linux (AppImage), and Windows 10/11 with automatic WSL2 Kali configuration.
+- **Cross-Platform Distribution**: A unified package is built for Debian/Ubuntu and Fedora, alongside Arch packaging, AppImage, Windows and macOS artifacts. See the dated compatibility table for what CI actually verifies and the installation guide for channel availability.
 
 ---
 
 ## Phases and Profiles
 
-ChaosticTool structures security reconnaissance into 5 deterministic phases:
+ChaosticTool shares one ordered set of ten phases across both interfaces:
 
 | Phase | Core Objective | Integrated Profiles |
 | --- | --- | --- |
-| **1. Discovery** | Host discovery, port enumeration, service identification | `nmap` (Fast, Full, SYN, UDP), `rustscan`, `arp-scan`, `netdiscover` |
-| **2. Web Surface** | HTTP probing, crawling, content discovery, technology fingerprinting | `httpx`, `katana`, `feroxbuster`, `ffuf`, `gobuster`, `nikto` |
-| **3. Exposure & Secrets** | Subdomain discovery, passive OSINT, secret detection in repos | `subfinder`, `amass`, `trufflehog`, `gitleaks`, `dnsrecon` |
-| **4. Active Directory** | Domain enumeration, Kerberos auditing, network share analysis | `bloodhound-python`, `netexec` (nxc), `ldapdomaindump`, `kerbrute` |
-| **5. Reporting** | Synthesis, structured JSON extraction, audit documentation | Native synthesis engine, markdown summaries, HTML deliverables |
+| **01. OSINT** | Passive discovery and public records | `whois`, `dig`, `subfinder`, `amass`, `dnsrecon`, `theHarvester`, `shodan` |
+| **02. Network scan** | Host, port and service discovery | `nmap`, `rustscan`, `masscan`, `naabu` |
+| **03. Web enumeration** | HTTP probing, crawling and content discovery | `gobuster`, `ffuf`, `httpx`, `wafw00f`, `whatweb`, `katana`, `gau`, `waybackurls` |
+| **04. Vulnerabilities** | Web, TLS and template-based checks | `nikto`, `nuclei`, `wpscan`, `testssl.sh`, `sslscan` |
+| **05. Exploitation** | Explicitly selected exploitation workflows | `sqlmap`, `xsstrike`, `dalfox`, `msfconsole`, `msfvenom` |
+| **06. Post-exploitation** | Credential, remote execution and graph collection workflows | Impacket tools, `NetExec` and `bloodhound-python` |
+| **07. Passwords** | Offline and online password auditing | `hashcat`, `john`, `hydra` |
+| **08. Windows / AD** | Windows and Active Directory assessment | Impacket tools, `NetExec`/legacy CME, `bloodhound-python` |
+| **09. Wi-Fi** | Wireless discovery and authorized auditing | Aircrack-ng tools, `reaver`, `wifite` |
+| **10. Network & MITM** | Packet capture and authorized local-network testing | `bettercap`, `ettercap`, `tcpdump`, `responder` |
 
 ---
 
 ## Install
 
+The commands below describe the **2.x target channels**. Do not assume AUR, COPR,
+APT or unified GitHub assets exist until a public 2.x release announces them; for the
+development tree, use the source instructions at the end of this section.
+
 ### Arch Linux (AUR)
 ```bash
-# Full suite (CLI + Desktop)
+# Unified CLI + Desktop package
 yay -S chaostictool
-
-# Headless CLI only
-yay -S chaostictool-cli
 ```
 
 ### Fedora / Red Hat (COPR)
 ```bash
 sudo dnf copr enable chaostic/chaostictool
-sudo dnf install chaostictool chaostictool-desktop
+sudo dnf install chaostictool
 ```
 
 ### Debian / Ubuntu
-Download the native `.deb` from the [latest release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest):
+After a 2.x release is published, download its native `.deb`:
 ```bash
 sudo apt install ./chaostictool_2.0.0_amd64.deb
 ```
 Or via the Chaos-Tic signed APT repository:
 ```bash
-sudo curl -fsSL https://apt.chaos-tic.com/KEY.gpg -o /etc/apt/trusted.gpg.d/chaostic.gpg
-echo "deb https://apt.chaos-tic.com/ stable main" | sudo tee /etc/apt/sources.list.d/chaostic.list
+sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
+printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
 sudo apt update && sudo apt install chaostictool
 ```
 
@@ -175,7 +185,8 @@ chmod +x ChaosticTool-2.0.0-x86_64.AppImage
 ```
 
 ### Windows 10 & 11
-Download `ChaosticTool-Setup-2.0.0.exe` from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases/latest).
+After a 2.x release is published, download `ChaosticTool-Setup-2.0.0-windows-x64.exe`
+from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases).
 The installer sets up the desktop launcher and offers an automated Kali Linux WSL2 integration
 for running Linux-native security utilities with zero manual configuration.
 
@@ -187,11 +198,11 @@ cd Chaostic-Tool
 # Install Python dependencies
 pip install -r requirements.txt -r requirements-desktop.txt
 
-# Run CLI directly
-python chaostictool.py list
+# Run the interactive CLI directly
+sudo python chaostictool.py
 
 # Run Desktop directly
-python -m desktop
+python chaostic_desktop.py
 
 # Or build native CMake packages (.deb, .rpm, .tar.gz)
 cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
@@ -206,7 +217,9 @@ cpack --config build/CPackConfig.cmake -G "DEB;RPM" -B release
 ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](https://github.com/Chaos-Tic) ecosystem:
 
 - **Local-First Execution**: Findings, credentials, and targets are never uploaded to any cloud service.
-- **Credential Masking**: Terminal outputs are passed through real-time filter buffers that redact known secret patterns before persisting to disk.
+- **Sensitive-data boundaries**: Desktop and CLI mask configured secret fields in command
+  previews and streamed values before persistence, including values split across output
+  chunks. Operators must still treat all local logs as sensitive.
 - **Safe Directory Operations**: The storage manager enforces strict filesystem boundaries, rejecting symbolic link traversal or directory junctions during log deletion (`CVE-resistant cleanup`).
 - **No Shell Interpolation**: Subprocesses are spawned directly using explicit argument arrays, preventing command-injection attacks through untrusted target names.
 
@@ -223,6 +236,10 @@ ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](h
 
 ---
 
-## Licence
+## License
 
-ChaosticTool is free and open-source software licensed under the **GNU General Public License v3.0** ([GPL-3.0](LICENSE)).
+Copyright (c) 2026 Chaos-Tic. This source tree is licensed under
+**GPL-3.0-or-later** ([LICENSE](LICENSE)). Releases published before this change remain
+available under the license that accompanied them; the change is not retroactive.
+The project name and logo are governed separately by the
+[trademark policy](TRADEMARKS.md).

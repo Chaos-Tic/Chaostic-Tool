@@ -1,6 +1,7 @@
 # Third-party components
 
-ChaosticTool code: MIT, copyright Chaos-Tic. See the root LICENSE.
+ChaosticTool code: GPL-3.0-or-later, copyright 2026 Chaos-Tic. See the root
+LICENSE. Dependencies and bundled assets listed below retain their own licenses.
 
 - Python: Python Software Foundation license — https://docs.python.org/3/license.html
 - PySide6 / Shiboken6 / Qt: licenses supplied with the corresponding distributions,

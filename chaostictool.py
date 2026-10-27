@@ -59,7 +59,7 @@ MAIN_ENTRIES = [
     ("3",  "Web Enumeration",                "brand.ok",   "gobuster, ffuf, httpx, wafw00f, whatweb, katana, gau, waybackurls", "[brand.ok]PHASE 03[/brand.ok]"),
     ("4",  "Vulnerability Scan",             "brand.ok",   "nikto, nuclei, wpscan, testssl, sslscan", "[brand.ok]PHASE 04[/brand.ok]"),
     ("5",  "Exploitation",                   "brand.ok",   "sqlmap, xsstrike, dalfox, metasploit, msfvenom", "[brand.ok]PHASE 05[/brand.ok]"),
-    ("6",  "Post-Exploitation & Privesc",    "brand.ok",   "linpeas, impacket, crackmapexec, bloodhound", "[brand.ok]PHASE 06[/brand.ok]"),
+    ("6",  "Post-Exploitation & Privesc",    "brand.ok",   "impacket, netexec, bloodhound", "[brand.ok]PHASE 06[/brand.ok]"),
     ("7",  "Password Cracking",              "brand.ok",   "hashcat, john, hydra", "[brand.ok]PHASE 07[/brand.ok]"),
     ("8",  "Windows / Active Directory",     "brand.ok",   "secretsdump, psexec, kerberoasting, nxc, bloodhound", "[brand.ok]AD[/brand.ok]"),
     ("9",  "Wireless Security",              "brand.ok",   "airmon-ng, airodump-ng, aircrack-ng, reaver, wifite", "[brand.ok]RF[/brand.ok]"),

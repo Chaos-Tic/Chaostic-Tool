@@ -8,8 +8,9 @@ import ipaddress
 from urllib.parse import urlparse
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent.parent
-TARGETS_ROOT = SCRIPT_DIR / "targets"
+from core.paths import data_home, ensure_directory
+
+TARGETS_ROOT = data_home() / "targets"
 
 CATEGORIES = [
     "osint", "recon", "web_enum", "vulnscan", "exploitation",
@@ -101,7 +102,7 @@ def set_target(host="", url="", port="80", wordlist=None):
     name = target_name()
     if name:
         for cat in CATEGORIES:
-            (TARGETS_ROOT / name / cat).mkdir(parents=True, exist_ok=True)
+            ensure_directory(TARGETS_ROOT / name / cat)
         _chown_tree(TARGETS_ROOT / name)
     return target_dir()
 

@@ -4,6 +4,10 @@ import re
 import string
 from pathlib import Path, PurePosixPath
 
+from core.redaction import StreamRedactor as StreamRedactor
+from core.redaction import redact as _redact
+from desktop.i18n import T
+
 SECRETS={'passwd','cookie','api_key'}
 INPUT_FILES={'hashfile','userfile','capfile','wordlist'}
 OUTPUT_FILES={'outfile','pcap'}
@@ -24,44 +28,27 @@ def normalized(preset, backend='native'):
 
 def validate_field(name,value,backend='native'):
     value=value.strip() if name not in SECRETS else value
-    if not value or any(ord(c)<32 for c in value): raise ValueError(f'{CAPTIONS.get(name,name)} : valeur requise, sans caractère de contrôle.')
-    if name not in SECRETS and value.startswith('-'): raise ValueError('Une valeur ne peut pas commencer par une option (-).')
+    if not value or any(ord(c)<32 for c in value): raise ValueError(T('{field} : valeur requise, sans caractère de contrôle.').format(field=T(CAPTIONS.get(name,name))))
+    if name not in SECRETS and value.startswith('-'): raise ValueError(T('Une valeur ne peut pas commencer par une option (-).'))
     if name in INPUT_FILES:
         if backend=='ssh':
-            if not PurePosixPath(value).is_absolute(): raise ValueError('Indiquez un chemin Linux absolu sur la machine SSH.')
-        elif not Path(value).is_file(): raise ValueError('Fichier introuvable : '+value)
+            if not PurePosixPath(value).is_absolute(): raise ValueError(T('Indiquez un chemin Linux absolu sur la machine SSH.'))
+        elif not Path(value).is_file(): raise ValueError(T('Fichier introuvable : {path}').format(path=value))
         return value if backend=='ssh' else str(Path(value).resolve())
     if name in OUTPUT_FILES:
-        if Path(value).name!=value or '/' in value or '\\' in value or value in ('.','..') or ':' in value: raise ValueError('Choisissez un simple nom de fichier ; la sortie sera dans le dossier de cette opération.')
-    if name in ('iface','fmt','domain','user','sources') and not re.fullmatch(r'[\w.@,+\\/-]+',value,re.ASCII): raise ValueError(f'{name} : caractères non autorisés.')
+        if Path(value).name!=value or '/' in value or '\\' in value or value in ('.','..') or ':' in value: raise ValueError(T('Choisissez un simple nom de fichier ; la sortie sera dans le dossier de cette opération.'))
+    if name in ('iface','fmt','domain','user','sources') and not re.fullmatch(r'[\w.@,+\\/-]+',value,re.ASCII): raise ValueError(T('{field} : caractères non autorisés.').format(field=T(CAPTIONS.get(name,name))))
     if name in ('lport','pfilter','channel','size','depth'):
         high=65535 if name in ('lport','pfilter') else 233 if name=='channel' else 10 if name=='depth' else 1_000_000_000
-        if not value.isascii() or not value.isdigit() or not (0 if name=='size' else 1)<=int(value)<=high: raise ValueError(f'{name} : valeur numérique invalide.')
-    if name in ('target','target1','target2'): ipaddress.ip_address(value)
-    if name=='bssid' and not re.fullmatch(r'(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}',value): raise ValueError('BSSID invalide.')
+        if not value.isascii() or not value.isdigit() or not (0 if name=='size' else 1)<=int(value)<=high: raise ValueError(T('{field} : valeur numérique invalide.').format(field=T(CAPTIONS.get(name,name))))
+    if name in ('target','target1','target2'):
+        try: ipaddress.ip_address(value)
+        except ValueError: raise ValueError(T('Adresse IP invalide : {value}').format(value=value)) from None
+    if name=='bssid' and not re.fullmatch(r'(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}',value): raise ValueError(T('BSSID invalide.'))
     return value
 
 def secrets_for(preset,values):
     return [values[k] for k in preset.get('fields',{}) if k in SECRETS and values.get(k)]
 
 def redact(text,secrets):
-    for secret in sorted(set(secrets),key=len,reverse=True):
-        if secret: text=text.replace(secret,'[masqué]')
-    return text
-
-class StreamRedactor:
-    """Delay a suffix so secrets split across process-output chunks stay hidden."""
-    def __init__(self,secrets=()):
-        self.secrets=sorted({s.encode('utf-8') for s in secrets if s},key=len,reverse=True)
-        self.buffer=b''
-        self.keep=max((len(s) for s in self.secrets),default=1)-1
-    def feed(self,data,final=False):
-        self.buffer+=data
-        cutoff=len(self.buffer) if final else max(0,len(self.buffer)-self.keep)
-        out=bytearray(); index=0
-        while index<cutoff:
-            match=next((s for s in self.secrets if self.buffer.startswith(s,index)),None)
-            if match: out.extend(b'[masque]'); index+=len(match)
-            else: out.append(self.buffer[index]); index+=1
-        self.buffer=self.buffer[index:]
-        return bytes(out)
+    return _redact(text,secrets,T('[masqué]'))

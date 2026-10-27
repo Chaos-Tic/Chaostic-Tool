@@ -49,16 +49,16 @@ latest public releases still contain the earlier split CLI and Desktop editions.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/media/liquid-glass-accueil.png" alt="Target selector and reconnaissance dashboard"></td>
-<td width="50%"><img src="docs/media/liquid-glass-execution.png" alt="Real-time PTY terminal execution with ANSI color output"></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: light)" srcset="docs/media/liquid-glass-accueil.png"><img src="docs/media/liquid-glass-accueil-dark.png" alt="Target selector and reconnaissance dashboard"></picture></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: light)" srcset="docs/media/liquid-glass-execution.png"><img src="docs/media/liquid-glass-execution-dark.png" alt="Real-time PTY terminal execution with ANSI color output"></picture></td>
 </tr>
 <tr>
 <td><b>1. Scope & Target.</b> Define domains, IPv4/IPv6 addresses, CIDR blocks, or URLs. Targets are validated and isolated in private local storage without launching unwanted connections.</td>
 <td><b>2. Orchestrated Execution.</b> Launch individual profiles or chained flows. Interactive tools run in dedicated pseudo-terminals with real-time output and instant cancellation.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/media/liquid-glass-arsenal.png" alt="The shared security tool catalog classified across ten structured phases"></td>
-<td width="50%"><img src="docs/media/liquid-glass-historique.png" alt="Mission report and structured run logs"></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: light)" srcset="docs/media/liquid-glass-arsenal.png"><img src="docs/media/liquid-glass-arsenal-dark.png" alt="The shared security tool catalog classified across ten structured phases"></picture></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: light)" srcset="docs/media/liquid-glass-historique.png"><img src="docs/media/liquid-glass-historique-dark.png" alt="Mission report and structured run logs"></picture></td>
 </tr>
 <tr>
 <td><b>3. Shared tool arsenal.</b> Forty-six CLI tools and 136 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>

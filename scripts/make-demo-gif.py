@@ -22,8 +22,11 @@ SLIDES = [
     ("liquid-glass-historique.png", 40),  # 2.0s Results & mission report
 ]
 
+# Dark counterpart: identical cadence/transitions, dark-themed captures.
+SLIDES_DARK = [(name.replace(".png", "-dark.png"), hold) for name, hold in SLIDES]
 
-def generate_gif(out_path: Path):
+
+def generate_gif(out_path: Path, slides=SLIDES):
     if not shutil.which("ffmpeg") or not shutil.which("magick"):
         print("ffmpeg or magick not found; skipping gif build", file=sys.stderr)
         return False
@@ -34,7 +37,7 @@ def generate_gif(out_path: Path):
 
         # Pre-resize all slide images to 800x506 for crisp display & compact size
         resized_slides = []
-        for name, _ in SLIDES:
+        for name, _ in slides:
             src = MEDIA / name
             if not src.exists():
                 print(f"Source image {src} missing", file=sys.stderr)
@@ -46,10 +49,10 @@ def generate_gif(out_path: Path):
             )
             resized_slides.append(dst)
 
-        n_slides = len(SLIDES)
+        n_slides = len(slides)
         transition_frames = 6
 
-        for i, (name, hold_frames) in enumerate(SLIDES):
+        for i, (name, hold_frames) in enumerate(slides):
             current_img = resized_slides[i]
             next_img = resized_slides[(i + 1) % n_slides]
 
@@ -108,5 +111,5 @@ def generate_gif(out_path: Path):
 
 
 if __name__ == "__main__":
-    out = MEDIA / "demo.gif"
-    generate_gif(out)
+    generate_gif(MEDIA / "demo.gif", SLIDES)
+    generate_gif(MEDIA / "demo-dark.gif", SLIDES_DARK)

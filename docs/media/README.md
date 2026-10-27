@@ -13,3 +13,7 @@ Regenerate after a visual or theme change:
 ```bash
 scripts/render-docs.sh
 ```
+
+## Aligned banner and hero
+
+`banner(-dark).png` and `hero(-dark).{png,gif}` come from the shared Chaos-Tic template (same grid, background and glass frame for all three tools), built from the captures in this folder. ChaosticTool is a security tool, so the dark variant is the default.

@@ -55,3 +55,21 @@ ChaosticTool supports two handcrafted visual modes:
 
 To adjust animations or force static rendering (useful over low-bandwidth remote X11/SSH sessions):
 - Toggle **Reduced Motion** in settings or run with `CHAOSTIC_REDUCED_MOTION=1`.
+
+---
+
+## 4. API Keys
+
+A few bundled tools gain extra capability when you provide an API key: Shodan
+(host lookups and the passive source), WPScan (the WordPress vulnerability
+database), and a GitHub token (higher API rate limits for the OSINT sources
+such as amass, subfinder and gau).
+
+Set them once and they persist across launches:
+- **Desktop**: *Settings ➔ API keys*. Keys are saved to your private local data
+  folder (never into the installation) with owner-only file permissions.
+- **Terminal**: main menu entry **`k` · API keys**.
+
+Each stored key is passed to the relevant tool through the environment variable
+it reads (`SHODAN_API_KEY`, `WPSCAN_API_TOKEN`, `GITHUB_TOKEN`). A value already
+present in your shell environment always takes precedence over the stored one.

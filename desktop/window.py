@@ -705,6 +705,7 @@ class Window(QMainWindow):
         content.addWidget(button("Choisir Python…", self.configure_python))
         content.addWidget(button("Actualiser la détection des outils", self.refresh))
         layout.addWidget(frame)
+        self.build_api_keys_card(layout)
         frame, content = card()
         content.addWidget(label("À propos de cette version", "sectionTitle"))
         content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les attack flows proposent des étapes guidées et configurables. Le pilotage Tor/VPN reste séparé. Le routage est celui de l’environnement choisi.", "muted", True))
@@ -727,6 +728,37 @@ class Window(QMainWindow):
         content.addLayout(updates)
         layout.addWidget(frame)
         layout.addStretch()
+
+    def build_api_keys_card(self, layout):
+        from core import api_keys
+        frame, content = card()
+        content.addWidget(label("Clés API", "sectionTitle"))
+        content.addWidget(label("Certains outils embarqués utilisent une clé API. Enregistrez-la ici une fois : "
+                                "elle reste sur cet ordinateur et est transmise à l’outil à chaque lancement.",
+                                "muted", True))
+        stored = self.store.settings.get("api_keys", {})
+        self.api_key_fields = {}
+        for spec in api_keys.KEY_SPECS:
+            content.addWidget(label(f"{spec['label']} · {spec['env']}", "muted"))
+            field = QLineEdit(stored.get(spec["id"], ""))
+            field.setEchoMode(QLineEdit.EchoMode.Password)
+            field.setPlaceholderText(T("Clé ou jeton"))
+            field.setAccessibleName(f"{spec['label']} ({spec['env']})")
+            content.addWidget(field)
+            content.addWidget(label(spec["help"], "muted", True))
+            self.api_key_fields[spec["id"]] = field
+        reveal = QCheckBox(T("Afficher les clés"))
+        reveal.toggled.connect(lambda shown: [
+            f.setEchoMode(QLineEdit.EchoMode.Normal if shown else QLineEdit.EchoMode.Password)
+            for f in self.api_key_fields.values()])
+        content.addWidget(reveal)
+        content.addWidget(button("Enregistrer les clés", self.save_api_keys))
+        layout.addWidget(frame)
+
+    def save_api_keys(self):
+        for key_id, field in getattr(self, "api_key_fields", {}).items():
+            self.store.set_api_key(key_id, field.text())
+        self.statusBar().showMessage(T("Clés API enregistrées."), 4000)
 
     def _sync_theme_button(self):
         self.theme_button.setText(T("  Mode sombre") if theme.MODE == "light" else T("  Mode clair"))

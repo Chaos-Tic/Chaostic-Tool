@@ -53,6 +53,8 @@ def _build_env():
             env["PATH"] = local_bins + ":" + env.get("PATH", "")
         except Exception:
             pass
+    from core import api_keys
+    api_keys.apply_to_env(env)
     return env
 
 

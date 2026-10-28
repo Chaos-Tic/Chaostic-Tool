@@ -39,7 +39,7 @@ def available() -> bool:
 
 
 def _badge_class(raw: Any) -> str:
-    """Map a status markup string to its pill style class (bg-filled badge)."""
+    """Map a status markup string to its badge style class."""
     if isinstance(raw, str):
         match = _BADGE_RE.search(raw)
         if match:
@@ -141,7 +141,7 @@ def _status_pill_class(word: str) -> str:
 def _style():
     return Style.from_dict({
         # No background is set: preserve the terminal's own canvas, including blank cells.
-        "": COLORS["text"],
+        "": f"{COLORS['text']} bg:default",
         "title": f"bold {COLORS['text']}",
         "accent": f"bold {COLORS['accent']}",
         "eyebrow": COLORS["faint"],
@@ -162,8 +162,7 @@ def _style():
         "keybadge": f"bold {COLORS['accent']}",
         "tool": COLORS["muted"],
         "tag": COLORS["faint"],
-        # pill-style status badges: coloured text on a filled background,
-        # square edges (the terminal equivalent of the desktop's tag chips).
+        # Status badges use colored text on the terminal background.
         "badge.ok": f"bold {COLORS['good']}",
         "badge.bad": f"bold {COLORS['danger']}",
         "badge.warn": f"bold {COLORS['warning']}",

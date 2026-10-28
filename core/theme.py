@@ -2,7 +2,8 @@
 
 The terminal owns the canvas background. Palettes provide foreground colors
 selected for the detected light or dark terminal; surface keys remain default.
-CHAOSTIC_THEME=light|dark overrides COLORFGBG detection; unknown terminals use dark.
+CHAOSTIC_THEME=light|dark overrides COLORFGBG detection; unknown terminals use
+their default foreground color.
 Legacy style aliases are preserved for the existing tool modules.
 """
 from __future__ import annotations
@@ -43,11 +44,21 @@ def resolve_mode(environ: Mapping[str, str] | None = None) -> str:
     if requested in ("light", "dark"):
         return requested
     background = environ.get("COLORFGBG", "").split(";")[-1]
-    return "light" if background in ("7", "15") else "dark"
+    if background in ("7", "15"):
+        return "light"
+    if background in ("0", "1", "2", "3", "4", "5", "6", "8"):
+        return "dark"
+    return "auto"
 
 
 MODE = resolve_mode()
 COLORS = dict(LIGHT if MODE == "light" else DARK)
+if MODE == "auto":
+    # The default foreground is chosen by the terminal for its actual background.
+    for role in ("text", "muted", "faint", "line", "line_soft", "accent",
+                 "accent_line", "good", "info", "warning", "danger",
+                 "danger_line", "term_text"):
+        COLORS[role] = "default"
 
 THEME = Theme(
     {
@@ -63,12 +74,11 @@ THEME = Theme(
         "brand.danger": f"bold {COLORS['danger']}",
         "brand.command": COLORS["accent"],
         "brand.dim": COLORS["line"],
-        # badge roles (colored text, no border — Rich can't draw per-cell
-        # boxes, so an inline bg wash stands in for the mockup's bordered tag)
-        "brand.badge.ok": f"bold {COLORS['good']} on {COLORS['good_soft']}",
-        "brand.badge.warn": f"bold {COLORS['warning']} on {COLORS['accent_soft']}",
-        "brand.badge.bad": f"bold {COLORS['danger']} on {COLORS['danger_soft']}",
-        "brand.badge.info": f"bold {COLORS['info']} on {COLORS['surface2']}",
+        # Badge roles retain the terminal background.
+        "brand.badge.ok": f"bold {COLORS['good']}",
+        "brand.badge.warn": f"bold {COLORS['warning']}",
+        "brand.badge.bad": f"bold {COLORS['danger']}",
+        "brand.badge.info": f"bold {COLORS['info']}",
         # --- legacy aliases (existing call sites keep working, re-skinned) --
         "brand.red": f"bold {COLORS['accent']}",
         "brand.red_soft": COLORS["accent_line"],

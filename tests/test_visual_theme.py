@@ -21,17 +21,17 @@ class VisualThemeTests(unittest.TestCase):
         self.assertEqual(resolve_mode({'CHAOSTIC_THEME': 'dark', 'COLORFGBG': '0;15'}), 'dark')
         self.assertEqual(resolve_mode({'COLORFGBG': '0;15'}), 'light')
         self.assertEqual(resolve_mode({'COLORFGBG': '0;7'}), 'light')
-        self.assertEqual(resolve_mode({'CHAOSTIC_THEME': 'invalid'}), 'dark')
-        self.assertEqual(resolve_mode({}), 'dark')
+        self.assertEqual(resolve_mode({'CHAOSTIC_THEME': 'invalid'}), 'auto')
+        self.assertEqual(resolve_mode({}), 'auto')
 
-    def test_text_and_selection_contrast_in_both_palettes(self):
-        for palette in (LIGHT, DARK):
-            for fg, bg in [('text','bg'), ('muted','bg'), ('faint','bg'), ('accent','bg'),
-                           ('on_accent','accent_strong'), ('good','good_soft'),
-                           ('danger','danger_soft'), ('warning','accent_soft')]:
-                a, b = sorted((luminance(palette[fg]), luminance(palette[bg])))
-                with self.subTest(palette=palette['bg'], foreground=fg):
+    def test_text_contrast_against_representative_terminal_backgrounds(self):
+        for palette, background in ((LIGHT, '#ffffff'), (DARK, '#000000')):
+            for fg in ('text', 'muted', 'faint', 'accent', 'good', 'warning', 'danger', 'info', 'term_text'):
+                a, b = sorted((luminance(palette[fg]), luminance(background)))
+                with self.subTest(background=background, foreground=fg):
                     self.assertGreaterEqual((b + .05) / (a + .05), 4.5)
+            for role in ('bg', 'surface', 'surface2', 'term_bg'):
+                self.assertEqual(palette[role], 'default')
 
     def test_home_keeps_numeric_phase_order_and_all_actions(self):
         screen = MenuScreen('Home', MAIN_ENTRIES, home=True, input=DummyInput(), output=DummyOutput())

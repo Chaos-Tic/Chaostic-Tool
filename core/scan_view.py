@@ -264,7 +264,7 @@ def run_scan(state, start, abort, context, cmd, output_path):
 
     style = Style.from_dict({
         # Keep blank cells and panels transparent so the terminal owns its canvas.
-        "": COLORS["text"],
+        "": f"{COLORS['text']} bg:default",
         "brand": f"bold {COLORS['text']}",
         "name": f"bold {COLORS['text']}",
         "accent": f"bold {COLORS['accent']}",

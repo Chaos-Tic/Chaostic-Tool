@@ -471,6 +471,18 @@ def run_preset(tool, preset, pause_after=True):
                     console.print(f"[bright_red][!] Could not resolve '{escape(host)}' to an IP address. {escape(tool['name'])} requires an IP.[/bright_red]")
                     return
 
+    key_value = None
+    needed = preset.get("needs_key")
+    if needed:
+        from core import api_keys
+        key_value = api_keys.get(needed)
+        if not key_value:
+            spec = api_keys.SPEC_BY_ID.get(needed, {})
+            console.print(f"[bright_red][!] This profile needs the {spec.get('label', needed)} API key. "
+                          f"Set it from the main menu (k · API keys).[/bright_red]")
+            return
+        fill[f"{needed}_key"] = key_value
+
     if preset.get("wordlist"):
         fill["wordlist"] = select_wordlist()
         tgt.TARGET["wordlist"] = fill["wordlist"]
@@ -486,6 +498,8 @@ def run_preset(tool, preset, pause_after=True):
     if cmd and cmd[0] == tool["binary"]:
         cmd[0] = resolve_tool_binary(tool)
     redactions = secrets_for(fill, (preset.get("prompt") or {}).keys())
+    if key_value:
+        redactions = list(redactions) + [key_value]
     display_cmd = [redact(argument, redactions) for argument in cmd]
 
     # UX-005 : confirmation avant lancement quand des paramètres ont été saisis

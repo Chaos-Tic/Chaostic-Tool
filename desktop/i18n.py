@@ -41,6 +41,8 @@ FR_EN = {
     "Enregistrer les clés": "Save the keys",
     "Clés API enregistrées.": "API keys saved.",
     "Clés gardées pour cette session (aucun coffre sécurisé).": "Keys kept for this session (no secure store).",
+    "Recherche passive Shodan (sans scan — nécessite la clé API Shodan)": "Shodan passive lookup (no scan — needs Shodan API key)",
+    "Ce profil nécessite la clé API {name}. Enregistrez-la dans Paramètres → Clés API.": "This profile needs the {name} API key. Save it in Settings → API keys.",
     "VOTRE CIBLE. VOS OUTILS. VOTRE SESSION.":"YOUR TARGET. YOUR TOOLS. YOUR SESSION.",
     "ÉTAT LOCAL":"LOCAL STATE",
     "// ESPACES DE TRAVAIL":"// WORKSPACES",

@@ -113,6 +113,7 @@ TOOLS = {
             {"label": "Service versions only (no OS)",                     "cmd": ["nmap", "-T4", "-sV", "{host}"],                          "output": "nmap_svcver"},
             {"label": "NSE auth scripts",                                  "cmd": ["nmap", "-T4", "--script", "auth", "{host}"],             "output": "nmap_auth"},
             {"label": "NSE discovery scripts",                             "cmd": ["nmap", "-T4", "--script", "discovery", "{host}"],        "output": "nmap_discovery"},
+            {"label": "Shodan passive lookup (no scan — needs Shodan API key)", "cmd": ["nmap", "-sn", "-Pn", "-n", "--script", "shodan-api", "--script-args", "shodan-api.apikey={shodan_key}", "{host}"], "output": "nmap_shodan", "needs_key": "shodan"},
         ],
     },
     "rustscan": {

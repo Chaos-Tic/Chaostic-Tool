@@ -22,7 +22,7 @@ from desktop import VERSION
 from desktop import effects
 from desktop import theme
 from desktop.identity import BrandPanel, RailButton
-from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
+from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command, preset_key_value
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
 from desktop.profiles import secrets_for,INPUT_FILES
@@ -995,6 +995,13 @@ class Window(QMainWindow):
             try:
                 args=build_arguments(tool,0,target,dialog.wordlist.text(),fields,preset=preset,backend=dialog.effective_backend())
                 secret_values=secrets_for(preset,fields)
+                if preset.get('needs_key'):
+                    key_value=preset_key_value(preset)
+                    if not key_value:
+                        from core import api_keys
+                        spec=api_keys.SPEC_BY_ID.get(preset['needs_key'],{})
+                        raise ValueError(T('Ce profil nécessite la clé API {name}. Enregistrez-la dans Paramètres → Clés API.').format(name=spec.get('label',preset['needs_key'])))
+                    secret_values=secret_values+[key_value]
                 if backend=='builtin':
                     request={**(target or {}),'fields':fields,'rrtype':preset.get('rrtype','A')}
                     kwargs={'worker':preset['worker'],'timeout_ms':30_000}

@@ -2,7 +2,7 @@ import platform,subprocess
 from pathlib import Path
 from PySide6.QtCore import Qt,QTimer
 from PySide6.QtWidgets import QApplication,QDialog,QVBoxLayout,QFormLayout,QComboBox,QLineEdit,QLabel,QFrame,QWidget,QHBoxLayout,QPushButton,QFileDialog,QScrollArea,QDialogButtonBox
-from desktop.catalog import build_arguments,native_command
+from desktop.catalog import build_arguments,native_command,preset_key_value
 from desktop.backends import get_config,linux_status
 from desktop.profiles import SECRETS,INPUT_FILES,OUTPUT_FILES,secrets_for,redact
 from desktop.i18n import T
@@ -107,5 +107,6 @@ class LaunchDialog(QDialog):
         try:
             args=build_arguments(self.tool,0,self.target(),self.wordlist.text(),self.field_values(),preset=preset,backend=self.effective_backend())
             text=subprocess.list2cmdline([self.tool.get('binary',preset.get('worker','diagnostic')),*args])
-            self.preview.setText(redact(text,secrets_for(preset,self.field_values())))
+            key_value=preset_key_value(preset)
+            self.preview.setText(redact(text,secrets_for(preset,self.field_values())+([key_value] if key_value else [])))
         except (ValueError,KeyError,TypeError) as exc: self.preview.setText(T(str(exc)))

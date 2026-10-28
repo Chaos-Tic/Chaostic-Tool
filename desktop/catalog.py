@@ -32,6 +32,7 @@ ADAPTERS = {
         dict(label="100 ports TCP courants", args=["-sT", "-Pn", "-n", "--top-ports", "100", "{host}"]),
         dict(label="Port de la cible", args=["-sT", "-Pn", "-n", "-p", "{port}", "{host}"]),
         dict(label="Ports personnalisés", args=["-sT", "-Pn", "-n", "-p", "{ports}", "{host}"], fields={'ports': ('Ports TCP', '22,80,443,8000-8100')}),
+        dict(label="Recherche passive Shodan (sans scan — nécessite la clé API Shodan)", args=["-sn", "-Pn", "-n", "--script", "shodan-api", "--script-args", "shodan-api.apikey={shodan_key}", "{host}"], needs_key="shodan"),
     ]),
     "subfinder": dict(desc="Recherchez des sous-domaines à partir de sources publiques.", url="https://github.com/projectdiscovery/subfinder/releases", note="Sélectionnez la version de Subfinder adaptée à votre système.", presets=[dict(label="Sous-domaines publics", args=["-d", "{host}", "-silent"], domain_only=True)]),
     "httpx": dict(desc="Relevez le statut HTTP, le titre et les technologies d’un site.", url="https://github.com/projectdiscovery/httpx/releases", note="Utilisez httpx de ProjectDiscovery, pas la bibliothèque Python du même nom.", presets=[dict(label="Statut, titre et technologies", args=["-u", "{url}", "-status-code", "-title", "-tech-detect", "-no-color"])]),
@@ -267,6 +268,20 @@ def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None
             values[name]=parse_target(value)['url'].rstrip('/')
         elif name=='nameserver' and not value: values[name]=''
         else: values[name]=validate_field(name,value,backend)
+    if preset.get('needs_key'):
+        values[preset['needs_key']+'_key']=preset_key_value(preset) or ''
     args=[arg.format_map(values) for arg in preset.get('args',[])]
     if tool['key']=='nmap' and ':' in target.get('host','') and '-6' not in args: args.insert(0,'-6')
     return args
+
+
+def preset_key_value(preset):
+    """The stored API key a preset needs (preset['needs_key']), or None.
+
+    Read from the OS secret store at launch; callers add it to the redaction
+    set so it never reaches the preview, the live stream or the saved history.
+    """
+    needed=preset.get('needs_key')
+    if not needed: return None
+    from core import api_keys
+    return api_keys.get(needed)

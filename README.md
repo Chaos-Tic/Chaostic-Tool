@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build and test status"></a>
-  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.0-38bdf8.svg" alt="Version 2.0.0"></a>
+  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.1-38bdf8.svg" alt="Version 2.0.1"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="GPL-3.0-or-later license"></a>
 </p>
 
@@ -37,7 +37,7 @@ Everything runs strictly on your machine. No accounts, no telemetry, no cloud de
 The only optional network call is a once-a-day check for a newer GitHub release, which can be
 disabled at any time in settings.
 
-**Version 2.0.0 is under development.** The unified packages and release workflow are
+**Version 2.0.1 is under development.** The unified packages and release workflow are
 validated in this branch but are not claimed as published distribution channels. The
 latest public releases still contain the earlier split CLI and Desktop editions.
 
@@ -169,7 +169,7 @@ sudo dnf install chaostictool
 ### Debian / Ubuntu
 After a 2.x release is published, download its native `.deb`:
 ```bash
-sudo apt install ./chaostictool_2.0.0_amd64.deb
+sudo apt install ./chaostictool_2.0.1_amd64.deb
 ```
 Or via the Chaos-Tic signed APT repository:
 ```bash
@@ -180,12 +180,12 @@ sudo apt update && sudo apt install chaostictool
 
 ### Universal Linux (AppImage)
 ```bash
-chmod +x ChaosticTool-2.0.0-x86_64.AppImage
-./ChaosticTool-2.0.0-x86_64.AppImage
+chmod +x ChaosticTool-2.0.1-x86_64.AppImage
+./ChaosticTool-2.0.1-x86_64.AppImage
 ```
 
 ### Windows 10 & 11
-After a 2.x release is published, download `ChaosticTool-Setup-2.0.0-windows-x64.exe`
+After a 2.x release is published, download `ChaosticTool-Setup-2.0.1-windows-x64.exe`
 from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases).
 The installer sets up the desktop launcher and offers an automated Kali Linux WSL2 integration
 for running Linux-native security utilities with zero manual configuration.

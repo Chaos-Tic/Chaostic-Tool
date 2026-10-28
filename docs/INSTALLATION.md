@@ -12,9 +12,9 @@ runtime libraries with the system package manager. No system-wide pip installati
 used. AppImages are also built for x86-64 and ARM64.
 
 ```sh
-sudo apt install ./chaostictool_2.0.0_amd64.deb
+sudo apt install ./chaostictool_2.0.1_amd64.deb
 # Fedora (use the exact downloaded RPM filename):
-sudo dnf install ./chaostictool-2.0.0-1.x86_64.rpm
+sudo dnf install ./chaostictool-2.0.1-1.x86_64.rpm
 chaostictool-desktop
 ```
 

@@ -65,7 +65,7 @@ flowchart TD
 | [`core/backends/posix.py`](../core/backends/posix.py) | POSIX process-group lifecycle, bounded input and incremental output |
 | [`core/terminal.py`](../core/terminal.py) | POSIX pseudo-terminal allocation and ANSI color terminal streaming |
 | [`desktop/storage.py`](../desktop/storage.py) | Target persistence, deduplication, run history metadata, JSON Lines export |
-| [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.0.0`) |
+| [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.0.1`) |
 | [`core/update_service.py`](../core/update_service.py) | GitHub release verification, cache throttling (once-a-day), package-manager detection |
 | [`desktop/window.py`](../desktop/window.py) | Main Liquid Glass window, navigation stack, arsenal selector, run monitor |
 | [`desktop/theme.py`](../desktop/theme.py) | Frosted-glass stylesheets, translucent palettes (light pastel & neon dark), typography |

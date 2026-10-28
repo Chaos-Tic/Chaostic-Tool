@@ -1,3 +1,9 @@
+chaostictool (2.0.1-1) unstable; urgency=medium
+
+  * Store API keys in the OS secret store; add the nmap Shodan profile; add opt-in domain-wide subdomain targeting.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Wed, 28 Oct 2026 12:00:00 +0100
+
 chaostictool (2.0.0-1) unstable; urgency=medium
 
   * Unify the terminal and desktop interfaces in one package.

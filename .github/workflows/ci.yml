@@ -345,3 +345,25 @@ jobs:
             exit 0
           fi
           bash packaging/arch/aur.sh "${TAG#v}"
+
+  apt:
+    name: Refresh the Chaos-Tic apt repository
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch apt repository rebuild
+        env:
+          APT_DISPATCH_TOKEN: ${{ secrets.APT_DISPATCH_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -z "$APT_DISPATCH_TOKEN" ]; then
+            echo "::notice::APT_DISPATCH_TOKEN not configured; the apt repository refreshes on its hourly schedule instead."
+            exit 0
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $APT_DISPATCH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/Chaos-Tic/apt/dispatches \
+            -d "{\"event_type\":\"release-published\",\"client_payload\":{\"repository\":\"${GITHUB_REPOSITORY}\",\"tag\":\"${TAG}\"}}"
+          echo "Chaos-Tic/apt rebuild dispatched for ${TAG}."

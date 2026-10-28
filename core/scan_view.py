@@ -9,9 +9,8 @@ Two deliberate behaviours matter here:
   recomputing ``time.monotonic() - started`` on every frame, and we stop the
   periodic invalidation once done so the screen genuinely stops ticking.
 * The screen never stretches a few lines of output across a 50-row terminal.
-  A short run is composed as a centred panel (no dead black void); a long run
-  fills the pane and scrolls. There is no blanket background on any surface, so
-  empty space is the terminal's own background, never a mismatched rectangle.
+  A short run is composed as a centred panel; a long run fills the pane and
+  scrolls. Every cell keeps the terminal's native background.
 """
 import asyncio
 import re
@@ -264,8 +263,8 @@ def run_scan(state, start, abort, context, cmd, output_path):
             return True
 
     style = Style.from_dict({
-        # Explicit backgrounds keep output readable in both terminal palettes.
-        "": f"{COLORS['text']} bg:{COLORS['bg']}",
+        # Keep blank cells and panels transparent so the terminal owns its canvas.
+        "": COLORS["text"],
         "brand": f"bold {COLORS['text']}",
         "name": f"bold {COLORS['text']}",
         "accent": f"bold {COLORS['accent']}",
@@ -282,9 +281,9 @@ def run_scan(state, start, abort, context, cmd, output_path):
         "wordmark2": f"bold {COLORS['accent']}",
         "clock": f"bold {COLORS['text']}",
         "sep": COLORS["line"],
-        "badge.ok": f"bold {COLORS['good']} bg:{COLORS['good_soft']}",
-        "badge.warn": f"bold {COLORS['warning']} bg:{COLORS['accent_soft']}",
-        "badge.bad": f"bold {COLORS['danger']} bg:{COLORS['danger_soft']}",
+        "badge.ok": f"bold {COLORS['good']}",
+        "badge.warn": f"bold {COLORS['warning']}",
+        "badge.bad": f"bold {COLORS['danger']}",
     })
     app = Application(
         layout=Layout(HSplit([

@@ -140,15 +140,15 @@ def _status_pill_class(word: str) -> str:
 
 def _style():
     return Style.from_dict({
-        # Explicit canvas colors keep contrast stable on light and dark terminals.
-        "": f"{COLORS['text']} bg:{COLORS['bg']}",
+        # No background is set: preserve the terminal's own canvas, including blank cells.
+        "": COLORS["text"],
         "title": f"bold {COLORS['text']}",
         "accent": f"bold {COLORS['accent']}",
         "eyebrow": COLORS["faint"],
         "muted": COLORS["muted"], "line": COLORS["line"],
         "faint": COLORS["faint"],
-        "selected": f"bg:{COLORS['accent_strong']} {COLORS['on_accent']} bold",
-        "status": COLORS["good"], "footer": f"bg:{COLORS['surface']} {COLORS['muted']}",
+        "selected": f"bold {COLORS['accent']}",
+        "status": COLORS["good"], "footer": COLORS["muted"],
         # brand masthead (the chamfered HUD frame + wordmark + kill-chain tagline)
         "frame": COLORS["accent_line"],
         "mark": f"bold {COLORS['accent']}",
@@ -164,10 +164,10 @@ def _style():
         "tag": COLORS["faint"],
         # pill-style status badges: coloured text on a filled background,
         # square edges (the terminal equivalent of the desktop's tag chips).
-        "badge.ok": f"bold {COLORS['good']} bg:{COLORS['good_soft']}",
-        "badge.bad": f"bold {COLORS['danger']} bg:{COLORS['danger_soft']}",
-        "badge.warn": f"bold {COLORS['warning']} bg:{COLORS['accent_soft']}",
-        "badge.info": f"bold {COLORS['info']} bg:{COLORS['surface2']}",
+        "badge.ok": f"bold {COLORS['good']}",
+        "badge.bad": f"bold {COLORS['danger']}",
+        "badge.warn": f"bold {COLORS['warning']}",
+        "badge.info": f"bold {COLORS['info']}",
     })
 
 

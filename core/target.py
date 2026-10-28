@@ -1,3 +1,4 @@
+import json
 import re
 import os
 try:
@@ -23,6 +24,11 @@ TARGET = {
     "port": "80",
     "wordlist": "/usr/share/wordlists/dirb/common.txt",
 }
+
+# Subdomain scope for the active target. When enabled, host-targeted tools run
+# against the base host and every discovered subdomain. Cached per target so an
+# enumeration is reused across launches.
+SCOPE = {"include_subdomains": False, "subdomains": []}
 
 
 def _safe_name(value):
@@ -104,7 +110,67 @@ def set_target(host="", url="", port="80", wordlist=None):
         for cat in CATEGORIES:
             ensure_directory(TARGETS_ROOT / name / cat)
         _chown_tree(TARGETS_ROOT / name)
+    load_scope()
     return target_dir()
+
+
+def _scope_path():
+    d = target_dir()
+    return (d / "subdomains.json") if d is not None else None
+
+
+def load_scope():
+    """Reload the active target's cached subdomain scope from disk."""
+    SCOPE["include_subdomains"] = False
+    SCOPE["subdomains"] = []
+    path = _scope_path()
+    if path is None or not path.exists():
+        return
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if isinstance(data, dict):
+        subs = data.get("subdomains", [])
+        SCOPE["subdomains"] = [s for s in subs if isinstance(s, str)] if isinstance(subs, list) else []
+        SCOPE["include_subdomains"] = bool(data.get("include_subdomains")) and bool(SCOPE["subdomains"])
+
+
+def save_scope():
+    path = _scope_path()
+    if path is None:
+        return
+    ensure_directory(path.parent)
+    path.write_text(json.dumps({"include_subdomains": SCOPE["include_subdomains"],
+                                "subdomains": SCOPE["subdomains"]}, indent=2), encoding="utf-8")
+    _chown_tree(target_dir())
+
+
+def set_subdomains(subdomains):
+    """Store a freshly enumerated subdomain list for the active target."""
+    from core import subdomains as sd
+    host = TARGET["host"]
+    SCOPE["subdomains"] = sorted({s.strip().lower().rstrip(".") for s in subdomains
+                                  if isinstance(s, str) and s.strip() and sd.within_domain(s, host) and s.strip().lower().rstrip(".") != host.lower()})
+    if not SCOPE["subdomains"]:
+        SCOPE["include_subdomains"] = False
+    save_scope()
+
+
+def set_scope_enabled(enabled):
+    SCOPE["include_subdomains"] = bool(enabled) and bool(SCOPE["subdomains"])
+    save_scope()
+
+
+def scope_hosts():
+    """Hosts the active target expands to: base first, then subdomains."""
+    from core import subdomains as sd
+    return sd.scope_hosts(TARGET["host"], SCOPE["subdomains"], SCOPE["include_subdomains"])
+
+
+def scope_url(host):
+    """URL for a given scope host, following the active target's port/scheme."""
+    return _normalize_url("", host, TARGET["port"])
 
 
 def summary():
@@ -116,6 +182,8 @@ def summary():
     if TARGET["url"]:
         parts.append(f"url={TARGET['url']}")
     parts.append(f"port={TARGET['port']}")
+    if SCOPE["include_subdomains"] and SCOPE["subdomains"]:
+        parts.append(f"+{len(SCOPE['subdomains'])} subdomains")
     return " | ".join(parts)
 
 

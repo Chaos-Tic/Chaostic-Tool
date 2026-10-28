@@ -1,7 +1,7 @@
 """Shared pastel terminal palette for Rich, menus and execution output.
 
-Terminals render solid colors rather than compositor glass. Both palettes use
-explicit surfaces so their contrast does not depend on the terminal background.
+The terminal owns the canvas background. Palettes provide foreground colors
+selected for the detected light or dark terminal; surface keys remain default.
 CHAOSTIC_THEME=light|dark overrides COLORFGBG detection; unknown terminals use dark.
 Legacy style aliases are preserved for the existing tool modules.
 """
@@ -15,24 +15,24 @@ EYEBROW = "CHAOSTICTOOL / LINUX CLI"
 EYEBROW_COMPACT = "CHAOSTICTOOL / CLI"
 
 LIGHT = {
-    "bg": "#f4f1fa", "surface": "#ffffff", "surface2": "#eeedf7",
+    "bg": "default", "surface": "default", "surface2": "default",
     "line": "#a3aec7", "line_soft": "#d4d5e5",
     "text": "#151820", "muted": "#4a5060", "faint": "#62697b",
     "accent": "#385cad", "accent_strong": "#364d87", "accent_soft": "#e2eafa",
     "accent_line": "#728dbb", "on_accent": "#ffffff",
     "good": "#1f7657", "good_soft": "#e4f3eb", "info": "#246387",
     "warning": "#895400", "danger": "#b3261e", "danger_soft": "#fbe9e8",
-    "danger_line": "#b26666", "term_bg": "#fafbff", "term_text": "#24293a",
+    "danger_line": "#b26666", "term_bg": "default", "term_text": "#24293a",
 }
 DARK = {
-    "bg": "#191d30", "surface": "#252b42", "surface2": "#2c324b",
+    "bg": "default", "surface": "default", "surface2": "default",
     "line": "#7787a5", "line_soft": "#4d5671",
     "text": "#f3f4f8", "muted": "#c0c7d9", "faint": "#a4aec5",
     "accent": "#a8dafa", "accent_strong": "#425c9c", "accent_soft": "#334766",
     "accent_line": "#91a9d0", "on_accent": "#ffffff",
     "good": "#8fe0bf", "good_soft": "#263f3c", "info": "#9fdcf8",
     "warning": "#ffcf7a", "danger": "#ffaaa8", "danger_soft": "#4b303c",
-    "danger_line": "#99606d", "term_bg": "#181d30", "term_text": "#e3e8f4",
+    "danger_line": "#99606d", "term_bg": "default", "term_text": "#e3e8f4",
 }
 
 

@@ -83,5 +83,24 @@ class EnumerateTests(unittest.TestCase):
         self.assertEqual(error, "boom")
 
 
+class RunResilienceTests(unittest.TestCase):
+    def test_run_survives_invalid_utf8_output(self):
+        # An enumerator emitting non-UTF-8 bytes must not raise (regression:
+        # strict text decoding crashed the CLI's "enumerate now" path).
+        import os
+        import sys
+        cmd = [sys.executable, "-c",
+               r"import sys; sys.stdout.buffer.write(b'api.example.com\n\xff\xfe')"]
+        code, out, err = sd._run(cmd, dict(os.environ), 30)
+        self.assertEqual(code, 0)
+        self.assertIn("api.example.com", out)
+
+    def test_run_reports_missing_binary_without_raising(self):
+        import os
+        code, out, err = sd._run(["definitely-not-a-real-binary-xyz"], dict(os.environ), 10)
+        self.assertEqual(code, 127)
+        self.assertTrue(err)
+
+
 if __name__ == "__main__":
     unittest.main()

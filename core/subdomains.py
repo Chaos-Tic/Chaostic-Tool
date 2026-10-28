@@ -66,12 +66,14 @@ def parse_hosts(text: str, domain: str) -> list[str]:
 def _run(cmd, env, timeout):
     """Execute an enumerator, returning (returncode, stdout, stderr)."""
     try:
-        completed = subprocess.run(cmd, capture_output=True, text=True,
+        # errors="replace": enumerator banners/stderr may carry non-UTF-8 bytes;
+        # strict decoding would raise and crash the caller.
+        completed = subprocess.run(cmd, capture_output=True, text=True, errors="replace",
                                    env=env, timeout=timeout, check=False)
         return completed.returncode, completed.stdout or "", completed.stderr or ""
     except subprocess.TimeoutExpired as exc:
         return 124, (exc.stdout or "") if isinstance(exc.stdout, str) else "", "timeout"
-    except OSError as exc:
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
         return 127, "", str(exc)
 
 

@@ -78,40 +78,42 @@ def _configure_subdomain_scope():
 
 def _enumerate_subdomains():
     from core import subdomains as sd
-    from core import tui
     host = tgt.TARGET["host"]
-    # Enumeration runs subfinder/amass, which can take minutes. In the
-    # full-screen TUI that subprocess would run hidden behind the layout and
-    # look like the app had exited, so drop to the plain console and pause at
-    # the end before the menu redraws.
-    fullscreen = tui.available()
-    if fullscreen:
-        ui.console.end_screen()
+    env = executor._build_env()
+    tools = sd.available_enumerators(env.get("PATH"))
+    if not tools:
+        ui.console.print("[bright_red][!] Install subfinder (recommended) or amass to enumerate subdomains.[/bright_red]")
+        return
+    # Run the enumerator through the shared operation view (same live, scrollable
+    # full-screen panel as any other tool) and parse its saved output.
+    name = tools[0]
+    cat = tgt.category_dir("osint")
+    output_path = str(executor.target_path(cat, "subdomains_raw", tgt.target_name())) if cat is not None else None
     try:
-        env = executor._build_env()
-        if not sd.available_enumerators(env.get("PATH")):
-            ui.console.print("[bright_red][!] Install subfinder (recommended) or amass to enumerate subdomains.[/bright_red]")
-        else:
-            ui.console.print(f"[brand.muted][*] Enumerating subdomains of {host}… this can take a few minutes.[/brand.muted]")
-            subs, sources, error = sd.enumerate_subdomains(host, env=env)
-            if error:
-                ui.console.print(f"[bright_red][!] {error}[/bright_red]")
-            else:
-                tgt.set_subdomains(subs)
-                if subs:
-                    tgt.set_scope_enabled(True)
-                    ui.console.print(f"[brand.ok][+] {len(subs)} subdomains found via {', '.join(sources)}. "
-                                     f"Subdomain scope enabled — host-targeted tools will run on all of them.[/brand.ok]")
-                else:
-                    ui.console.print("[bright_yellow][!] No subdomains found.[/bright_yellow]")
+        executor.run_tool(
+            sd.command_for(name, host), output_path=output_path, interactive=False,
+            context={"tool": f"{name} (subdomains)", "preset": host,
+                     "category": "osint", "route": "LOCAL / direct", "wait": True},
+            timeout=600,
+        )
     except Exception as exc:
-        # A tool or filesystem failure must never bring down the whole CLI.
         ui.console.print(f"[bright_red][!] Subdomain enumeration failed: {exc}[/bright_red]")
-    if fullscreen:
+        return
+    text = ""
+    if output_path:
         try:
-            ui.console.input("\n[brand.muted]Press Enter to continue[/brand.muted] [brand.accent]▸[/brand.accent] ")
-        except (EOFError, KeyboardInterrupt):
-            pass
+            with open(output_path, encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+        except OSError:
+            text = ""
+    subs = sd.parse_hosts(text, host)
+    tgt.set_subdomains(subs)
+    if subs:
+        tgt.set_scope_enabled(True)
+        ui.console.print(f"[brand.ok][+] {len(subs)} subdomains found via {name}. "
+                         f"Subdomain scope enabled — host-targeted tools will run on all of them.[/brand.ok]")
+    else:
+        ui.console.print("[bright_yellow][!] No subdomains found via {}.[/bright_yellow]".format(name))
 
 
 def configure_api_keys():

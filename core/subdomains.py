@@ -91,6 +91,14 @@ def available_enumerators(path=None):
     return [name for name, _ in ENUMERATORS if shutil.which(name, path=path)]
 
 
+def command_for(name, domain):
+    """The argv for one enumerator (e.g. to run it through the shared runner)."""
+    for enum_name, build in ENUMERATORS:
+        if enum_name == name:
+            return build(domain)
+    raise KeyError(name)
+
+
 def enumerate_subdomains(domain, env=None, timeout=240, runner=None, path=None):
     """Discover subdomains of ``domain``.
 

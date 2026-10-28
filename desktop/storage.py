@@ -78,6 +78,14 @@ def parse_target(value: str, label: str = "") -> dict:
     }
 
 
+def retarget(target, host):
+    """A copy of ``target`` pointed at another in-scope host, same scheme/port."""
+    parsed = urlsplit(target.get("url", ""))
+    netloc = f"{host}:{parsed.port}" if parsed.port else host
+    url = urlunsplit((parsed.scheme or "http", netloc, parsed.path or "/", parsed.query, ""))
+    return dict(target, host=host, url=url)
+
+
 class Store:
     def __init__(self, root: Path | None = None):
         self.root = root or data_root()
@@ -122,6 +130,33 @@ class Store:
         self.settings["active_target"] = target["id"]
         self.save()
         return target
+
+    def set_target_scope(self, identifier, include=None, subdomains=None):
+        """Store subdomain scope on a target: cached list and/or the on/off flag."""
+        from core import subdomains as sd
+        target = next((t for t in self.targets if t["id"] == identifier), None)
+        if target is None:
+            return
+        host = target.get("host", "")
+        if subdomains is not None:
+            target["subdomains"] = sorted({
+                s.strip().lower().rstrip(".") for s in subdomains
+                if isinstance(s, str) and s.strip()
+                and sd.within_domain(s, host) and s.strip().lower().rstrip(".") != host.lower()})
+        if not target.get("subdomains"):
+            target["include_subdomains"] = False
+        elif include is not None:
+            target["include_subdomains"] = bool(include)
+        self.save()
+        return target
+
+    def scope_hosts(self, target):
+        """Hosts a target expands to: base first, then subdomains when enabled."""
+        from core import subdomains as sd
+        if not target:
+            return []
+        return sd.scope_hosts(target.get("host", ""), target.get("subdomains", []),
+                              target.get("include_subdomains", False))
 
     def remove_target(self, identifier):
         self.settings["targets"] = [t for t in self.targets if t["id"] != identifier]

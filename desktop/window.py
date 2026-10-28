@@ -7,7 +7,7 @@ import platform
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, QSize, QTimer
+from PySide6.QtCore import Qt, QUrl, QSize, QTimer, QThread, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradient, QConicalGradient, QRadialGradient, QPainter, QPen, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QBoxLayout, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
@@ -25,7 +25,8 @@ from desktop.identity import BrandPanel, RailButton
 from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
-from desktop.profiles import secrets_for,INPUT_FILES
+from desktop.profiles import secrets_for,INPUT_FILES,placeholders
+from desktop.storage import retarget
 from desktop.backend_dialog import BackendDialog
 from desktop.packages import PORTABLE_PACK, PYTHON_PACK, MANIFEST, find_python, installed, installation_error, can_install
 
@@ -161,6 +162,20 @@ class TargetDialog(QDialog):
 from desktop.launch_dialog import LaunchDialog
 
 
+class SubdomainWorker(QThread):
+    """Enumerate a domain's subdomains off the UI thread."""
+    done = Signal(list, list, str)
+
+    def __init__(self, domain, env, parent=None):
+        super().__init__(parent)
+        self.domain, self.env = domain, env
+
+    def run(self):
+        from core import subdomains as sd
+        subs, sources, error = sd.enumerate_subdomains(self.domain, env=self.env)
+        self.done.emit(subs, sources, error)
+
+
 class Window(QMainWindow):
     def __init__(self, store):
         super().__init__()
@@ -171,6 +186,8 @@ class Window(QMainWindow):
         self.tools = catalog()
         self.tool_by_key = {t["key"]: t for t in self.tools}
         self.runner = Runner(store, self)
+        self._fanout = []          # pending per-host runs when subdomain scope is on
+        self._enum_thread = None
         clock().set_enabled(store.settings.get("animations",True))
         clock().set_rate(store.settings.get('animation_fps',60))
         self.runner.output.connect(self.append_output)
@@ -461,6 +478,22 @@ class Window(QMainWindow):
         actions.addWidget(button("Retirer la cible", self.remove_target))
         actions.addStretch()
         layout.addLayout(actions)
+        scope, scope_box = card()
+        scope_box.addWidget(label("Sous-domaines", "sectionTitle"))
+        scope_box.addWidget(label("Pour une cible de type domaine, énumérez les sous-domaines (subfinder/amass) : "
+                                  "les outils visant un hôte s’exécuteront sur la cible et sur chaque sous-domaine.",
+                                  "muted", True))
+        self.subdomain_toggle = QCheckBox(T("Inclure les sous-domaines dans les analyses"))
+        self.subdomain_toggle.toggled.connect(self.toggle_subdomain_scope)
+        scope_box.addWidget(self.subdomain_toggle)
+        row = QHBoxLayout()
+        self.enumerate_button = button("Énumérer les sous-domaines", self.enumerate_subdomains)
+        row.addWidget(self.enumerate_button)
+        row.addStretch()
+        scope_box.addLayout(row)
+        self.subdomain_status = label("", "muted", True)
+        scope_box.addWidget(self.subdomain_status)
+        layout.addWidget(scope)
         layout.addWidget(label("Les résultats restent dans l’historique.", "muted", True))
 
     def build_tools(self):
@@ -792,11 +825,86 @@ class Window(QMainWindow):
         self.active_name.setText(target["label"] if target else T("Aucune cible"))
         self.active_host.setText(target["url"] if target else T("Ajoutez votre premier environnement."))
         fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
+        self._refresh_subdomain_ui()
         rows = [(T(r["tool"]), (r.get("target") or {}).get("label", T("Cet ordinateur")), T(STATUS.get(r["status"], r["status"])), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
         fill_table(self.recent, rows[:3], pill_cols=(2,))
         self.recent_empty.setVisible(not rows)
         self.filter_history()
         self.filter_tools()
+
+    def _refresh_subdomain_ui(self):
+        if not hasattr(self, "subdomain_toggle"):
+            return
+        from core import subdomains as sd
+        target = self.store.active_target
+        is_domain = bool(target and sd.is_domain(target.get("host", "")))
+        cached = list(target.get("subdomains") or []) if target else []
+        busy = self._enum_thread is not None
+        self.subdomain_toggle.setEnabled(is_domain and bool(cached))
+        self.enumerate_button.setEnabled(is_domain and not busy and not self.runner.active)
+        self.subdomain_toggle.blockSignals(True)
+        self.subdomain_toggle.setChecked(bool(target and target.get("include_subdomains")))
+        self.subdomain_toggle.blockSignals(False)
+        if not target:
+            text = T("Définissez une cible active.")
+        elif not is_domain:
+            text = T("La cible active n’est pas un domaine ; les sous-domaines ne s’appliquent pas.")
+        elif busy:
+            text = T("Énumération en cours…")
+        elif cached:
+            text = T("{n} sous-domaines en cache.").format(n=len(cached))
+        else:
+            text = T("Aucun sous-domaine en cache — lancez l’énumération.")
+        self.subdomain_status.setText(text)
+
+    def toggle_subdomain_scope(self, checked):
+        target = self.store.active_target
+        if target:
+            self.store.set_target_scope(target["id"], include=checked)
+        self._refresh_subdomain_ui()
+
+    def enumerate_subdomains(self):
+        from core import subdomains as sd
+        target = self.store.active_target
+        if not target or not sd.is_domain(target.get("host", "")) or self._enum_thread is not None:
+            return
+        from desktop.tool_paths import tool_search_path
+        env = dict(os.environ, PATH=tool_search_path())
+        if not sd.available_enumerators(env.get("PATH")):
+            QMessageBox.warning(self, T("Sous-domaines"),
+                                T("Installez subfinder (recommandé) ou amass pour énumérer les sous-domaines."))
+            return
+        self._enum_target_id = target["id"]
+        self._enum_thread = SubdomainWorker(target["host"], env, self)
+        self._enum_thread.done.connect(self._enumeration_done)
+        self._enum_thread.start()
+        self._refresh_subdomain_ui()
+
+    def _enumeration_done(self, subs, sources, error):
+        self._enum_thread = None
+        if error:
+            QMessageBox.warning(self, T("Sous-domaines"), T(error))
+        else:
+            self.store.set_target_scope(self._enum_target_id, subdomains=subs)
+            if subs:
+                self.store.set_target_scope(self._enum_target_id, include=True)
+                self.statusBar().showMessage(T("{n} sous-domaines trouvés via {s}.").format(n=len(subs), s=", ".join(sources)))
+            else:
+                self.statusBar().showMessage(T("Aucun sous-domaine trouvé."))
+        self.refresh()
+
+    def _scope_targets(self, preset, target):
+        """The per-host targets a launch expands to (base first)."""
+        if not target:
+            return [None]
+        templated = bool(placeholders(preset.get("args", [])) & {"host", "url", "base_url"}) \
+            or bool(preset.get("worker") and preset.get("needs_target"))
+        if not templated:
+            return [target]
+        hosts = self.store.scope_hosts(target)
+        if len(hosts) <= 1:
+            return [target]
+        return [retarget(target, host) for host in hosts]
 
     def add_target(self):
         dialog = TargetDialog(self)
@@ -947,50 +1055,63 @@ class Window(QMainWindow):
             dialog.targets.setCurrentIndex(dialog.targets.findData(target_override['id']))
             dialog.targets.setEnabled(False)
             dialog.update_preview()
+        self._fanout=[]
         while True:
             if show_dialog and dialog.exec()!=QDialog.DialogCode.Accepted: return False
             preset=dialog.preset(); backend=dialog.backend.currentData()
             target=(target_override or dialog.target()) if preset.get('needs_target',True) else None
-            fields=dialog.field_values()
+            spec=dict(tool=tool,key=key,preset=preset,backend=backend,eff_backend=dialog.effective_backend(),
+                      fields=dialog.field_values(),wordlist=dialog.wordlist.text(),metadata=metadata)
             try:
-                args=build_arguments(tool,0,target,dialog.wordlist.text(),fields,preset=preset,backend=dialog.effective_backend())
-                secret_values=secrets_for(preset,fields)
-                if backend=='builtin':
-                    request={**(target or {}),'fields':fields,'rrtype':preset.get('rrtype','A')}
-                    kwargs={'worker':preset['worker'],'timeout_ms':30_000}
-                else:
-                    request=target
-                    if backend=='linux':
-                        executable=linux_status(self.store.root).get('tools',{}).get(key)
-                        if not executable: raise ValueError(T('Outil Linux non détecté. Configurez Linux et actualisez son inventaire dans les paramètres.'))
-                        kwargs={'command':[executable,*args],'bridge':True,'fields':{**fields,'wordlist':dialog.wordlist.text()},'elevate':preset.get('requires_root',False)}
-                    else:
-                        command=native_command(tool,self.store.settings['executables'].get(key),self.store.root)
-                        if not command: raise ValueError(T('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.'))
-                        kwargs={'command':[*command,*args]}
-                        if sys.platform.startswith('linux') and (preset.get('interactive') or preset.get('requires_root')):
-                            kwargs.update(bridge=True,local_bridge=True,elevate=preset.get('requires_root',False))
-                        if key=='rustscan' and preset.get('cli_index') is not None:
-                            nmap=native_command(self.tool_by_key['nmap'],self.store.settings['executables'].get('nmap'),self.store.root)
-                            if not nmap: raise ValueError(T('Ce profil RustScan appelle Nmap. Installez Nmap depuis la boîte à outils, ou choisissez le profil « Port de la cible, sans Nmap ».'))
-                            kwargs['environment_extra']={'PATH':str(Path(nmap[0]).parent)+os.pathsep+os.environ.get('PATH','')}
-                    kwargs['redactions']=secret_values
-                self.console.clear(); self.terminal_screen=None
-                interactive=preset.get('interactive',False) or kwargs.get('elevate',False)
-                if interactive:
-                    import pyte
-                    self.terminal_screen=pyte.Screen(120,30); self.terminal_stream=pyte.Stream(self.terminal_screen)
-                self.input_row.setVisible(interactive)
-                self.run_title.setText(T(tool['name'])+' · '+T(preset['label']))
-                self.run_info.setText((T('Cible : ')+target['url'] if target else T('Environnement local sélectionné'))+T(' · En cours'))
-                self.flow_return.setVisible(bool(metadata))
-                self.execution_tool.setCurrentIndex(self.execution_tool.findData(key))
-                self.runner.start(tool['name'],preset['label'],request,metadata=metadata,**kwargs)
-                self.run_folder.setEnabled(True); self.navigate(3)
+                hosts=self._scope_targets(preset,target)
+                self._fanout_total=len(hosts)
+                self._fanout=[(spec,host) for host in hosts[1:]]
+                self._start_run(spec,hosts[0])
                 return True
             except (ValueError,RuntimeError,OSError) as exc:
+                self._fanout=[]
                 if not show_dialog: raise
                 QMessageBox.warning(self,T('Lancement impossible'),str(exc))
+
+    def _start_run(self,spec,target):
+        tool,key,preset,backend=spec['tool'],spec['key'],spec['preset'],spec['backend']
+        args=build_arguments(tool,0,target,spec['wordlist'],spec['fields'],preset=preset,backend=spec['eff_backend'])
+        secret_values=secrets_for(preset,spec['fields'])
+        if backend=='builtin':
+            request={**(target or {}),'fields':spec['fields'],'rrtype':preset.get('rrtype','A')}
+            kwargs={'worker':preset['worker'],'timeout_ms':30_000}
+        else:
+            request=target
+            if backend=='linux':
+                executable=linux_status(self.store.root).get('tools',{}).get(key)
+                if not executable: raise ValueError(T('Outil Linux non détecté. Configurez Linux et actualisez son inventaire dans les paramètres.'))
+                kwargs={'command':[executable,*args],'bridge':True,'fields':{**spec['fields'],'wordlist':spec['wordlist']},'elevate':preset.get('requires_root',False)}
+            else:
+                command=native_command(tool,self.store.settings['executables'].get(key),self.store.root)
+                if not command: raise ValueError(T('Outil natif non installé pour ce système. Utilisez Installer cet outil, sélectionnez son programme ou choisissez Linux.'))
+                kwargs={'command':[*command,*args]}
+                if sys.platform.startswith('linux') and (preset.get('interactive') or preset.get('requires_root')):
+                    kwargs.update(bridge=True,local_bridge=True,elevate=preset.get('requires_root',False))
+                if key=='rustscan' and preset.get('cli_index') is not None:
+                    nmap=native_command(self.tool_by_key['nmap'],self.store.settings['executables'].get('nmap'),self.store.root)
+                    if not nmap: raise ValueError(T('Ce profil RustScan appelle Nmap. Installez Nmap depuis la boîte à outils, ou choisissez le profil « Port de la cible, sans Nmap ».'))
+                    kwargs['environment_extra']={'PATH':str(Path(nmap[0]).parent)+os.pathsep+os.environ.get('PATH','')}
+            kwargs['redactions']=secret_values
+        self.console.clear(); self.terminal_screen=None
+        interactive=preset.get('interactive',False) or kwargs.get('elevate',False)
+        if interactive:
+            import pyte
+            self.terminal_screen=pyte.Screen(120,30); self.terminal_stream=pyte.Stream(self.terminal_screen)
+        self.input_row.setVisible(interactive)
+        title=T(tool['name'])+' · '+T(preset['label'])
+        if target and getattr(self,'_fanout_total',1)>1: title+=' · '+target['host']
+        self.run_title.setText(title)
+        self.run_info.setText((T('Cible : ')+target['url'] if target else T('Environnement local sélectionné'))+T(' · En cours'))
+        self.flow_return.setVisible(bool(spec['metadata']))
+        self.execution_tool.setCurrentIndex(self.execution_tool.findData(key))
+        self.runner.start(tool['name'],preset['label'],request,metadata=spec['metadata'],**kwargs)
+        self.run_folder.setEnabled(True); self.navigate(3)
+        return True
 
     def configure_backend(self):
         dialog=BackendDialog(self.store.root,self)
@@ -1185,6 +1306,16 @@ class Window(QMainWindow):
         if result['tool']=='Dépendances Linux':
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0,self.check_backend)
+        if self._fanout:
+            if result.get('status')=='cancelled':
+                self._fanout=[]  # a stopped batch does not resume
+            else:
+                spec,next_target=self._fanout.pop(0)
+                try:
+                    self._start_run(spec,next_target)
+                except (ValueError,RuntimeError,OSError) as exc:
+                    self._fanout=[]
+                    QMessageBox.warning(self,T('Lancement impossible'),str(exc))
 
     def selected_history(self):
         row = self.history_table.currentRow()

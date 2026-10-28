@@ -61,14 +61,20 @@ To adjust animations or force static rendering (useful over low-bandwidth remote
 ## 4. API Keys
 
 A few bundled tools gain extra capability when you provide an API key: Shodan
-(host lookups and the passive source), WPScan (the WordPress vulnerability
-database), and a GitHub token (higher API rate limits for the OSINT sources
-such as amass, subfinder and gau).
+(host lookups, the nmap `shodan-api` script and the passive source), WPScan (the
+WordPress vulnerability database), and a GitHub token (higher API rate limits
+for the OSINT sources such as amass, subfinder and gau).
 
 Set them once and they persist across launches:
-- **Desktop**: *Settings ➔ API keys*. Keys are saved to your private local data
-  folder (never into the installation) with owner-only file permissions.
+- **Desktop**: *Settings ➔ API keys*.
 - **Terminal**: main menu entry **`k` · API keys**.
+
+Keys are stored in the operating system's **secure key store** — Windows
+Credential Manager, macOS Keychain, or the Linux Secret Service — so they are
+encrypted at rest and never written to disk in clear text. When no secure store
+is available (for example a headless root shell with no Secret Service), keys
+are kept only for the current session; export the variable in your shell to
+persist them there.
 
 Each stored key is passed to the relevant tool through the environment variable
 it reads (`SHODAN_API_KEY`, `WPSCAN_API_TOKEN`, `GITHUB_TOKEN`). A value already

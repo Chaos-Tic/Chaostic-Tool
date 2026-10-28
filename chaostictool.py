@@ -63,8 +63,12 @@ def configure_api_keys():
 
     while True:
         ui.header("API keys")
-        ui.console.print("[brand.muted]Stored locally and reused on every launch. Each key is passed to the "
-                         "tools that read it from the environment.[/brand.muted]\n")
+        ui.console.print("[brand.muted]Stored in the operating system's secure key store and reused on every "
+                         "launch. Each key is passed to the tools that read it from the environment.[/brand.muted]")
+        if not ak.secure_storage_available():
+            ui.console.print("[bright_yellow][!] No secure key store on this system — keys are kept for this "
+                             "session only. Export the environment variable to persist, e.g. SHODAN_API_KEY.[/bright_yellow]")
+        ui.console.print("")
         stored = ak.load()
         entries = []
         for index, spec in enumerate(ak.KEY_SPECS, start=1):
@@ -82,11 +86,13 @@ def configure_api_keys():
         ui.console.print(f"[brand.muted]{spec['help']}[/brand.muted]")
         ui.console.print("[brand.muted]Leave blank to remove the stored key.[/brand.muted]")
         value = ui.ask("Key / token")
-        try:
-            ak.set_key(spec["id"], value)
-            ui.console.print("[brand.ok][+] Saved.[/brand.ok]" if value.strip() else "[brand.ok][+] Removed.[/brand.ok]")
-        except OSError as exc:
-            ui.console.print(f"[bright_red]Could not save: {exc}[/bright_red]")
+        persisted = ak.set_key(spec["id"], value)
+        if not value.strip():
+            ui.console.print("[brand.ok][+] Removed.[/brand.ok]")
+        elif persisted:
+            ui.console.print("[brand.ok][+] Saved to the system key store.[/brand.ok]")
+        else:
+            ui.console.print("[bright_yellow][+] Kept for this session only (no secure key store).[/bright_yellow]")
         ui.pause()
 
 

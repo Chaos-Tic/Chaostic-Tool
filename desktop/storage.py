@@ -84,11 +84,11 @@ class Store:
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "settings.json"
         self.warning = ""
-        self.settings = {"targets": [], "active_target": "", "executables": {}, "api_keys": {}}
+        self.settings = {"targets": [], "active_target": "", "executables": {}}
         if self.path.exists():
             try:
                 loaded = json.loads(self.path.read_text(encoding="utf-8"))
-                if not isinstance(loaded, dict) or not isinstance(loaded.get("targets", []), list) or not isinstance(loaded.get("executables", {}), dict) or not isinstance(loaded.get("api_keys", {}), dict):
+                if not isinstance(loaded, dict) or not isinstance(loaded.get("targets", []), list) or not isinstance(loaded.get("executables", {}), dict):
                     raise ValueError("Format invalide")
                 for target in loaded.get("targets", []):
                     if not isinstance(target, dict) or not all(k in target for k in ("id", "label", "host", "port", "url")):
@@ -122,16 +122,6 @@ class Store:
         self.settings["active_target"] = target["id"]
         self.save()
         return target
-
-    def set_api_key(self, key_id, value):
-        """Store or clear one API key (blank removes it) and persist locally."""
-        keys = self.settings.setdefault("api_keys", {})
-        value = (value or "").strip()
-        if value:
-            keys[key_id] = value
-        else:
-            keys.pop(key_id, None)
-        self.save()
 
     def remove_target(self, identifier):
         self.settings["targets"] = [t for t in self.targets if t["id"] != identifier]

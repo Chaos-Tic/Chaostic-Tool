@@ -734,9 +734,13 @@ class Window(QMainWindow):
         frame, content = card()
         content.addWidget(label("Clés API", "sectionTitle"))
         content.addWidget(label("Certains outils embarqués utilisent une clé API. Enregistrez-la ici une fois : "
-                                "elle reste sur cet ordinateur et est transmise à l’outil à chaque lancement.",
+                                "elle est conservée dans le coffre de clés sécurisé du système d’exploitation "
+                                "(chiffrée au repos), jamais en clair sur le disque.",
                                 "muted", True))
-        stored = self.store.settings.get("api_keys", {})
+        if not api_keys.secure_storage_available():
+            content.addWidget(label("Aucun coffre de clés sécurisé n’est disponible sur ce système : les clés "
+                                    "ne seront gardées que pour cette session.", "muted", True))
+        stored = api_keys.load()
         self.api_key_fields = {}
         for spec in api_keys.KEY_SPECS:
             content.addWidget(label(f"{spec['label']} · {spec['env']}", "muted"))
@@ -756,9 +760,13 @@ class Window(QMainWindow):
         layout.addWidget(frame)
 
     def save_api_keys(self):
+        from core import api_keys
+        persisted = True
         for key_id, field in getattr(self, "api_key_fields", {}).items():
-            self.store.set_api_key(key_id, field.text())
-        self.statusBar().showMessage(T("Clés API enregistrées."), 4000)
+            persisted = api_keys.set_key(key_id, field.text()) and persisted
+        self.statusBar().showMessage(
+            T("Clés API enregistrées.") if persisted
+            else T("Clés gardées pour cette session (aucun coffre sécurisé)."), 4000)
 
     def _sync_theme_button(self):
         self.theme_button.setText(T("  Mode sombre") if theme.MODE == "light" else T("  Mode clair"))

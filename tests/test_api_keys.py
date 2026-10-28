@@ -1,51 +1,59 @@
-"""Persistent local API keys: storage, sanitising and environment injection."""
+"""API keys: keyring-backed storage, session fallback and env injection.
+
+A fake backend stands in for the OS secret store so these tests never touch the
+real keyring and never write secrets to disk.
+"""
 import os
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from core import api_keys
-from desktop.storage import Store
 
 
-class ApiKeyStoreTests(unittest.TestCase):
+class FakeBackend:
+    def __init__(self, available=True):
+        self.available = available
+        self.store = {}
+
+    def get(self, key_id):
+        return self.store.get(key_id)
+
+    def set(self, key_id, value):
+        self.store[key_id] = value
+
+    def delete(self, key_id):
+        self.store.pop(key_id, None)
+
+
+class ApiKeyKeyringTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.env = patch.dict(os.environ, {"CHAOSTIC_CLI_HOME": self.temp.name}, clear=False)
-        self.env.start()
+        self.backend = FakeBackend(available=True)
+        api_keys.set_backend(self.backend)
 
     def tearDown(self):
-        self.env.stop()
-        self.temp.cleanup()
+        api_keys._backend = None
+        api_keys._SESSION.clear()
 
-    def test_missing_file_reads_as_empty(self):
-        self.assertEqual(api_keys.load(), {})
+    def test_set_and_get_round_trip(self):
+        self.assertTrue(api_keys.set_key("shodan", "  abc123  "))
+        self.assertEqual(api_keys.get("shodan"), "abc123")
+        self.assertEqual(self.backend.store["shodan"], "abc123")
 
-    def test_save_and_reload_round_trip(self):
-        api_keys.save({"shodan": "  abc123  ", "github": "ghp_tok"})
-        self.assertEqual(api_keys.load(), {"shodan": "abc123", "github": "ghp_tok"})
-
-    def test_sanitise_drops_unknown_blank_and_non_string(self):
-        api_keys.save({"shodan": "ok", "unknown": "x", "wpscan": "   ", "github": 123})
-        self.assertEqual(api_keys.load(), {"shodan": "ok"})
-
-    def test_set_key_sets_and_clears(self):
+    def test_blank_clears_key(self):
         api_keys.set_key("wpscan", "token")
-        self.assertEqual(api_keys.load(), {"wpscan": "token"})
-        api_keys.set_key("wpscan", "")
-        self.assertEqual(api_keys.load(), {})
+        api_keys.set_key("wpscan", "   ")
+        self.assertIsNone(api_keys.get("wpscan"))
 
-    def test_set_key_rejects_unknown_id(self):
+    def test_unknown_id_rejected(self):
         with self.assertRaises(KeyError):
             api_keys.set_key("nope", "x")
+        self.assertIsNone(api_keys.get("nope"))
 
-    def test_saved_file_is_owner_only(self):
-        api_keys.save({"shodan": "secret"})
-        path = Path(self.temp.name) / api_keys.FILENAME
-        self.assertTrue(path.exists())
-        if os.name == "posix":
-            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+    def test_load_and_configured(self):
+        api_keys.set_key("shodan", "s")
+        api_keys.set_key("github", "g")
+        self.assertEqual(api_keys.load(), {"shodan": "s", "github": "g"})
+        self.assertEqual(api_keys.configured(), {"shodan", "github"})
 
     def test_env_overrides_maps_ids_to_variables(self):
         self.assertEqual(
@@ -54,36 +62,52 @@ class ApiKeyStoreTests(unittest.TestCase):
         )
 
     def test_apply_to_env_fills_missing_only(self):
-        api_keys.save({"shodan": "stored", "github": "stored-gh"})
+        api_keys.set_key("shodan", "stored")
+        api_keys.set_key("github", "stored-gh")
         env = {"GITHUB_TOKEN": "from-shell"}
         api_keys.apply_to_env(env)
         self.assertEqual(env["SHODAN_API_KEY"], "stored")
         self.assertEqual(env["GITHUB_TOKEN"], "from-shell")
 
-    def test_corrupt_file_is_ignored(self):
-        (Path(self.temp.name) / api_keys.FILENAME).write_text("not json", encoding="utf-8")
-        self.assertEqual(api_keys.load(), {})
+    def test_secure_storage_available_reflects_backend(self):
+        self.assertTrue(api_keys.secure_storage_available())
 
 
-class DesktopApiKeyTests(unittest.TestCase):
-    def test_store_persists_and_clears_keys(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            store = Store(root)
-            store.set_api_key("shodan", "  key  ")
-            self.assertEqual(Store(root).settings["api_keys"], {"shodan": "key"})
-            store.set_api_key("shodan", "")
-            self.assertEqual(Store(root).settings["api_keys"], {})
+class ApiKeySessionFallbackTests(unittest.TestCase):
+    def setUp(self):
+        api_keys.set_backend(FakeBackend(available=False))
 
-    def test_invalid_api_keys_type_is_quarantined(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            (root / "settings.json").write_text(
-                '{"targets": [], "active_target": "", "executables": {}, "api_keys": []}',
-                encoding="utf-8")
-            store = Store(root)
-            self.assertEqual(store.settings["api_keys"], {})
-            self.assertTrue(store.warning)
+    def tearDown(self):
+        api_keys._backend = None
+        api_keys._SESSION.clear()
+
+    def test_without_secure_store_keys_live_in_session_only(self):
+        self.assertFalse(api_keys.secure_storage_available())
+        persisted = api_keys.set_key("shodan", "ephemeral")
+        self.assertFalse(persisted)
+        self.assertEqual(api_keys.get("shodan"), "ephemeral")
+        self.assertEqual(api_keys.load(), {"shodan": "ephemeral"})
+
+    def test_env_already_set_wins_over_session(self):
+        api_keys.set_key("shodan", "session")
+        with patch.dict(os.environ, {"SHODAN_API_KEY": "shell"}, clear=False):
+            env = dict(os.environ)
+            api_keys.apply_to_env(env)
+            self.assertEqual(env["SHODAN_API_KEY"], "shell")
+
+
+class NullBackendTests(unittest.TestCase):
+    def tearDown(self):
+        api_keys._backend = None
+        api_keys._SESSION.clear()
+
+    def test_missing_keyring_degrades_to_session(self):
+        # Simulate keyring import failing entirely.
+        api_keys._backend = None
+        with patch.dict("sys.modules", {"keyring": None}):
+            self.assertFalse(api_keys.secure_storage_available())
+            self.assertFalse(api_keys.set_key("github", "tok"))
+            self.assertEqual(api_keys.get("github"), "tok")
 
 
 if __name__ == "__main__":

@@ -86,9 +86,7 @@ class Runner(QObject):
             environment = dict(os.environ, PATH=tool_search_path(), PYTHONUTF8="1",
                                PYTHONUNBUFFERED="1", NO_COLOR="1")
             from core import api_keys
-            for var, value in api_keys.env_overrides(self.store.settings.get("api_keys", {})).items():
-                if not environment.get(var):
-                    environment[var] = value
+            api_keys.apply_to_env(environment)
             environment.update(environment_extra or {})
             request = RunRequest(command, cwd=directory, env=environment,
                                  timeout=None if bridge else timeout_ms / 1000,

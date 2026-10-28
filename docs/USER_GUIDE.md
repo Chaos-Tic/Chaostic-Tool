@@ -79,3 +79,25 @@ persist them there.
 Each stored key is passed to the relevant tool through the environment variable
 it reads (`SHODAN_API_KEY`, `WPSCAN_API_TOKEN`, `GITHUB_TOKEN`). A value already
 present in your shell environment always takes precedence over the stored one.
+
+---
+
+## 5. Subdomain Scope
+
+When the target is a **domain**, you can have host-targeted tools run against the
+domain *and* all of its subdomains.
+
+- **Discovery**: enumerate the subdomains once with subfinder (recommended) or
+  amass. subfinder is the primary source; amass is used as a best-effort
+  complement and is allowed to return nothing without failing. Results are
+  validated to stay within the domain and cached per target, so they are reused
+  across launches.
+- **Desktop**: on the *Targets* page, use **Enumerate subdomains**, then tick
+  **Include subdomains in scans**.
+- **Terminal**: in **Configure target**, choose `e` to enumerate (and `t` to
+  toggle the scope).
+
+With the scope on, launching a host-targeted profile (for example an nmap or
+Shodan lookup) runs it sequentially against the base host first, then each
+subdomain, each with its own saved results. Profiles that do not target a host
+run once as usual.

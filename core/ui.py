@@ -1,4 +1,5 @@
 import os
+import re
 import shlex
 import shutil
 import socket
@@ -449,30 +450,18 @@ def _launch_panel(tool, preset, cmd, route, output_path):
 
 
 def run_preset(tool, preset, pause_after=True):
-    fill = {
+    base_fill = {
         "host": tgt.TARGET["host"],
         "url":  tgt.TARGET["url"],
         "port": tgt.TARGET["port"],
     }
 
-    if tool.get("requires_ip"):
-        host = fill["host"]
-        try:
-            socket.inet_pton(socket.AF_INET, host)
-        except OSError:
-            try:
-                socket.inet_pton(socket.AF_INET6, host)
-            except OSError:
-                try:
-                    resolved = socket.gethostbyname(host)
-                    console.print(f"[brand.muted][*] {tool['name']} requires an IP — resolved {escape(host)} → {escape(resolved)}[/brand.muted]")
-                    fill["host"] = resolved
-                except socket.gaierror:
-                    console.print(f"[bright_red][!] Could not resolve '{escape(host)}' to an IP address. {escape(tool['name'])} requires an IP.[/bright_red]")
-                    return
+    # Wordlist and prompted values are asked once and shared by every host.
+    shared = {}
 
-    key_value = None
+    # A profile may require a stored API key (e.g. the nmap shodan-api script).
     needed = preset.get("needs_key")
+    key_value = None
     if needed:
         from core import api_keys
         key_value = api_keys.get(needed)
@@ -481,60 +470,96 @@ def run_preset(tool, preset, pause_after=True):
             console.print(f"[bright_red][!] This profile needs the {spec.get('label', needed)} API key. "
                           f"Set it from the main menu (k · API keys).[/bright_red]")
             return
-        fill[f"{needed}_key"] = key_value
+        shared[f"{needed}_key"] = key_value
 
     if preset.get("wordlist"):
-        fill["wordlist"] = select_wordlist()
-        tgt.TARGET["wordlist"] = fill["wordlist"]
-
+        shared["wordlist"] = select_wordlist()
+        tgt.TARGET["wordlist"] = shared["wordlist"]
     has_prompts = bool(preset.get("prompt"))
     for var, label in (preset.get("prompt") or {}).items():
         val = ask(label)
         if not val:
             console.print(f"[bright_yellow][!] '{label}' left empty — the command may fail.[/bright_yellow]")
-        fill[var] = val
+        shared[var] = val
 
-    cmd = [_format_value(p, fill) for p in preset["cmd"]]
-    if cmd and cmd[0] == tool["binary"]:
-        cmd[0] = resolve_tool_binary(tool)
-    redactions = secrets_for(fill, (preset.get("prompt") or {}).keys())
-    if key_value:
-        redactions = list(redactions) + [key_value]
-    display_cmd = [redact(argument, redactions) for argument in cmd]
+    # Fan out over subdomains only when the command actually targets the host.
+    templated = any(("{host}" in part or "{url}" in part) for part in preset["cmd"])
+    hosts = tgt.scope_hosts() if templated else [base_fill["host"]]
+    hosts = hosts or [base_fill["host"]]
+    multi = len(hosts) > 1
+    if multi:
+        console.print(f"[brand.ok][*] Subdomain scope: {escape(tool['name'])} will run on {len(hosts)} hosts "
+                      f"— {escape(base_fill['host'])} and {len(hosts) - 1} subdomain(s).[/brand.ok]")
 
-    # UX-005 : confirmation avant lancement quand des paramètres ont été saisis
-    if has_prompts:
-        console.print(Panel(Text(shlex.join(display_cmd), style="brand.command"), border_style="brand.warn", box=box.ROUNDED))
-        rep = console.input("[brand.warn]Run? [Y/n][/brand.warn] [brand.white]▸[/brand.white] ").strip().lower()
-        if rep not in ("", "y", "yes", "o", "oui"):
-            console.print("[brand.muted]Cancelled.[/brand.muted]")
-            return
-
-    output_path = None
-    out_base = preset.get("output")
-    if out_base:
-        cat = tgt.category_dir(tool["output_dir"])
-        if cat is not None:
-            output_path = str(executor.target_path(cat, out_base, tgt.target_name()))
-        else:
-            console.print("[brand.warn][!] No target defined - results will not be saved.[/brand.warn]")
-
-    interactive = tool.get("interactive", False)
-    route = "LOCAL / direct" if tool.get("category") == "passwords" else route_status(tool)
-    if should_proxy_tool(tool):
-        cmd = wrap_command(cmd)
-    elif PROXY_STATE["enabled"]:
-        console.print("[brand.muted]Proxy/VPN skipped for this local or network-interface tool.[/brand.muted]")
-    display_cmd = [redact(argument, redactions) for argument in cmd]
     fullscreen = tui.available()
-    if not fullscreen:
-        console.print(_launch_panel(tool, preset, display_cmd, route, output_path))
-    executor.run_tool(
-        cmd, output_path=output_path, interactive=interactive,
-        context={"tool": tool["name"], "preset": preset["label"],
-                 "category": tool["category"], "route": route, "wait": pause_after},
-        timeout=preset.get("timeout"), redactions=redactions,
-    )
+    route = "LOCAL / direct" if tool.get("category") == "passwords" else route_status(tool)
+    confirmed = not has_prompts  # a single confirmation covers the whole batch
+
+    for host in hosts:
+        fill = dict(base_fill, **shared)
+        if templated:
+            fill["host"] = host
+            fill["url"] = tgt.scope_url(host)
+
+        if tool.get("requires_ip"):
+            probe = fill["host"]
+            try:
+                socket.inet_pton(socket.AF_INET, probe)
+            except OSError:
+                try:
+                    socket.inet_pton(socket.AF_INET6, probe)
+                except OSError:
+                    try:
+                        resolved = socket.gethostbyname(probe)
+                        console.print(f"[brand.muted][*] {escape(tool['name'])} requires an IP — resolved {escape(probe)} → {escape(resolved)}[/brand.muted]")
+                        fill["host"] = resolved
+                    except socket.gaierror:
+                        console.print(f"[bright_red][!] Could not resolve '{escape(probe)}' to an IP address — skipping.[/bright_red]")
+                        continue
+
+        cmd = [_format_value(part, fill) for part in preset["cmd"]]
+        if cmd and cmd[0] == tool["binary"]:
+            cmd[0] = resolve_tool_binary(tool)
+        redactions = secrets_for(fill, (preset.get("prompt") or {}).keys())
+        if key_value:
+            redactions = list(redactions) + [key_value]
+
+        # UX-005: confirm once when parameters were entered, before the first run.
+        if not confirmed:
+            display_cmd = [redact(argument, redactions) for argument in cmd]
+            console.print(Panel(Text(shlex.join(display_cmd), style="brand.command"), border_style="brand.warn", box=box.ROUNDED))
+            rep = console.input("[brand.warn]Run? [Y/n][/brand.warn] [brand.white]▸[/brand.white] ").strip().lower()
+            if rep not in ("", "y", "yes", "o", "oui"):
+                console.print("[brand.muted]Cancelled.[/brand.muted]")
+                return
+            confirmed = True
+
+        output_path = None
+        out_base = preset.get("output")
+        if out_base:
+            cat = tgt.category_dir(tool["output_dir"])
+            if cat is not None:
+                name = tgt.target_name()
+                if multi:
+                    name = f"{name}__{re.sub(r'[^A-Za-z0-9._-]', '_', host).strip('.') or 'host'}"
+                output_path = str(executor.target_path(cat, out_base, name))
+            else:
+                console.print("[brand.warn][!] No target defined - results will not be saved.[/brand.warn]")
+
+        run_cmd = wrap_command(cmd) if should_proxy_tool(tool) else cmd
+        if not should_proxy_tool(tool) and PROXY_STATE["enabled"]:
+            console.print("[brand.muted]Proxy/VPN skipped for this local or network-interface tool.[/brand.muted]")
+        display_cmd = [redact(argument, redactions) for argument in run_cmd]
+        if not fullscreen:
+            console.print(_launch_panel(tool, preset, display_cmd, route, output_path))
+        label = preset["label"] + (f" · {host}" if multi else "")
+        executor.run_tool(
+            run_cmd, output_path=output_path, interactive=tool.get("interactive", False),
+            context={"tool": tool["name"], "preset": label,
+                     "category": tool["category"], "route": route, "wait": pause_after},
+            timeout=preset.get("timeout"), redactions=redactions,
+        )
+
     if pause_after and not fullscreen:
         pause()
 

@@ -49,7 +49,52 @@ def configure_target():
     ui.console.print(f"\n[brand.ok][+] Target set:[/brand.ok] [brand.white]{tgt.summary()}[/brand.white]")
     if d:
         ui.console.print(f"[brand.ok][+] Directory:[/brand.ok] [brand.command]{d}[/brand.command]")
+    _configure_subdomain_scope()
     ui.pause()
+
+
+def _configure_subdomain_scope():
+    """Offer subdomain scope for a domain target: enumerate once, toggle on/off."""
+    from core import subdomains as sd
+    host = tgt.TARGET["host"]
+    if not sd.is_domain(host):
+        return
+    cached = tgt.SCOPE["subdomains"]
+    state = "on" if tgt.SCOPE["include_subdomains"] else "off"
+    ui.console.print(f"\n[brand.muted]Subdomain scope: {state}"
+                     + (f", {len(cached)} subdomains cached" if cached else "") + ".[/brand.muted]")
+    options = "[brand.accent]e[/brand.accent] enumerate now"
+    if cached:
+        options += "    [brand.accent]t[/brand.accent] turn " + ("off" if state == "on" else "on")
+    options += "    [brand.accent]Enter[/brand.accent] skip"
+    ui.console.print(options)
+    choice = ui.console.input("[brand.white]▸[/brand.white] ").strip().lower()
+    if choice == "e":
+        _enumerate_subdomains()
+    elif choice == "t" and cached:
+        tgt.set_scope_enabled(state == "off")
+        ui.console.print(f"[brand.ok][+] Subdomain scope {'enabled' if tgt.SCOPE['include_subdomains'] else 'disabled'}.[/brand.ok]")
+
+
+def _enumerate_subdomains():
+    from core import subdomains as sd
+    host = tgt.TARGET["host"]
+    env = executor._build_env()
+    if not sd.available_enumerators(env.get("PATH")):
+        ui.console.print("[bright_red][!] Install subfinder (recommended) or amass to enumerate subdomains.[/bright_red]")
+        return
+    ui.console.print(f"[brand.muted][*] Enumerating subdomains of {host}… this can take a while.[/brand.muted]")
+    subs, sources, error = sd.enumerate_subdomains(host, env=env)
+    if error:
+        ui.console.print(f"[bright_red][!] {error}[/bright_red]")
+        return
+    tgt.set_subdomains(subs)
+    if not subs:
+        ui.console.print("[bright_yellow][!] No subdomains found.[/bright_yellow]")
+        return
+    tgt.set_scope_enabled(True)
+    ui.console.print(f"[brand.ok][+] {len(subs)} subdomains found via {', '.join(sources)}. "
+                     f"Subdomain scope enabled — host-targeted tools will run on all of them.[/brand.ok]")
 
 
 def configure_api_keys():

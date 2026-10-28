@@ -16,6 +16,21 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
+  changes:
+    name: Determine change scope
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.scope.outputs.full }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: bash scripts/ci-classify-changes.sh
   unit-tests:
     name: Test suite (Python ${{ matrix.python-version }})
     runs-on: ubuntu-24.04
@@ -70,8 +85,9 @@ jobs:
         run: docker run --rm -v "$PWD:/src:ro" debian:trixie-slim sh /src/scripts/check-source-package.sh
 
   build-matrix:
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full != 'false') && needs.unit-tests.result == 'success' && needs.native-source.result == 'success' }}
     name: Build ${{ matrix.name }}
-    needs: [unit-tests, native-source]
+    needs: [changes, unit-tests, native-source]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

@@ -22,7 +22,7 @@ from desktop import VERSION
 from desktop import effects
 from desktop import theme
 from desktop.identity import BrandPanel, RailButton
-from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command
+from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command, preset_key_value
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
 from desktop.profiles import secrets_for,INPUT_FILES,placeholders
@@ -738,6 +738,7 @@ class Window(QMainWindow):
         content.addWidget(button("Choisir Python…", self.configure_python))
         content.addWidget(button("Actualiser la détection des outils", self.refresh))
         layout.addWidget(frame)
+        self.build_api_keys_card(layout)
         frame, content = card()
         content.addWidget(label("À propos de cette version", "sectionTitle"))
         content.addWidget(label(f"ChaosticTool Desktop {VERSION}\nInterface native PySide6 · Application en français\n\nLes profils du catalogue sont intégrés avec exécution native ou Linux. Les sessions interactives disposent d’une saisie dans Exécution. Les prérequis pilotes, matériels et services restent propres à chaque outil. Les attack flows proposent des étapes guidées et configurables. Le pilotage Tor/VPN reste séparé. Le routage est celui de l’environnement choisi.", "muted", True))
@@ -760,6 +761,45 @@ class Window(QMainWindow):
         content.addLayout(updates)
         layout.addWidget(frame)
         layout.addStretch()
+
+    def build_api_keys_card(self, layout):
+        from core import api_keys
+        frame, content = card()
+        content.addWidget(label("Clés API", "sectionTitle"))
+        content.addWidget(label("Certains outils embarqués utilisent une clé API. Enregistrez-la ici une fois : "
+                                "elle est conservée dans le coffre de clés sécurisé du système d’exploitation "
+                                "(chiffrée au repos), jamais en clair sur le disque.",
+                                "muted", True))
+        if not api_keys.secure_storage_available():
+            content.addWidget(label("Aucun coffre de clés sécurisé n’est disponible sur ce système : les clés "
+                                    "ne seront gardées que pour cette session.", "muted", True))
+        stored = api_keys.load()
+        self.api_key_fields = {}
+        for spec in api_keys.KEY_SPECS:
+            content.addWidget(label(f"{spec['label']} · {spec['env']}", "muted"))
+            field = QLineEdit(stored.get(spec["id"], ""))
+            field.setEchoMode(QLineEdit.EchoMode.Password)
+            field.setPlaceholderText(T("Clé ou jeton"))
+            field.setAccessibleName(f"{spec['label']} ({spec['env']})")
+            content.addWidget(field)
+            content.addWidget(label(spec["help"], "muted", True))
+            self.api_key_fields[spec["id"]] = field
+        reveal = QCheckBox(T("Afficher les clés"))
+        reveal.toggled.connect(lambda shown: [
+            f.setEchoMode(QLineEdit.EchoMode.Normal if shown else QLineEdit.EchoMode.Password)
+            for f in self.api_key_fields.values()])
+        content.addWidget(reveal)
+        content.addWidget(button("Enregistrer les clés", self.save_api_keys))
+        layout.addWidget(frame)
+
+    def save_api_keys(self):
+        from core import api_keys
+        persisted = True
+        for key_id, field in getattr(self, "api_key_fields", {}).items():
+            persisted = api_keys.set_key(key_id, field.text()) and persisted
+        self.statusBar().showMessage(
+            T("Clés API enregistrées.") if persisted
+            else T("Clés gardées pour cette session (aucun coffre sécurisé)."), 4000)
 
     def _sync_theme_button(self):
         self.theme_button.setText(T("  Mode sombre") if theme.MODE == "light" else T("  Mode clair"))
@@ -1077,6 +1117,13 @@ class Window(QMainWindow):
         tool,key,preset,backend=spec['tool'],spec['key'],spec['preset'],spec['backend']
         args=build_arguments(tool,0,target,spec['wordlist'],spec['fields'],preset=preset,backend=spec['eff_backend'])
         secret_values=secrets_for(preset,spec['fields'])
+        if preset.get('needs_key'):
+            key_value=preset_key_value(preset)
+            if not key_value:
+                from core import api_keys
+                info=api_keys.SPEC_BY_ID.get(preset['needs_key'],{})
+                raise ValueError(T('Ce profil nécessite la clé API {name}. Enregistrez-la dans Paramètres → Clés API.').format(name=info.get('label',preset['needs_key'])))
+            secret_values=secret_values+[key_value]
         if backend=='builtin':
             request={**(target or {}),'fields':spec['fields'],'rrtype':preset.get('rrtype','A')}
             kwargs={'worker':preset['worker'],'timeout_ms':30_000}

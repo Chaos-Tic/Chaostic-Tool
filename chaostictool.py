@@ -97,6 +97,50 @@ def _enumerate_subdomains():
                      f"Subdomain scope enabled — host-targeted tools will run on all of them.[/brand.ok]")
 
 
+def configure_api_keys():
+    from core import api_keys as ak
+
+    def masked(value):
+        if not value:
+            return "[brand.muted]not set[/brand.muted]"
+        tail = value[-4:] if len(value) > 4 else value
+        return f"[brand.ok]set[/brand.ok] [brand.muted](…{tail})[/brand.muted]"
+
+    while True:
+        ui.header("API keys")
+        ui.console.print("[brand.muted]Stored in the operating system's secure key store and reused on every "
+                         "launch. Each key is passed to the tools that read it from the environment.[/brand.muted]")
+        if not ak.secure_storage_available():
+            ui.console.print("[bright_yellow][!] No secure key store on this system — keys are kept for this "
+                             "session only. Export the environment variable to persist, e.g. SHODAN_API_KEY.[/bright_yellow]")
+        ui.console.print("")
+        stored = ak.load()
+        entries = []
+        for index, spec in enumerate(ak.KEY_SPECS, start=1):
+            entries.append((str(index), spec["label"], "brand.ok",
+                            f"{spec['env']} · {spec['tools']}", masked(stored.get(spec["id"]))))
+        choice = ui.menu("API keys", entries, footer_extra=["[brand.faint]number[/brand.faint] edit a key"])
+        if choice in ui.BACK_KEYS or not choice:
+            return
+        if not (choice.isdigit() and 1 <= int(choice) <= len(ak.KEY_SPECS)):
+            ui.console.print("[bright_red]Invalid choice.[/bright_red]")
+            ui.pause()
+            continue
+        spec = ak.KEY_SPECS[int(choice) - 1]
+        ui.console.print(f"\n[brand.white]{spec['label']}[/brand.white] [brand.muted]({spec['env']})[/brand.muted]")
+        ui.console.print(f"[brand.muted]{spec['help']}[/brand.muted]")
+        ui.console.print("[brand.muted]Leave blank to remove the stored key.[/brand.muted]")
+        value = ui.ask("Key / token")
+        persisted = ak.set_key(spec["id"], value)
+        if not value.strip():
+            ui.console.print("[brand.ok][+] Removed.[/brand.ok]")
+        elif persisted:
+            ui.console.print("[brand.ok][+] Saved to the system key store.[/brand.ok]")
+        else:
+            ui.console.print("[bright_yellow][+] Kept for this session only (no secure key store).[/bright_yellow]")
+        ui.pause()
+
+
 MAIN_ENTRIES = [
     ("0",  "Configure target",               "brand.red",  "sets host/URL/port and creates the results folder", "[brand.red]SETUP[/brand.red]"),
     ("1",  "OSINT & Passive Recon",          "brand.ok",   "whois, dig, subfinder, amass, dnsrecon, theHarvester, shodan", "[brand.ok]PHASE 01[/brand.ok]"),
@@ -113,6 +157,7 @@ MAIN_ENTRIES = [
     ("12", "Attack flows",                   "brand.info", "guided basic/intermediate/advanced attack chains", "[brand.info]FLOW[/brand.info]"),
     ("p",  "Proxy / VPN / Tor",              "brand.warn", "route traffic through Tor or guard a VPN interface", "[brand.warn]ROUTE[/brand.warn]"),
     ("w",  "Wordlists",                       "brand.info", "download missing wordlists (SecLists, rockyou, dirb)", "[brand.info]WORDS[/brand.info]"),
+    ("k",  "API keys",                        "brand.info", "store Shodan, WPScan and GitHub keys for the embedded tools", "[brand.info]KEYS[/brand.info]"),
     ("u",  "Application updates", "brand.info", "GitHub release checks and package updates", "[brand.info]UPDATE[/brand.info]"),
     ("99", "Quit",                           "bright_red", "", "[bright_red]EXIT[/bright_red]"),
 ]
@@ -171,6 +216,8 @@ def main():
             elif choice.lower() == "w":
                 from core import wordlists as _wl
                 _wl.wordlist_menu()
+            elif choice.lower() == "k":
+                configure_api_keys()
             elif choice.lower() == "u":
                 from core import cli_updates
                 if cli_updates.show():

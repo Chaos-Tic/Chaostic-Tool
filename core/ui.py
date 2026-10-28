@@ -458,6 +458,20 @@ def run_preset(tool, preset, pause_after=True):
 
     # Wordlist and prompted values are asked once and shared by every host.
     shared = {}
+
+    # A profile may require a stored API key (e.g. the nmap shodan-api script).
+    needed = preset.get("needs_key")
+    key_value = None
+    if needed:
+        from core import api_keys
+        key_value = api_keys.get(needed)
+        if not key_value:
+            spec = api_keys.SPEC_BY_ID.get(needed, {})
+            console.print(f"[bright_red][!] This profile needs the {spec.get('label', needed)} API key. "
+                          f"Set it from the main menu (k · API keys).[/bright_red]")
+            return
+        shared[f"{needed}_key"] = key_value
+
     if preset.get("wordlist"):
         shared["wordlist"] = select_wordlist()
         tgt.TARGET["wordlist"] = shared["wordlist"]
@@ -507,6 +521,8 @@ def run_preset(tool, preset, pause_after=True):
         if cmd and cmd[0] == tool["binary"]:
             cmd[0] = resolve_tool_binary(tool)
         redactions = secrets_for(fill, (preset.get("prompt") or {}).keys())
+        if key_value:
+            redactions = list(redactions) + [key_value]
 
         # UX-005: confirm once when parameters were entered, before the first run.
         if not confirmed:

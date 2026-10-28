@@ -5,8 +5,13 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # 6.12.0 decrements None's reference count on Qt void calls on Python 3.11.
+    ignore:
+      - dependency-name: "PySide6"
+        versions: ["6.12.0"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+

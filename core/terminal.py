@@ -97,6 +97,15 @@ class ScreenConsole(Console):
             tui.message(content, self._title)
         self._sink = None
 
+    def end_screen(self) -> None:
+        """Leave buffered TUI mode without a dialog (back to the plain console).
+
+        Used before a long, interactive operation that must stay visible — e.g.
+        a multi-minute subprocess — instead of running hidden behind the
+        full-screen layout. Buffered output not yet shown is discarded.
+        """
+        self._sink = None
+
     def status(self, *args, **kwargs):
         # Live spinners can't share the full-screen surface; swallow quietly.
         if self._sink is not None:

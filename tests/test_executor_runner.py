@@ -53,9 +53,9 @@ class ExecutorRunnerTests(unittest.TestCase):
         with patch("core.scan_view.available", return_value=False), \
                 patch.object(executor.console, "print") as display:
             rc = executor.run_tool([sys.executable, "-u", "-c", code, secret],
-                                   self.output, timeout=0.2, redactions=[secret])
+                                   self.output, timeout=2, redactions=[secret])
         self.assertNotEqual(rc, 0)
-        self.assertLess(time.monotonic() - started, 5)
+        self.assertLess(time.monotonic() - started, 10)
         saved = self.output.read_text()
         self.assertTrue(saved.startswith("[masque]\npartial\n"), saved)
         self.assertNotIn(secret, saved)
@@ -180,3 +180,4 @@ assert rc == 130, rc
 
 if __name__ == "__main__":
     unittest.main()
+

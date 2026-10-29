@@ -1,0 +1,10 @@
+name: "ChaosticTool CodeQL config"
+
+# Analyse product code only. Test fixtures legitimately define sample secrets
+# (e.g. the redaction tests) that flow through the real, redacting code paths to
+# a file write. CodeQL does not model the custom redactor as a sanitiser, so
+# those test-seeded values surface as false positives such as
+# py/clear-text-storage-sensitive-data. Excluding the test tree removes the
+# source without weakening analysis of the shipped application.
+paths-ignore:
+  - tests

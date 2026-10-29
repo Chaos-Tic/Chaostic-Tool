@@ -37,9 +37,9 @@ Everything runs strictly on your machine. No accounts, no telemetry, no cloud de
 The only optional network call is a once-a-day check for a newer GitHub release, which can be
 disabled at any time in settings.
 
-**Version 2.0.1 is under development.** The unified packages and release workflow are
-validated in this branch but are not claimed as published distribution channels. The
-latest public releases still contain the earlier split CLI and Desktop editions.
+**Version 2.0.1 is published.** Each tagged release builds the unified `.deb`, `.rpm`
+and AppImage packages and publishes them to the GitHub Release and to the AUR, Fedora
+COPR and the signed Chaos-Tic apt repository.
 
 [Project website](https://tool.chaostic.cloud/cybersecurite.html) · [Install](#install) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
 
@@ -150,9 +150,9 @@ ChaosticTool shares one ordered set of ten phases across both interfaces:
 
 ## Install
 
-The commands below describe the **2.x target channels**. Do not assume AUR, COPR,
-APT or unified GitHub assets exist until a public 2.x release announces them; for the
-development tree, use the source instructions at the end of this section.
+ChaosticTool 2.x is published to the channels below — pick the one for your system.
+Each tagged release updates them automatically; the signed apt repository and Fedora
+COPR deliver upgrades through `apt upgrade` / `dnf upgrade`.
 
 ### Arch Linux (AUR)
 ```bash
@@ -167,11 +167,11 @@ sudo dnf install chaostictool
 ```
 
 ### Debian / Ubuntu
-After a 2.x release is published, download its native `.deb`:
+Download the native `.deb` from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases):
 ```bash
 sudo apt install ./chaostictool_2.0.1_amd64.deb
 ```
-Or via the Chaos-Tic signed APT repository:
+Or, recommended, via the Chaos-Tic signed APT repository (auto-updating):
 ```bash
 sudo curl -fsSLo /usr/share/keyrings/chaos-tic.gpg https://chaos-tic.github.io/apt/chaos-tic-apt.gpg
 printf '%s\n' 'deb [signed-by=/usr/share/keyrings/chaos-tic.gpg] https://chaos-tic.github.io/apt stable main' | sudo tee /etc/apt/sources.list.d/chaos-tic.list
@@ -185,7 +185,7 @@ chmod +x ChaosticTool-2.0.1-x86_64.AppImage
 ```
 
 ### Windows 10 & 11
-After a 2.x release is published, download `ChaosticTool-Setup-2.0.1-windows-x64.exe`
+Download `ChaosticTool-Setup-2.0.1-windows-x64.exe`
 from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases).
 The installer sets up the desktop launcher and offers an automated Kali Linux WSL2 integration
 for running Linux-native security utilities with zero manual configuration.

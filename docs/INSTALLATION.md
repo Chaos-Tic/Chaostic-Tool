@@ -53,12 +53,12 @@ uses Ubuntu 22.04 for x86-64 and 24.04 for ARM64.
 
 ## Repository channels
 
-AUR recipes live under `packaging/arch`. Release checksums must be filled from the
-exact release source archive before upload. A placeholder deliberately blocks an
-accidental build against old sources. AUR, COPR, apt repository and Ubuntu PPA
-publication are separate steps: this document does not claim these channels are
-already available for this development version. Once published, updates must use
-`yay -Syu`, `dnf upgrade` or `apt upgrade` through the configured channel.
+AUR recipes live under `packaging/arch`. Each tagged release publishes to the AUR,
+Fedora COPR, the signed Chaos-Tic apt repository and the Ubuntu PPA, and attaches the
+unified `.deb`/`.rpm`/AppImage assets to the GitHub Release. The apt repository rebuilds
+immediately on release (and hourly as a fallback); COPR builds from the release's source
+RPM. Updates then flow through `yay -Syu`, `dnf upgrade` or `apt upgrade` on the
+configured channel.
 
 ## Native repository commands
 

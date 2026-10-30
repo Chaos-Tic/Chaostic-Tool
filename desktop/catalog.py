@@ -94,7 +94,11 @@ for _key in ['subfinder','httpx','gobuster','ffuf','sqlmap','nuclei']:
     for _p in TOOLS[_key]['presets']:
         _p=dict(_p)
         if _key=='nuclei' and '-t' in _p['cmd']:
-            _p['cmd']=list(_p['cmd']); _idx=_p['cmd'].index('-t'); _p['cmd'][_idx]='-tags'; _p['cmd'][_idx+1]={'exposures':'exposure','network':'network'}.get(_p['cmd'][_idx+1],_p['cmd'][_idx+1])
+            _p['cmd']=list(_p['cmd'])
+            _idx=_p['cmd'].index('-t')
+            _p['cmd'][_idx]='-tags'
+            _p['cmd'][_idx+1]={'exposures':'exposure','network':'network'}.get(
+                _p['cmd'][_idx+1],_p['cmd'][_idx+1])
         ADAPTERS[_key]['presets'].append(_p)
 ADAPTERS['ffuf']['presets'].append(dict(label='Répertoires avec filtre de taille',args=['-u','{base_url}FUZZ','-w','{wordlist}','-fs','{size}','-noninteractive','-maxtime','300'],wordlist=True,fields={'size':('Taille à ignorer','0')}))
 ADAPTERS['katana']['presets'].append(dict(label='Profondeur personnalisée',args=['-u','{url}','-d','{depth}','-silent','-nc'],fields={'depth':('Profondeur (1 à 10)','2')}))

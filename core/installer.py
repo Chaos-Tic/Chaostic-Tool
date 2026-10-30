@@ -68,6 +68,8 @@ def _get_original_user():
 def _drop_privs(pw):
     """preexec_fn: drops root to become the pw user again before exec."""
     def fn():
+        if hasattr(os, "initgroups"):
+            os.initgroups(pw.pw_name, pw.pw_gid)
         os.setgid(pw.pw_gid)
         os.setuid(pw.pw_uid)
         os.environ["HOME"] = pw.pw_dir
@@ -387,7 +389,7 @@ def _parse_srcinfo_deps(srcinfo_path):
     Each name is validated against _DEP_RE; entries that fail are silently dropped."""
     deps, makedeps = [], []
     try:
-        for line in open(srcinfo_path):
+        for line in open(srcinfo_path, encoding="utf-8", errors="replace"):
             line = line.strip()
             for prefix, bucket in (("depends =", deps), ("makedepends =", makedeps)):
                 if line.startswith(prefix):

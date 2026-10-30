@@ -69,7 +69,7 @@ PLATFORMS = (
     "darwin-aarch64",
 )
 
-# Helpers are intentionally outside the 48-tool product catalog.
+# Helpers are intentionally outside the 46-tool product catalog.
 TECHNICAL_COMPONENTS = frozenset({"7zip", "python-runtime"})
 
 # Several catalog commands are installed by one upstream distribution.

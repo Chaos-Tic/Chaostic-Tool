@@ -96,12 +96,14 @@ def run_scan(state, start, abort, context, cmd, output_path):
     def status_word():
         if not state.done.is_set():
             return "RUNNING"
+        if getattr(state, "timed_out", False):
+            return "TIMEOUT"
         return ("SUCCESS" if state.rc == 0
                 else "ABORTED" if state.rc == 130 else "FAILED")
 
     def status_badge(word):
         return ("class:badge.ok" if word in ("RUNNING", "SUCCESS")
-                else "class:badge.warn" if word == "ABORTED" else "class:badge.bad")
+                else "class:badge.warn" if word in ("ABORTED", "TIMEOUT") else "class:badge.bad")
 
     def elapsed_seconds():
         # Freeze on completion: executor stamps state.finished just before done,

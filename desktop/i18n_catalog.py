@@ -142,7 +142,8 @@ CATALOG = {
     "Vulnérabilités critiques et élevées": "Critical and high vulnerabilities",
     "Vérifier cet ordinateur": "Check this computer",
     "Vérifier le certificat": "Check the certificate",
-    "Énumération avec moteur Amass": "Enumeration with Amass engine",
+    "Énumération passive (moteur Amass)": "Passive enumeration (Amass engine)",
+    "Énumération active (transferts de zone et certificats)": "Active enumeration (zone transfers and certificates)",
     "Énumération complète de ce PC": "Full enumeration of this PC",
 
     # --- Libellés de champs (dialogue de lancement) ---

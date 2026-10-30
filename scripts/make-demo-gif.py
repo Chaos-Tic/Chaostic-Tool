@@ -4,7 +4,6 @@
 Uses ImageMagick and ffmpeg at 20 fps with a 96-color bayer dither palette
 (Lyapunov / Lorenz standard).
 """
-import os
 import shutil
 import subprocess
 import sys

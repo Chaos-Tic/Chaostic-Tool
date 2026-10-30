@@ -1,6 +1,5 @@
-import json,os,sys,tempfile,unittest
+import json,sys,tempfile,unittest
 from pathlib import Path
-from unittest.mock import patch
 from core.tools import TOOLS
 from desktop.catalog import catalog,build_arguments
 from desktop.profiles import StreamRedactor,redact,secrets_for
@@ -9,7 +8,7 @@ from desktop.storage import Store,parse_target,write_json
 
 class AllProfilesTests(unittest.TestCase):
     def test_every_graphical_profile_can_be_selected(self):
-        from test_desktop import APP
+        from desktop_harness import APP  # noqa: F401  # a QApplication must exist before widgets are built
         from desktop.launch_dialog import LaunchDialog
         from desktop.backend_dialog import BackendDialog
         with tempfile.TemporaryDirectory() as temp:
@@ -75,7 +74,7 @@ class AllProfilesTests(unittest.TestCase):
             with self.assertRaises(ValueError): bridge_command({'backend':'ssh','host':host,'user':'alice'})
 
     def test_sensitive_command_not_saved(self):
-        from test_desktop import wait_run
+        from desktop_harness import wait_run
         from desktop.process import Runner
         with tempfile.TemporaryDirectory() as temp:
             store=Store(Path(temp)); runner=Runner(store); secret='unique-private-secret'

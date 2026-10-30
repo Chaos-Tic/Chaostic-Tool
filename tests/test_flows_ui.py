@@ -1,14 +1,13 @@
-import json,sys,tempfile,unittest
+import sys,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
-from test_desktop import APP,wait_run
+from desktop_harness import APP,wait_run
 from PySide6.QtCore import Qt,QTimer
-from PySide6.QtWidgets import QDialog
 from PySide6.QtTest import QTest
 from desktop.window import Window
 from desktop.storage import Store,write_json
 from desktop.catalog import catalog
-from desktop.flows import validate_flow,load_flows,save_custom,import_flows,step_tool,FlowSession
+from desktop.flows import validate_flow,load_flows,save_custom,import_flows,step_tool
 from core.tools import TOOLS
 from core.phases import PHASES
 from core.flow_definitions import FLOWS

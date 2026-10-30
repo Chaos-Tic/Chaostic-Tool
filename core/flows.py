@@ -5,64 +5,23 @@ from core import target as tgt
 from core import ui
 from core.paths import data_home, ensure_directory
 from core.tools import get_tool
+from core.flow_definitions import FLOWS
 
 CUSTOM_FLOWS_PATH = data_home() / "custom_flows.json"
 LEGACY_FLOWS_PATH = Path(__file__).resolve().parent.parent / "custom_flows.json"
 CUSTOM_FLOWS: dict = {}
 
-FLOWS = {
-    "1": {
-        "name": "Basic attack flow",
-        "desc": "low-noise first pass: DNS, quick ports, web fingerprint, default nuclei",
-        "steps": [
-            ("dig", 0),
-            ("subfinder", 0),
-            ("nmap", 0),
-            ("httpx", 1),
-            ("whatweb", 0),
-            ("nuclei", 0),
-        ],
-    },
-    "2": {
-        "name": "Intermediate attack flow",
-        "desc": "broader recon with crawling and URL history",
-        "steps": [
-            ("dig", 0),
-            ("subfinder", 1),
-            ("nmap", 1),
-            ("naabu", 0),
-            ("httpx", 1),
-            ("katana", 1),
-            ("gau", 1),
-            ("waybackurls", 0),
-            ("nuclei", 2),
-            ("sslscan", 0),
-        ],
-    },
-    "3": {
-        "name": "Advanced attack flow",
-        "desc": "deeper scans; louder and slower, confirm each step",
-        "steps": [
-            ("amass", 0),
-            ("subfinder", 1),
-            ("nmap", 1),
-            ("rustscan", 2),
-            ("ffuf", 0),
-            ("gobuster", 0),
-            ("katana", 2),
-            ("nuclei", 1),
-            ("nuclei", 2),
-            ("testssl.sh", 0),
-            ("nikto", 0),
-        ],
-    },
-}
 
 
 def _next_custom_key() -> str:
     existing = [int(k[3:]) for k in CUSTOM_FLOWS if k.startswith("cf-") and k[3:].isdigit()]
     n = max(existing, default=0) + 1
     return f"cf-{n}"
+
+
+def _valid_flow(flow) -> bool:
+    """Drop entries that are not flow objects so a corrupt file cannot poison the menu."""
+    return isinstance(flow, dict)
 
 
 def load_custom_flows() -> None:
@@ -73,7 +32,7 @@ def load_custom_flows() -> None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, dict):
-            CUSTOM_FLOWS.update(data)
+            CUSTOM_FLOWS.update({k: v for k, v in data.items() if _valid_flow(v)})
     except Exception as exc:
         try:
             from core import ui as _ui
@@ -150,7 +109,6 @@ def _pick_step():
 
 
 def _render_steps(steps: list) -> None:
-    from core.tools import get_tool
     if not steps:
         ui.console.print("  [brand.muted](no steps yet)[/brand.muted]")
         return

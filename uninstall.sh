@@ -23,8 +23,16 @@ if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ]; then
 fi
 [ -z "$ORIG_HOME" ] && ORIG_HOME="/root"
 
+ASSUME_YES=0
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes) ASSUME_YES=1 ;;
+    esac
+done
+
 confirm() {
     local prompt="$1"
+    [ "${ASSUME_YES:-0}" = "1" ] && return 0
     echo -en "${YELLOW}${prompt} [y/N]${NC} "
     read -r rep
     case "${rep,,}" in

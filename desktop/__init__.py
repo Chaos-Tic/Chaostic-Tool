@@ -1,3 +1,3 @@
 """Native desktop companion to the original Linux CLI."""
 
-VERSION = "2.0.1"
+from core.version import VERSION  # single source of truth

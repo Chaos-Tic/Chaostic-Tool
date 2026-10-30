@@ -9,10 +9,10 @@ def status_color(text):
     from desktop import theme
     colors=theme.COLORS
     value=text.casefold()
-    if any(w in value for w in ('échec','arrêté','interrompu','invalide')):return colors['DANGER']
-    if 'en cours' in value:return colors['ACCENT']
-    if any(w in value for w in ('inclus','détecté','prêt','terminé','active')):return colors['INFO'] if 'linux' in value else colors['GOOD']
-    if any(w in value for w in ('installer','requis','configurer','à faire','passé')):return colors['WARNING']
+    if any(w in value for w in ('échec','arrêté','interrompu','invalide','failed','stopped','interrupted','invalid')):return colors['DANGER']
+    if any(w in value for w in ('en cours','running','in progress')):return colors['ACCENT']
+    if any(w in value for w in ('inclus','détecté','prêt','terminé','actif','active','bundled','detected','ready','done')):return colors['INFO'] if 'linux' in value else colors['GOOD']
+    if any(w in value for w in ('installer','requis','configurer','à faire','passé','install','required','configure','to do','skipped')):return colors['WARNING']
     return colors['MUTED']
 
 def status_pill(text,parent=None):

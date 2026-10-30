@@ -180,8 +180,8 @@ sudo apt update && sudo apt install chaostictool
 
 ### Universal Linux (AppImage)
 ```bash
-chmod +x ChaosticTool-2.0.1-x86_64.AppImage
-./ChaosticTool-2.0.1-x86_64.AppImage
+chmod +x ChaosticTool-2.0.1-linux-x64.AppImage
+./ChaosticTool-2.0.1-linux-x64.AppImage
 ```
 
 ### Windows 10 & 11

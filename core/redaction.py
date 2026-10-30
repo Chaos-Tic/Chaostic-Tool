@@ -40,6 +40,8 @@ class StreamRedactor:
         self.keep = max(self.keep, len(encoded) - 1)
 
     def feed(self, data: bytes, final: bool = False) -> bytes:
+        if not self.secrets and not self.buffer:
+            return data
         self.buffer += data
         cutoff = len(self.buffer) if final else max(0, len(self.buffer) - self.keep)
         output = bytearray()

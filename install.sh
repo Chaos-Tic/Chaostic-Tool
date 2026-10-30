@@ -238,7 +238,7 @@ pkg_available() {
             zypper --non-interactive search --match-exact --type package "$pkg" 2>/dev/null \
                 | awk -F'|' -v p="$pkg" 'NR > 2 {gsub(/^[ \t]+|[ \t]+$/, "", $2); if ($2 == p) found=1} END {exit found ? 0 : 1}'
             ;;
-        apk) apk search -x "$pkg" 2>/dev/null | grep -q . ;;
+        apk) [ -n "$(apk search -x "$pkg" 2>/dev/null)" ] ;;
         *) return 1 ;;
     esac
 }

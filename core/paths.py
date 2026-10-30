@@ -11,8 +11,11 @@ def data_home() -> Path:
     """Use the invoking user's home under sudo; never root's inherited XDG path."""
     sudo_user = os.environ.get("SUDO_USER")
     if hasattr(os, "geteuid") and os.geteuid() == 0 and sudo_user and sudo_user != "root" and pwd is not None:
-        home = Path(pwd.getpwnam(sudo_user).pw_dir)
-        return home / ".local/share/chaostictool"
+        try:
+            home = Path(pwd.getpwnam(sudo_user).pw_dir)
+            return home / ".local/share/chaostictool"
+        except KeyError:
+            pass
     override = os.environ.get("CHAOSTIC_CLI_HOME")
     if override:
         path = Path(override)

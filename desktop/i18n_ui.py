@@ -38,7 +38,6 @@ UI = {
     "{field} : valeur numérique invalide.": "{field}: invalid numeric value.",
     "BSSID invalide.": "Invalid BSSID.",
     "Adresse IP invalide : {value}": "Invalid IP address: {value}",
-    "[masqué]": "[redacted]",
     "Choisissez une cible.": "Choose a target.",
     "Ce profil attend un nom de domaine, pas une adresse IP.": "This profile requires a domain name, not an IP address.",
     "Liste de ports invalide.": "Invalid port list.",

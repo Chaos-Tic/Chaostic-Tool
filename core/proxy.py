@@ -3,22 +3,8 @@ import shutil
 import signal
 import subprocess
 import time
-from rich.console import Console
-from rich.theme import Theme
 
-THEME = Theme(
-    {
-        "brand.red": "bold #ff3131",
-        "brand.warn": "bold #ffb84d",
-        "brand.ok": "bold #31ff83",
-        "brand.info": "bold #67e8f9",
-        "brand.muted": "#a98c91",
-        "brand.command": "#ffb4b4",
-        "brand.white": "bold #f8fafc",
-    }
-)
-
-console = Console(theme=THEME)
+from core.terminal import console
 
 # Global proxy state
 PROXY_STATE = {

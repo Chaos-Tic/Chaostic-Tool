@@ -51,4 +51,6 @@ def secrets_for(preset,values):
     return [values[k] for k in preset.get('fields',{}) if k in SECRETS and values.get(k)]
 
 def redact(text,secrets):
-    return _redact(text,secrets,T('[masqué]'))
+    # The mask token is the same in every language: core.redaction's default
+    # "[redacted]" is used end to end (CLI output, stream redaction, GUI).
+    return _redact(text,secrets)

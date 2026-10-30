@@ -26,8 +26,8 @@ def _check(force=False):
     global _latest
     ensure_directory(data_home())
     _latest = update_service.check("cli", VERSION, data_home() / "update-check.json", force=force)
-    from core.target import _chown_tree
-    _chown_tree(data_home() / "update-check.json")
+    from core.target import _chown_path
+    _chown_path(data_home() / "update-check.json")
     return _latest
 
 
@@ -103,8 +103,8 @@ def show(*, install_now=False):
             state = not enabled()
             ensure_directory(data_home())
             update_service._write_json(data_home() / "cli-settings.json", {"check_updates": state})
-            from core.target import _chown_tree
-            _chown_tree(data_home() / "cli-settings.json")
+            from core.target import _chown_path
+            _chown_path(data_home() / "cli-settings.json")
             if os.environ.get("CHAOSTIC_UPDATE_CHECK") == "0":
                 ui.console.print("CHAOSTIC_UPDATE_CHECK=0 still disables automatic checks for this process.")
         else:

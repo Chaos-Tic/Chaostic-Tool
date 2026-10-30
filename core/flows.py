@@ -49,7 +49,7 @@ def save_custom_flows() -> None:
             json.dumps(persistent, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
-        tgt._chown_tree(CUSTOM_FLOWS_PATH)
+        tgt._chown_path(CUSTOM_FLOWS_PATH)
     except OSError as exc:
         try:
             from core import ui as _ui

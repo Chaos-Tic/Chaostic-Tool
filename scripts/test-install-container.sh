@@ -6,6 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 image=${1:?usage: scripts/test-install-container.sh IMAGE}
 engine=$(command -v docker || command -v podman) || { echo "Docker or Podman is required" >&2; exit 2; }
+# shellcheck disable=SC2016  # the quoted script runs inside the container, not here
 "$engine" run --rm -v "$PWD:/src:ro" "$image" bash -c '
 set -e
 export DEBIAN_FRONTEND=noninteractive

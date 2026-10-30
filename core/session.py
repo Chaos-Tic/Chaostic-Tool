@@ -143,12 +143,10 @@ def _clean_target_results(target_dir):
         except Exception as e:
             console.print(f"[bright_red][!] Could not remove {item}: {e}[/bright_red]")
 
+    # Recreate the emptied category directories; ensure_directory gives each
+    # freshly created directory back to the sudo-invoking user.
     for cat in tgt.CATEGORIES:
-        (target_dir / cat).mkdir(parents=True, exist_ok=True)
-    try:
-        tgt._chown_tree(target_dir)
-    except Exception:
-        pass
+        tgt.ensure_directory(target_dir / cat)
 
     console.print(f"[brand.ok][+] Target results cleaned. Removed {removed} file(s).[/brand.ok]")
     ui.pause()

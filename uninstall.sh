@@ -1,18 +1,81 @@
 #!/usr/bin/env bash
-# ChaosticTool uninstaller — reads /var/lib/chaostictool/manifest; falls back to detection when absent
+# ChaosticTool uninstaller — reverses exactly what /var/lib/chaostictool/manifest
+# records; falls back to conservative detection when no manifest is present.
+#
+# It is shipped by the native packages as `chaostictool-uninstall` and also runs
+# from a git checkout as ./uninstall.sh. Package removal (apt/dnf/pacman) never
+# runs this automatically — it only prints a notice — so external tools are
+# removed only when the user asks, here.
 set -Eeuo pipefail
 
 GREEN='\033[1;32m'; RED='\033[1;31m'; CYAN='\033[1;36m'; YELLOW='\033[1;33m'; DIM='\033[2m'; NC='\033[0m'
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 MANIFEST_DIR="/var/lib/chaostictool"
-MANIFEST="$MANIFEST_DIR/manifest"
+MANIFEST="${MANIFEST:-$MANIFEST_DIR/manifest}"
+
+# Only these prefixes may be passed to `rm -rf` for a recorded dir: entry. The
+# manifest is root-owned, but a corrupted or hand-edited line must never be able
+# to make the uninstaller delete an arbitrary path.
+ALLOWED_DIR_PREFIXES=("/opt/chaostictool" "/var/cache/chaostictool" "/var/lib/chaostictool")
+
+ASSUME_YES=0
+DRY_RUN=0
+REMOVE_PACKAGES=0
+FORCE_DETECT=0
+
+usage() {
+    cat <<EOF
+ChaosticTool uninstaller
+
+Usage:
+  sudo chaostictool-uninstall [options]      (installed command)
+  sudo ./uninstall.sh [options]              (from a source checkout)
+
+Reverses exactly what ChaosticTool recorded in:
+  $MANIFEST
+
+Options:
+  -n, --dry-run         Show what would be removed; change nothing.
+  -y, --yes             Do not prompt; remove user-local tools and restore configs.
+      --remove-packages Also remove the distribution packages ChaosticTool installed
+                        (dependency-aware: pacman -Rns / apt purge --autoremove /
+                        dnf remove + autoremove). Pre-existing packages are never listed,
+                        so only packages ChaosticTool added are offered.
+      --force-detect    In detection mode (no manifest), allow -y to auto-approve the
+                        heuristic removals. Without it, detection never auto-removes.
+  -h, --help            Show this help.
+
+Pre-existing tools are never recorded and therefore never removed.
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -y|--yes) ASSUME_YES=1 ;;
+        -n|--dry-run) DRY_RUN=1 ;;
+        --remove-packages) REMOVE_PACKAGES=1 ;;
+        --force-detect) FORCE_DETECT=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *)
+            echo -e "${RED}[!] Unknown option: $1${NC}" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
 
 echo -e "${CYAN}=== ChaosticTool uninstaller ===${NC}\n"
+[ "$DRY_RUN" -eq 1 ] && echo -e "${YELLOW}[*] Dry run: nothing will be changed.${NC}\n"
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "${RED}[!] This script requires root privileges.${NC}"
-    echo -e "    Re-run with: ${GREEN}sudo ./uninstall.sh${NC}\n"
+    if [ "${BASH_SOURCE[0]}" = "$0" ] && [ -f "$SCRIPT_DIR/uninstall.sh" ]; then
+        echo -e "    Re-run with: ${GREEN}sudo ./uninstall.sh${NC}\n"
+    else
+        echo -e "    Re-run with: ${GREEN}sudo chaostictool-uninstall${NC}\n"
+    fi
     exit 1
 fi
 
@@ -23,49 +86,104 @@ if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ]; then
 fi
 [ -z "$ORIG_HOME" ] && ORIG_HOME="/root"
 
-ASSUME_YES=0
-for arg in "$@"; do
-    case "$arg" in
-        -y|--yes) ASSUME_YES=1 ;;
-    esac
-done
+REMOVED=0
+SKIPPED=0
+FAILED=0
 
+# A prompt the user can answer; never aborts under `set -e`. When stdin is not a
+# terminal and --yes was not given, an optional destructive step is skipped
+# rather than guessed, so a piped or GUI-launched run cannot leave a half state.
 confirm() {
     local prompt="$1"
-    [ "${ASSUME_YES:-0}" = "1" ] && return 0
+    [ "$ASSUME_YES" = "1" ] && return 0
+    if [ ! -t 0 ]; then
+        echo -e "  ${DIM}[-] non-interactive and no --yes: skipping optional step.${NC}"
+        return 1
+    fi
     echo -en "${YELLOW}${prompt} [y/N]${NC} "
-    read -r rep
+    local rep=""
+    read -r rep || return 1
     case "${rep,,}" in
         y|yes|o|oui) return 0 ;;
         *) return 1 ;;
     esac
 }
 
-REMOVED=0
-SKIPPED=0
-
 _rm_file() {
     local path="$1"
     if [ -e "$path" ] || [ -L "$path" ]; then
-        rm -f "$path"
-        echo -e "  ${GREEN}[+] removed:${NC} $path"
-        REMOVED=$((REMOVED + 1))
+        if [ "$DRY_RUN" -eq 1 ]; then
+            echo -e "  ${CYAN}[~] would remove:${NC} $path"
+            REMOVED=$((REMOVED + 1))
+            return 0
+        fi
+        if rm -f -- "$path"; then
+            echo -e "  ${GREEN}[+] removed:${NC} $path"
+            REMOVED=$((REMOVED + 1))
+        else
+            echo -e "  ${RED}[x] could not remove:${NC} $path"
+            FAILED=$((FAILED + 1))
+        fi
     else
         echo -e "  ${DIM}[-] not found: $path${NC}"
         SKIPPED=$((SKIPPED + 1))
     fi
 }
 
+_dir_allowed() {
+    local path="$1" prefix
+    for prefix in "${ALLOWED_DIR_PREFIXES[@]}"; do
+        [ "$path" = "$prefix" ] && return 0
+        case "$path" in "$prefix"/*) return 0 ;; esac
+    done
+    return 1
+}
+
 _rm_dir() {
     local path="$1"
+    if ! _dir_allowed "$path"; then
+        echo -e "  ${YELLOW}[!] refusing to remove unexpected directory (not under a ChaosticTool prefix):${NC} $path"
+        SKIPPED=$((SKIPPED + 1))
+        return 0
+    fi
     if [ -d "$path" ]; then
-        rm -rf "$path"
-        echo -e "  ${GREEN}[+] removed dir:${NC} $path"
-        REMOVED=$((REMOVED + 1))
+        if [ "$DRY_RUN" -eq 1 ]; then
+            echo -e "  ${CYAN}[~] would remove dir:${NC} $path"
+            REMOVED=$((REMOVED + 1))
+            return 0
+        fi
+        if rm -rf -- "$path"; then
+            echo -e "  ${GREEN}[+] removed dir:${NC} $path"
+            REMOVED=$((REMOVED + 1))
+        else
+            echo -e "  ${RED}[x] could not remove dir:${NC} $path"
+            FAILED=$((FAILED + 1))
+        fi
     else
         echo -e "  ${DIM}[-] not found: $path${NC}"
         SKIPPED=$((SKIPPED + 1))
     fi
+}
+
+# Run pipx for the original user, matching the install environment exactly, with
+# a sudo-free fallback so minimal images without the sudo binary still work.
+_pipx_uninstall() {
+    local pkg="$1"
+    local home="$ORIG_HOME"
+    local pipx_env=(PIPX_HOME="$home/.local/share/pipx" PIPX_BIN_DIR="$home/.local/bin"
+                    HOME="$home" PATH="$home/.local/bin:$PATH")
+    if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ]; then
+        if command -v runuser >/dev/null 2>&1; then
+            runuser -u "$ORIG_USER" -- env "${pipx_env[@]}" pipx uninstall "$pkg"
+            return $?
+        fi
+        if command -v sudo >/dev/null 2>&1; then
+            sudo -u "$ORIG_USER" env "${pipx_env[@]}" pipx uninstall "$pkg"
+            return $?
+        fi
+    fi
+    command -v pipx >/dev/null 2>&1 || return 1
+    env "${pipx_env[@]}" pipx uninstall "$pkg"
 }
 
 # ---------------------------------------------------------------------------
@@ -75,11 +193,9 @@ detect_and_remove() {
     echo -e "${YELLOW}[!] Running in detection mode (no manifest).${NC}"
     echo -e "    Only known ChaosticTool artefacts will be offered for removal.\n"
 
-    # --- Launcher ---
     echo -e "\n${CYAN}[D1] Launcher${NC}"
     _rm_file /usr/local/bin/chaostictool
 
-    # --- Source-install wrappers ---
     echo -e "\n${CYAN}[D2] Source-install wrappers${NC}"
     for name in responder whatweb xsstrike; do
         path="/usr/local/bin/$name"
@@ -91,7 +207,6 @@ detect_and_remove() {
         fi
     done
 
-    # --- Python-module wrappers ---
     echo -e "\n${CYAN}[D3] Python-module wrappers${NC}"
     for name in secretsdump.py psexec.py GetUserSPNs.py; do
         path="/usr/local/bin/$name"
@@ -103,16 +218,12 @@ detect_and_remove() {
         fi
     done
 
-    # --- Direct downloads (including legacy PEASS assets from older releases) ---
+    # Legacy PEASS assets from older releases carried a ChaosticTool-owned name.
     echo -e "\n${CYAN}[D4] Direct downloads${NC}"
     for f in /usr/local/bin/linpeas.sh /usr/local/bin/winpeas.exe; do
         _rm_file "$f"
     done
-    if [ -f /usr/local/bin/rustscan ] && [ ! -L /usr/local/bin/rustscan ]; then
-        _rm_file /usr/local/bin/rustscan
-    fi
 
-    # --- Symlinks to user-local tool dirs ---
     echo -e "\n${CYAN}[D5] Symlinks to user-local binaries${NC}"
     for p in /usr/local/bin/*; do
         [ -L "$p" ] || continue
@@ -122,28 +233,40 @@ detect_and_remove() {
         fi
     done
 
-    # --- Source checkouts ---
     echo -e "\n${CYAN}[D6] Source checkouts${NC}"
     _rm_dir /opt/chaostictool
     _rm_dir /var/cache/chaostictool
 
-    # --- Tor/proxychains ---
     echo -e "\n${CYAN}[D7] Tor/proxychains config restore${NC}"
     for bak in /etc/tor/torrc.chaostictool.bak \
                /etc/proxychains.conf.chaostictool.bak \
                /etc/proxychains4.conf.chaostictool.bak; do
         if [ -f "$bak" ]; then
             original="${bak%.chaostictool.bak}"
-            cp -- "$bak" "$original"
-            rm -f "$bak"
-            echo -e "  ${GREEN}[+] restored:${NC} $original"
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo -e "  ${CYAN}[~] would restore:${NC} $original"
+            else
+                cp -- "$bak" "$original"
+                rm -f -- "$bak"
+                echo -e "  ${GREEN}[+] restored:${NC} $original"
+            fi
             REMOVED=$((REMOVED + 1))
         fi
     done
 
-    # --- User-local tools ---
     echo -e "\n${CYAN}[D8] User-local tools (Go/Cargo/pipx/gem)${NC}"
     _detect_user_tools
+}
+
+# Heuristic removals are destructive without a provenance record, so they are
+# only auto-approved when the user explicitly passes --force-detect alongside -y.
+_detect_confirm() {
+    local prompt="$1"
+    if [ "$ASSUME_YES" = "1" ] && [ "$FORCE_DETECT" != "1" ]; then
+        echo -e "  ${DIM}[-] --yes alone does not auto-approve detection removals; pass --force-detect.${NC}"
+        return 1
+    fi
+    confirm "$prompt"
 }
 
 _detect_user_tools() {
@@ -157,8 +280,8 @@ _detect_user_tools() {
     if [ "${#go_found[@]}" -gt 0 ]; then
         echo -e "  ${YELLOW}Go binaries found:${NC}"
         for f in "${go_found[@]}"; do echo -e "    $f"; done
-        if confirm "  Remove these Go binaries?"; then
-            for f in "${go_found[@]}"; do rm -f "$f"; REMOVED=$((REMOVED + 1)); done
+        if _detect_confirm "  Remove these Go binaries?"; then
+            for f in "${go_found[@]}"; do _rm_file "$f"; done
         fi
     fi
 
@@ -172,15 +295,15 @@ _detect_user_tools() {
     if [ "${#cargo_found[@]}" -gt 0 ]; then
         echo -e "  ${YELLOW}Cargo binaries found:${NC}"
         for f in "${cargo_found[@]}"; do echo -e "    $f"; done
-        if confirm "  Remove these Cargo binaries?"; then
-            for f in "${cargo_found[@]}"; do rm -f "$f"; REMOVED=$((REMOVED + 1)); done
+        if _detect_confirm "  Remove these Cargo binaries?"; then
+            for f in "${cargo_found[@]}"; do _rm_file "$f"; done
         fi
     fi
 
     local PIPX_NAMES=(theHarvester impacket netexec)
     if command -v pipx >/dev/null 2>&1; then
         local pipx_list
-        pipx_list=$(if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ]; then
+        pipx_list=$(if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ] && command -v sudo >/dev/null 2>&1; then
             sudo -u "$ORIG_USER" pipx list 2>/dev/null || true
         else
             pipx list 2>/dev/null || true
@@ -192,22 +315,30 @@ _detect_user_tools() {
         if [ "${#pipx_ours[@]}" -gt 0 ]; then
             echo -e "  ${YELLOW}pipx packages:${NC}"
             for p in "${pipx_ours[@]}"; do echo -e "    $p"; done
-            if confirm "  Uninstall these pipx packages?"; then
+            if _detect_confirm "  Uninstall these pipx packages?"; then
                 for p in "${pipx_ours[@]}"; do
-                    if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ]; then
-                        sudo -u "$ORIG_USER" pipx uninstall "$p" 2>/dev/null || true
+                    if [ "$DRY_RUN" -eq 1 ]; then
+                        echo -e "  ${CYAN}[~] would pipx uninstall:${NC} $p"
+                        REMOVED=$((REMOVED + 1))
+                    elif _pipx_uninstall "$p" >/dev/null 2>&1; then
+                        echo -e "  ${GREEN}[+] pipx uninstalled:${NC} $p"
+                        REMOVED=$((REMOVED + 1))
                     else
-                        pipx uninstall "$p" 2>/dev/null || true
+                        echo -e "  ${RED}[x] pipx uninstall failed:${NC} $p"
+                        FAILED=$((FAILED + 1))
                     fi
-                    REMOVED=$((REMOVED + 1))
                 done
             fi
         fi
     fi
 
-    if command -v gem >/dev/null 2>&1 && gem list wpscan 2>/dev/null | grep -q wpscan; then
-        if confirm "  Uninstall wpscan via gem?"; then
-            gem uninstall wpscan --executables --all 2>/dev/null || true
+    if command -v gem >/dev/null 2>&1 && gem list -i wpscan >/dev/null 2>&1; then
+        if _detect_confirm "  Uninstall wpscan via gem?"; then
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo -e "  ${CYAN}[~] would gem uninstall:${NC} wpscan"
+            else
+                gem uninstall wpscan --executables --all 2>/dev/null || true
+            fi
             REMOVED=$((REMOVED + 1))
         fi
     fi
@@ -233,9 +364,10 @@ if [ ! -f "$MANIFEST" ]; then
     echo -e "\n${CYAN}=== Summary ===${NC}"
     echo -e "  Removed : ${GREEN}${REMOVED}${NC}"
     echo -e "  Skipped : ${DIM}${SKIPPED}${NC}"
+    [ "$FAILED" -gt 0 ] && echo -e "  Failed  : ${RED}${FAILED}${NC}"
     echo ""
     echo -e "${DIM}The project directory was not touched: ${SCRIPT_DIR}${NC}"
-    echo -e "${DIM}To fully remove it: sudo rm -rf ${SCRIPT_DIR}${NC}"
+    [ "$FAILED" -gt 0 ] && exit 1
     exit 0
 fi
 
@@ -291,9 +423,13 @@ for bak in /etc/tor/torrc.chaostictool.bak \
            /etc/proxychains4.conf.chaostictool.bak; do
     [ -f "$bak" ] || continue
     original="${bak%.chaostictool.bak}"
-    cp -- "$bak" "$original"
-    rm -f "$bak"
-    echo -e "  ${GREEN}[+] restored:${NC} $original"
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+        echo -e "  ${CYAN}[~] would restore:${NC} $original"
+    else
+        cp -- "$bak" "$original"
+        rm -f -- "$bak"
+        echo -e "  ${GREEN}[+] restored:${NC} $original"
+    fi
     REMOVED=$((REMOVED + 1))
 done
 
@@ -328,9 +464,41 @@ if [ "${#M_REPOS[@]}" -gt 0 ]; then
         repo_path="${rest%%:*}"
         repo_id="${rest#*:}"
         if [ "$local_pm" = "pacman" ] && [ -f "$repo_path" ]; then
-            # Remove [chaotic-aur] block from pacman.conf
-            sed -i "/^\[${repo_id}\]/,/^$/d" "$repo_path" 2>/dev/null || true
-            echo -e "  ${GREEN}[+] removed repo section:${NC} [${repo_id}] from $repo_path"
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo -e "  ${CYAN}[~] would remove repo section:${NC} [${repo_id}] from $repo_path"
+            else
+                # Bounded delete: remove the [id] header and its Include line only,
+                # stopping at the next section header, so a user section appended
+                # after ours (no blank line between) is never swallowed.
+                python3 - "$repo_path" "$repo_id" <<'PY' || true
+import re, sys
+path, repo_id = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8", errors="surrogateescape") as handle:
+    lines = handle.readlines()
+out, drop = [], False
+for line in lines:
+    stripped = line.strip()
+    if stripped == f"[{repo_id}]":
+        drop = True
+        continue
+    if drop:
+        if stripped.startswith("[") and stripped.endswith("]"):
+            drop = False            # next section begins; keep it
+        elif stripped == "" or stripped.lower().startswith("include"):
+            continue                # our own block body
+        else:
+            drop = False            # unexpected line; stop dropping, keep it
+    out.append(line)
+text = "".join(out)
+while "\n\n\n" in text:
+    text = text.replace("\n\n\n", "\n\n")
+with open(path, "w", encoding="utf-8", errors="surrogateescape") as handle:
+    handle.write(text)
+PY
+                echo -e "  ${GREEN}[+] removed repo section:${NC} [${repo_id}] from $repo_path"
+                # Drop the now-orphaned sync database so pacman does not warn.
+                rm -f -- "/var/lib/pacman/sync/${repo_id}.db" 2>/dev/null || true
+            fi
             REMOVED=$((REMOVED + 1))
         fi
     done
@@ -339,7 +507,7 @@ else
 fi
 
 # Refresh package index if apt sources were removed
-if [ "$APT_SOURCES_REMOVED" -eq 1 ] && command -v apt >/dev/null 2>&1; then
+if [ "$APT_SOURCES_REMOVED" -eq 1 ] && [ "$DRY_RUN" -eq 0 ] && command -v apt >/dev/null 2>&1; then
     echo -e "  ${CYAN}[*] Refreshing apt after source removal${NC}"
     apt update -qq 2>/dev/null || true
 fi
@@ -376,13 +544,16 @@ if [ "${#M_PIPX[@]}" -gt 0 ]; then
     for pkg in "${M_PIPX[@]}"; do echo -e "    $pkg"; done
     if confirm "  Uninstall these pipx packages?"; then
         for pkg in "${M_PIPX[@]}"; do
-            if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ] && command -v pipx >/dev/null 2>&1; then
-                sudo -u "$ORIG_USER" pipx uninstall "$pkg" 2>/dev/null || true
-            elif command -v pipx >/dev/null 2>&1; then
-                pipx uninstall "$pkg" 2>/dev/null || true
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo -e "  ${CYAN}[~] would pipx uninstall:${NC} $pkg"
+                REMOVED=$((REMOVED + 1))
+            elif _pipx_uninstall "$pkg" >/dev/null 2>&1; then
+                echo -e "  ${GREEN}[+] pipx uninstalled:${NC} $pkg"
+                REMOVED=$((REMOVED + 1))
+            else
+                echo -e "  ${RED}[x] pipx uninstall failed:${NC} $pkg"
+                FAILED=$((FAILED + 1))
             fi
-            echo -e "  ${GREEN}[+] pipx uninstalled:${NC} $pkg"
-            REMOVED=$((REMOVED + 1))
         done
     else
         SKIPPED=$((SKIPPED + ${#M_PIPX[@]}))
@@ -396,10 +567,18 @@ if [ "${#M_GEM[@]}" -gt 0 ]; then
     for pkg in "${M_GEM[@]}"; do echo -e "    $pkg"; done
     if confirm "  Uninstall these gem packages?"; then
         for pkg in "${M_GEM[@]}"; do
-            if command -v gem >/dev/null 2>&1; then
-                gem uninstall "$pkg" --executables --all 2>/dev/null || true
+            if ! command -v gem >/dev/null 2>&1; then
+                echo -e "  ${DIM}[-] gem not available: $pkg${NC}"
+                SKIPPED=$((SKIPPED + 1))
+            elif [ "$DRY_RUN" -eq 1 ]; then
+                echo -e "  ${CYAN}[~] would gem uninstall:${NC} $pkg"
+                REMOVED=$((REMOVED + 1))
+            elif gem uninstall "$pkg" --executables --all 2>/dev/null; then
                 echo -e "  ${GREEN}[+] gem uninstalled:${NC} $pkg"
                 REMOVED=$((REMOVED + 1))
+            else
+                echo -e "  ${RED}[x] gem uninstall failed:${NC} $pkg"
+                FAILED=$((FAILED + 1))
             fi
         done
     else
@@ -410,24 +589,61 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-echo -e "\n${CYAN}[6] System packages — review manually${NC}"
+echo -e "\n${CYAN}[6] System packages${NC}"
 if [ "${#M_PKGS[@]}" -gt 0 ]; then
-    echo -e "  ${DIM}These packages were installed by ChaosticTool. Remove only what you no longer need:${NC}\n"
     declare -A by_pm=()
     for entry in "${M_PKGS[@]}"; do
         pm="${entry%%:*}"
         pkg="${entry#*:}"
         by_pm["$pm"]+=" $pkg"
     done
-    for pm in "${!by_pm[@]}"; do
-        pkgs="${by_pm[$pm]}"
-        case "$pm" in
-            pacman) echo -e "  ${DIM}sudo pacman -Rs${pkgs}${NC}" ;;
-            apt)    echo -e "  ${DIM}sudo apt remove --autoremove${pkgs}${NC}" ;;
-            dnf)    echo -e "  ${DIM}sudo dnf remove${pkgs}${NC}" ;;
-            *)      echo -e "  ${DIM}${pm} remove${pkgs}${NC}" ;;
-        esac
-    done
+    # Every pkg: line is a package ChaosticTool installed because it was ABSENT
+    # before (both installers filter out already-present packages), so an
+    # automatic removal here cannot touch a pre-existing system tool.
+    if [ "$REMOVE_PACKAGES" -eq 1 ]; then
+        echo -e "  ${YELLOW}Removing distribution packages ChaosticTool installed:${NC}"
+        for pm in "${!by_pm[@]}"; do
+            read -r -a pkgs <<< "${by_pm[$pm]}"
+            [ "${#pkgs[@]}" -gt 0 ] || continue
+            case "$pm" in
+                pacman) cmd=(pacman -Rns --noconfirm -- "${pkgs[@]}") ;;
+                apt)    cmd=(apt-get purge -y --autoremove -- "${pkgs[@]}") ;;
+                dnf)    cmd=(dnf remove -y "${pkgs[@]}") ;;
+                zypper) cmd=(zypper --non-interactive rm --clean-deps "${pkgs[@]}") ;;
+                apk)    cmd=(apk del "${pkgs[@]}") ;;
+                *)      echo -e "  ${DIM}unknown manager $pm: ${pkgs[*]}${NC}"; continue ;;
+            esac
+            echo -e "  ${DIM}\$ ${cmd[*]}${NC}"
+            if [ "$DRY_RUN" -eq 1 ]; then
+                continue
+            fi
+            if confirm "  Run the command above?"; then
+                if "${cmd[@]}"; then
+                    [ "$pm" = "dnf" ] && dnf autoremove -y >/dev/null 2>&1 || true
+                    REMOVED=$((REMOVED + ${#pkgs[@]}))
+                else
+                    echo -e "  ${RED}[x] package removal reported an error for $pm${NC}"
+                    FAILED=$((FAILED + 1))
+                fi
+            else
+                SKIPPED=$((SKIPPED + ${#pkgs[@]}))
+            fi
+        done
+    else
+        echo -e "  ${DIM}These packages were installed by ChaosticTool. Re-run with --remove-packages${NC}"
+        echo -e "  ${DIM}to remove them automatically (dependency-aware), or remove manually:${NC}\n"
+        for pm in "${!by_pm[@]}"; do
+            pkglist="${by_pm[$pm]}"
+            case "$pm" in
+                pacman) echo -e "  ${DIM}sudo pacman -Rns${pkglist}${NC}" ;;
+                apt)    echo -e "  ${DIM}sudo apt-get purge --autoremove${pkglist}${NC}" ;;
+                dnf)    echo -e "  ${DIM}sudo dnf remove${pkglist} && sudo dnf autoremove${NC}" ;;
+                zypper) echo -e "  ${DIM}sudo zypper rm --clean-deps${pkglist}${NC}" ;;
+                apk)    echo -e "  ${DIM}sudo apk del${pkglist}${NC}" ;;
+                *)      echo -e "  ${DIM}${pm} remove${pkglist}${NC}" ;;
+            esac
+        done
+    fi
 else
     echo -e "  ${DIM}No system packages recorded.${NC}"
 fi
@@ -440,6 +656,14 @@ _rm_dir "$MANIFEST_DIR"
 echo -e "\n${CYAN}=== Summary ===${NC}"
 echo -e "  Removed : ${GREEN}${REMOVED}${NC}"
 echo -e "  Skipped : ${DIM}${SKIPPED}${NC}"
+[ "$FAILED" -gt 0 ] && echo -e "  Failed  : ${RED}${FAILED}${NC}"
 echo ""
-echo -e "${DIM}The project directory was not touched: ${SCRIPT_DIR}${NC}"
-echo -e "${DIM}To fully remove it: sudo rm -rf ${SCRIPT_DIR}${NC}"
+if [ "${BASH_SOURCE[0]}" = "$0" ] && [ -f "$SCRIPT_DIR/uninstall.sh" ] && [ -f "$SCRIPT_DIR/install.sh" ]; then
+    echo -e "${DIM}The project directory was not touched: ${SCRIPT_DIR}${NC}"
+    echo -e "${DIM}To fully remove it: sudo rm -rf ${SCRIPT_DIR}${NC}"
+else
+    echo -e "${DIM}The ChaosticTool package itself is removed with your package manager.${NC}"
+fi
+
+[ "$FAILED" -gt 0 ] && exit 1
+exit 0

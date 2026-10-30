@@ -135,7 +135,7 @@ class TargetDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(26, 26, 26, 26)
         layout.setSpacing(18)
-        layout.addWidget(label("Nouvelle cible", "sectionTitle"))  # noqa: traduit via label()
+        layout.addWidget(label("Nouvelle cible", "sectionTitle"))  # i18n: traduit via label()
         layout.addWidget(label("Un domaine, une adresse IP ou une URL complète.\nL’ajout n’effectue aucune connexion réseau.", "muted", True))
         form = QFormLayout()
         form.setSpacing(14)

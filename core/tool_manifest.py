@@ -52,6 +52,12 @@ def _package_specs() -> dict[str, dict[str, Any]]:
     return json.loads(_PACKAGE_DATA.read_text(encoding="utf-8"))
 
 
+# Portable artifact specs, parsed once. This is the single source the app-owned
+# installer (``desktop/packages.py``) consumes instead of re-reading the JSON on
+# its own, so URL/sha256/per-OS binary resolution has one authority.
+PACKAGE_SPECS: dict[str, dict[str, Any]] = _package_specs()
+
+
 def _artifact_binary(spec: dict[str, Any], platform: str) -> str:
     """Binary name as it ships on ``platform``'s OS.
 
@@ -144,7 +150,7 @@ def _unsupported_record(tool: str, platform: str) -> dict[str, str]:
 
 def build_manifest() -> dict[str, dict[str, Any]]:
     """Return the complete normalized installation contract."""
-    specs = _package_specs()
+    specs = PACKAGE_SPECS
     manifest: dict[str, dict[str, Any]] = {}
     for tool in TOOLS:
         platforms: dict[str, dict[str, Any]] = {}

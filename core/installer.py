@@ -761,6 +761,51 @@ def _gem_already_installed(gem_bin, pkg):
         return False
 
 
+def _pip_already_installed(python_bin, pkg, as_user_pw, env):
+    """Whether ``pkg`` is already visible to the install user's pip.
+
+    ``pip show`` sees the user site, the system site-packages and distribution
+    packages alike, so a positive answer means the package pre-existed in some
+    form: it is then neither reinstalled nor recorded, and the uninstaller will
+    never touch it (the pre-existing-tool guarantee for the pip method).
+    """
+    try:
+        return subprocess.run(
+            [python_bin, "-m", "pip", "show", pkg],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            preexec_fn=_drop_privs(as_user_pw) if as_user_pw else None,
+            env=env,
+        ).returncode == 0
+    except (OSError, ValueError):
+        return False
+
+
+def _pip_user_install(binary, pkg, python_bin, orig_pw):
+    """``pip install --user`` for the original user, recorded as ``pip:<pkg>``.
+
+    Mirrors the pipx/gem paths: a package already present is left alone and not
+    recorded; a package this run installed is recorded so ``uninstall.sh`` can
+    ``pip uninstall`` it (section [5]). The ``/usr/local/bin`` symlink is a
+    separate ``symlink:`` record made by :func:`_link_user_binary`.
+    """
+    env = dict(os.environ)
+    if orig_pw:
+        env["HOME"] = orig_pw.pw_dir
+        env["PATH"] = f"{orig_pw.pw_dir}/.local/bin:{env.get('PATH', '')}"
+    if _pip_already_installed(python_bin, pkg, orig_pw, env):
+        console.print(f"[brand.muted]    pip package {pkg} already present; "
+                      f"not reinstalling or recording it.[/brand.muted]")
+        ok = True
+    else:
+        ok = _run([python_bin, "-m", "pip", "install", "--user", "--break-system-packages", pkg],
+                  as_user_pw=orig_pw, env=env)
+        if ok:
+            _manifest_record(f"pip:{pkg}")
+    if ok and orig_pw:
+        _link_user_binary(binary, [os.path.join(orig_pw.pw_dir, ".local", "bin")])
+    return ok
+
+
 def _verify_download(binary, data, expected, source):
     """Require a published SHA-256 before a downloaded binary is placed.
 
@@ -1341,14 +1386,7 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
             python_bin = shutil.which("python3")
             if not python_bin:
                 return False
-            env = dict(os.environ)
-            if orig_pw:
-                env["HOME"] = orig_pw.pw_dir
-                env["PATH"] = f"{orig_pw.pw_dir}/.local/bin:{env.get('PATH','')}"
-            ok = _run([python_bin, "-m", "pip", "install", "--user", "--break-system-packages", pkg], as_user_pw=orig_pw, env=env)
-            if ok and orig_pw:
-                _link_user_binary(binary, [os.path.join(orig_pw.pw_dir, ".local", "bin")])
-            return ok
+            return _pip_user_install(binary, pkg, python_bin, orig_pw)
 
         if method == "gem":
             _install_build_deps(binary, pm)
@@ -1494,12 +1532,7 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
         for binary, pkg in groups["pip"]:
             console.print(f"\n[brand.info][*] pip install {pkg}[/brand.info]")
             if python_bin:
-                env = dict(os.environ)
-                if orig_pw:
-                    env["HOME"] = orig_pw.pw_dir
-                    env["PATH"] = f"{orig_pw.pw_dir}/.local/bin:{env.get('PATH','')}"
-                if _run([python_bin, "-m", "pip", "install", "--user", "--break-system-packages", pkg], as_user_pw=orig_pw, env=env) and orig_pw:
-                    _link_user_binary(binary, [os.path.join(orig_pw.pw_dir, ".local", "bin")])
+                _pip_user_install(binary, pkg, python_bin, orig_pw)
             else:
                 console.print("[bright_yellow][!] python3 missing.[/bright_yellow]")
 

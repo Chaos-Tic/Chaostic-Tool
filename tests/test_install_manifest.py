@@ -14,6 +14,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from core import installer, manifest
@@ -160,3 +161,85 @@ class FileWriterRoundTripTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PipMethodRecordingTests(unittest.TestCase):
+    """The pip method records ``pip:<pkg>`` exactly when it installed the package.
+
+    pip was the one install method that recorded nothing for the package itself
+    (only the /usr/local/bin symlink), so pip-installed tools were not reversed
+    on uninstall. These tests pin the record-what-you-install contract for it.
+    """
+
+    PW = SimpleNamespace(pw_name="tester", pw_uid=1000, pw_gid=1000, pw_dir="/home/tester")
+
+    def _install(self, *, already_installed, run_ok=True):
+        recorded, commands = [], []
+
+        def fake_run(cmd, as_user_pw=None, env=None):
+            commands.append((cmd, as_user_pw, env))
+            return run_ok
+
+        with patch.object(installer, "_pip_already_installed", return_value=already_installed), \
+                patch.object(installer, "_run", side_effect=fake_run), \
+                patch.object(installer, "_link_user_binary") as link, \
+                patch.object(installer.manifest, "record",
+                             side_effect=lambda entry, **_: recorded.append(entry)), \
+                patch.object(installer.console, "print"):
+            ok = installer._pip_user_install("xsstrike", "xsstrike", "/usr/bin/python3", self.PW)
+        return ok, recorded, commands, link
+
+    def test_fresh_pip_install_is_recorded_for_the_original_user(self):
+        ok, recorded, commands, link = self._install(already_installed=False)
+        self.assertTrue(ok)
+        self.assertEqual(len(commands), 1)
+        cmd, as_user_pw, env = commands[0]
+        self.assertEqual(cmd, ["/usr/bin/python3", "-m", "pip", "install", "--user",
+                               "--break-system-packages", "xsstrike"])
+        self.assertIs(as_user_pw, self.PW, "pip --user must run as the invoking user, not root")
+        self.assertEqual(env["HOME"], "/home/tester")
+        self.assertEqual(recorded, ["pip:xsstrike"])
+        link.assert_called_once_with("xsstrike", ["/home/tester/.local/bin"])
+
+    def test_pre_existing_pip_package_is_neither_reinstalled_nor_recorded(self):
+        ok, recorded, commands, link = self._install(already_installed=True)
+        self.assertTrue(ok, "an already available package counts as satisfied")
+        self.assertEqual(commands, [], "a package the user already had must not be touched")
+        self.assertEqual(recorded, [], "and must never be recorded for removal")
+        link.assert_called_once()
+
+    def test_failed_pip_install_records_nothing(self):
+        ok, recorded, commands, link = self._install(already_installed=False, run_ok=False)
+        self.assertFalse(ok)
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(recorded, [])
+        link.assert_not_called()
+
+    def test_install_missing_routes_the_pip_method_through_the_recording_helper(self):
+        # End to end from install_missing: a PIP_PACKAGES tool restricted to the
+        # pip method must reach _pip_user_install, which is the only place that
+        # records pip:<pkg>. Everything that touches the system is patched out.
+        calls = []
+        with patch.object(installer, "_detect_pkg_manager", return_value=("apt", None)), \
+                patch.object(installer, "_get_original_user", return_value=("tester", self.PW)), \
+                patch.object(installer, "_tool_available", return_value=False), \
+                patch.object(installer, "_install_build_deps"), \
+                patch.object(installer, "_package_installed", return_value=True), \
+                patch.object(installer.shutil, "which", return_value="/usr/bin/python3"), \
+                patch.object(installer, "_pip_user_install",
+                             side_effect=lambda *args: calls.append(args) or True), \
+                patch.object(installer, "_run") as run, \
+                patch.object(installer.console, "print"):
+            installer.install_missing([("xsstrike", "xsstrike")], assume_yes=True,
+                                      allowed_methods=["pip"])
+        run.assert_not_called()
+        self.assertEqual(calls, [("xsstrike", "xsstrike", "/usr/bin/python3", self.PW)])
+
+    def test_every_pip_package_target_is_a_name_the_uninstaller_can_pass_to_pip(self):
+        # uninstall.sh runs `pip uninstall -y <recorded value>`: the recorded value
+        # must be a plain distribution name (no URLs, no version specifiers).
+        for binary, pkg in installer.PIP_PACKAGES.items():
+            if pkg is None:
+                continue
+            with self.subTest(binary=binary):
+                self.assertRegex(pkg, r"^[A-Za-z0-9][A-Za-z0-9._-]*$")

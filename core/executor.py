@@ -1,4 +1,5 @@
 import codecs
+import logging
 import os
 import shutil
 import tempfile
@@ -28,6 +29,7 @@ from core.redaction import StreamRedactor, redact
 from core.runner import Runner, RunRequest
 from core.theme import COLORS, THEME
 
+LOG = logging.getLogger(__name__)
 console = Console(theme=THEME, style=f"{COLORS['text']} on {COLORS['bg']}")
 # ACTIVE_PROCS tracks every live child so Ctrl+C / shutdown can reap them. It is
 # touched from the UI thread and from capture worker threads, so a lock guards
@@ -61,7 +63,8 @@ def _build_env():
             ])
             env["PATH"] = local_bins + ":" + env.get("PATH", "")
         except Exception:
-            pass
+            LOG.exception("Could not switch the environment to sudo user %r; "
+                          "using the inherited root environment", sudo_user)
     from core import api_keys
     api_keys.apply_to_env(env)
     return env
@@ -371,4 +374,5 @@ def _chown_to_sudo_user(path):
         pw = pwd.getpwnam(sudo_user)
         os.chown(path, pw.pw_uid, pw.pw_gid)
     except Exception:
+        LOG.exception("Could not chown %s to sudo user %r", path, sudo_user)
         return

@@ -187,6 +187,8 @@ def main_menu():
 
 
 def main():
+    from core import logging_setup
+    logging_setup.setup_logging()
     from core.version import VERSION
     parser = argparse.ArgumentParser(description="ChaosticTool Linux terminal interface")
     parser.add_argument("--version", action="version", version=f"ChaosticTool {VERSION}")

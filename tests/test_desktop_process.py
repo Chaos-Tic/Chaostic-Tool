@@ -188,7 +188,7 @@ class DesktopProcessTests(unittest.TestCase):
         result = wait_run(self.runner, start)
         self.assertEqual(result["status"], "success")
         saved = (Path(result["directory"]) / "output.txt").read_text()
-        self.assertEqual(saved.replace("\r\n", "\n"), "[masque]\nfinal")
+        self.assertEqual(saved.replace("\r\n", "\n"), "[redacted]\nfinal")
         self.assertNotIn("unique-private-input", "".join(emitted))
 
     def test_missing_executable_keeps_core_code_and_persisted_failure(self):

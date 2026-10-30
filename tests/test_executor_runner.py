@@ -57,7 +57,7 @@ class ExecutorRunnerTests(unittest.TestCase):
         self.assertNotEqual(rc, 0)
         self.assertLess(time.monotonic() - started, 10)
         saved = self.output.read_text()
-        self.assertTrue(saved.startswith("[masque]\npartial\n"), saved)
+        self.assertTrue(saved.startswith("[redacted]\npartial\n"), saved)
         self.assertNotIn(secret, saved)
         self.assertNotIn(secret, " ".join(str(call) for call in display.call_args_list))
         self.assertEqual(executor.ACTIVE_PROCS, [])

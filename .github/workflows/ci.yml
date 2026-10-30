@@ -73,6 +73,8 @@ jobs:
           CHAOSTIC_TEST_FONT='DejaVu Sans' QT_FONT_DPI=144 xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
       - name: Check documentation links
         run: python scripts/check-docs.py
+      - name: Check packaging dependency floors
+        run: python scripts/check-packaging-deps.py
       - name: Check shell scripts syntax
         run: bash -n install.sh uninstall.sh packaging/linux/*.sh packaging/debian/*.sh packaging/arch/*.sh scripts/*.sh
 
@@ -124,24 +126,30 @@ jobs:
             xvfb xdotool fonts-dejavu-core
       - name: Install build dependencies
         run: python -m pip install -r requirements.txt -r requirements-desktop.txt -r requirements-build.txt
+      # The upstream "continuous" tags are rebuilt without notice, so a fixed
+      # checksum against them fails at every upstream rebuild. Pin the latest
+      # numbered releases instead; their assets never change. To upgrade, bump
+      # the two versions and refresh the four checksums with sha256sum.
       - name: Verified AppImage tools and runtime
         if: runner.os == 'Linux'
         env:
           APP_ARCH: ${{ matrix.arch }}
+          APPIMAGETOOL_VERSION: '1.9.1'
+          APPIMAGE_RUNTIME_VERSION: '20251108'
         run: |
           if [ "$APP_ARCH" = x64 ]; then
             arch=x86_64
-            tool_hash=793fca0ce4bcc309dc65d3f66669f58e3755643e4dadbe03932e7b436128494f
-            runtime_hash=617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46
+            tool_hash=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+            runtime_hash=2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
           else
             arch=aarch64
-            tool_hash=578b2eac4cac3216bfb26cc19c95a9625b3122b3861a19de1e425e7ae0686281
-            runtime_hash=9a72a744d221576c9347ec074243acc5c3c7568896b12714e0e82e9f0bf47900
+            tool_hash=f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158
+            runtime_hash=00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444
           fi
           tool="$RUNNER_TEMP/appimagetool.AppImage"
           runtime="$RUNNER_TEMP/appimage-runtime"
-          curl -fsSL --retry 3 "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$arch.AppImage" -o "$tool"
-          curl -fsSL --retry 3 "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$arch" -o "$runtime"
+          curl -fsSL --retry 3 "https://github.com/AppImage/appimagetool/releases/download/$APPIMAGETOOL_VERSION/appimagetool-$arch.AppImage" -o "$tool"
+          curl -fsSL --retry 3 "https://github.com/AppImage/type2-runtime/releases/download/$APPIMAGE_RUNTIME_VERSION/runtime-$arch" -o "$runtime"
           printf '%s  %s\n' "$tool_hash" "$tool" "$runtime_hash" "$runtime" | sha256sum -c -
           chmod +x "$tool"
           echo "APPIMAGETOOL_PATH=$tool" >> "$GITHUB_ENV"

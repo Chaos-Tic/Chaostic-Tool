@@ -1,3 +1,0 @@
-#!/bin/sh
-export PYTHONDONTWRITEBYTECODE=1
-exec /usr/bin/python3 -B "@CMAKE_INSTALL_FULL_DATADIR@/chaostictool/chaostictool.py" "$@"

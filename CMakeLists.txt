@@ -29,9 +29,10 @@ install(FILES chaostictool.py DESTINATION "${CMAKE_INSTALL_DATADIR}/chaostictool
 install(DIRECTORY core modules assets DESTINATION "${CMAKE_INSTALL_DATADIR}/chaostictool"
         PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE)
 
-# Launchers
+# Launchers: one template, configured once per executable.
 configure_file(packaging/linux/launcher.in chaostictool-desktop @ONLY)
-configure_file(packaging/launcher.in chaostictool @ONLY)
+set(CHAOSTIC_EXEC "/usr/bin/python3 -B \"${CMAKE_INSTALL_FULL_DATADIR}/chaostictool/chaostictool.py\"")
+configure_file(packaging/linux/launcher.in chaostictool @ONLY)
 configure_file(packaging/linux/chaostictool-desktop.desktop.in chaostictool-desktop.desktop @ONLY)
 
 install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/chaostictool-desktop" DESTINATION "${CMAKE_INSTALL_BINDIR}")

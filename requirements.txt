@@ -1,3 +1,5 @@
-rich>=15.0.0
+# Floors match the native packages (packaging/, CMakeLists.txt); checked by
+# scripts/check-packaging-deps.py. Ubuntu 24.04 ships rich 13.7.
+rich>=13.7.0
 prompt_toolkit>=3.0.53,<4
 keyring>=25.7.0,<26

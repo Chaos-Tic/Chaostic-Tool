@@ -42,6 +42,12 @@ install(FILES desktop/assets/icon.svg DESTINATION "${CMAKE_INSTALL_DATADIR}/icon
 install(FILES assets/icon.svg DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps" RENAME chaostictool.svg)
 install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/chaostictool")
 
+# Manifest-driven uninstaller on PATH. Every native package ships it so a user
+# can remove the external security tools ChaosticTool installed at runtime —
+# the package itself removes none of them. The maintainer scripts below only
+# NOTIFY on removal; they never delete third-party or user content.
+install(PROGRAMS uninstall.sh DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME chaostictool-uninstall)
+
 set(CPACK_PACKAGE_NAME chaostictool)
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_CONTACT "Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>")
@@ -51,6 +57,10 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGING_INSTALL_PREFIX /usr)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+# Removal-time notice (no auto-delete) for the external tools in the manifest.
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/debian/prerm;${CMAKE_CURRENT_SOURCE_DIR}/packaging/debian/postrm")
+set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/fedora/preun.sh")
 # 2.x replaces both previous interfaces; their files must never be co-installed.
 set(CPACK_DEBIAN_PACKAGE_PROVIDES "chaostictool-desktop (= ${PROJECT_VERSION})")
 set(CPACK_DEBIAN_PACKAGE_BREAKS "chaostictool-desktop (<< 2.0.0)")

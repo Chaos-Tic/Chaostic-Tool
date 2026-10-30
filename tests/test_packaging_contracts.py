@@ -64,6 +64,41 @@ class PackagingMetadataTests(unittest.TestCase):
             self.assertFalse((ROOT / obsolete).exists(), obsolete)
         self.assertNotIn('chaostictool-desktop.spec', (ROOT / '.copr/Makefile').read_text())
 
+    def test_every_package_ships_the_uninstaller_and_notifies_on_removal(self):
+        cmake = (ROOT / 'CMakeLists.txt').read_text()
+        self.assertIn('RENAME chaostictool-uninstall', cmake,
+                      'CMake must install uninstall.sh on PATH as chaostictool-uninstall')
+
+        prerm = (ROOT / 'packaging/debian/prerm').read_text()
+        postrm = (ROOT / 'packaging/debian/postrm').read_text()
+        preun = (ROOT / 'packaging/fedora/preun.sh').read_text()
+        spec = (ROOT / 'packaging/fedora/chaostictool.spec').read_text()
+        pkgbuild = (ROOT / 'packaging/arch/PKGBUILD').read_text()
+        archinstall = (ROOT / 'packaging/arch/chaostictool.install').read_text()
+
+        # Debian maintainer scripts are picked up by debhelper (source/PPA) and by
+        # CPack via CONTROL_EXTRA; they fire on real removal, not on upgrade.
+        self.assertIn('"$1" = remove', prerm)
+        self.assertIn('"$1" = purge', postrm)
+        # rpm %preun and the CPack preun file both guard on the removal count.
+        self.assertIn('"$1" = 0', preun)
+        self.assertRegex(spec, r'(?s)%preun.*?/var/lib/chaostictool/manifest')
+        self.assertIn('%{_bindir}/chaostictool-uninstall', spec)
+        # Arch wires a pacman scriptlet with pre_remove.
+        self.assertIn("install='chaostictool.install'", pkgbuild)
+        self.assertIn('pre_remove()', archinstall)
+
+        # Every notice points at the manifest and the uninstaller, and NONE of the
+        # scriptlets auto-removes anything (notify-only is the safe behaviour).
+        for text in (prerm, postrm, preun, spec, archinstall):
+            self.assertIn('/var/lib/chaostictool/manifest', text)
+            self.assertIn('chaostictool-uninstall', text)
+        for script in (prerm, postrm, preun, archinstall):
+            for destructive in ('rm -rf', 'rm -f', 'pacman -R', 'apt-get purge',
+                                 'apt remove', 'dnf remove'):
+                self.assertNotIn(destructive, script,
+                                 'maintainer scripts must notify, never auto-delete')
+
     @unittest.skipUnless(sys.platform.startswith('linux') and shutil.which('cmake'),
                          'Native package staging requires Linux and CMake')
     def test_staged_install_and_cpack_metadata(self):
@@ -85,6 +120,10 @@ class PackagingMetadataTests(unittest.TestCase):
                     self.assertIn(f'set(CPACK_PACKAGE_VERSION "{VERSION}")', config)
                     self.assertIn('set(CPACK_PACKAGE_NAME "chaostictool")', config)
                     self.assertIn('CPACK_DEBIAN_PACKAGE_REPLACES "chaostictool-desktop (<< 2.0.0)"', config)
+                    # The uninstaller and its removal-time notices travel with the package.
+                    self.assertIn('packaging/debian/prerm', config)
+                    self.assertIn('packaging/debian/postrm', config)
+                    self.assertIn('CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE', config)
                     # Even a frozen GUI still ships a Python CLI requiring both libraries.
                     for dependency in ('python3-rich', 'python3-prompt-toolkit'):
                         self.assertIn(dependency, config)
@@ -92,6 +131,7 @@ class PackagingMetadataTests(unittest.TestCase):
                     subprocess.run(['cmake', '--install', str(build)], check=True,
                                    env=dict(os.environ, DESTDIR=str(stage)), capture_output=True, text=True)
                     for relative in ('bin/chaostictool', 'bin/chaostictool-desktop',
+                                     'bin/chaostictool-uninstall',
                                      'share/chaostictool/chaostictool.py', 'share/chaostictool/core/version.py',
                                      'share/applications/chaostictool-desktop.desktop',
                                      'share/licenses/chaostictool/LICENSE'):

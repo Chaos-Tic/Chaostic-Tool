@@ -16,4 +16,6 @@ Replaces: chaostictool-desktop (<< 2.0.0)
 Description: terminal and desktop interfaces for authorized security testing
  A shared security testing engine with a terminal interface and a graphical
  workspace, separate user data and local results. External assessment tools
- are optional and installed separately.
+ are optional and installed separately; removing this package does not remove
+ them. Run chaostictool-uninstall to review and remove what the application
+ installed (it reverses only /var/lib/chaostictool/manifest).

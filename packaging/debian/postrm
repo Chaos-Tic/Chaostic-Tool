@@ -1,0 +1,14 @@
+#!/bin/sh
+# On purge, remind the user that the runtime manifest and the external tools it
+# records are intentionally left in place (this package removes none of them).
+set -e
+
+MANIFEST=/var/lib/chaostictool/manifest
+
+if [ "$1" = purge ] && [ -f "$MANIFEST" ]; then
+    echo "Note: $MANIFEST and the external tools it records were left in place." >&2
+    echo "Reinstall ChaosticTool and run 'sudo chaostictool-uninstall' to remove them." >&2
+fi
+
+#DEBHELPER#
+exit 0

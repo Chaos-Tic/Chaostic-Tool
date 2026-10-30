@@ -29,21 +29,21 @@ def _rewrite_args(args, rules):
     after it is a range (contains ``-``); ``{'rename': flag, 'to': repl,
     'values': {...}}`` renames the first *flag* and remaps the value after it.
     """
-    args = list(args)
+    result = list(args)
     for rule in rules:
         if 'map' in rule:
             mapping = rule['map']
-            args = [mapping.get(a, a) for a in args]
+            result = [mapping.get(a, a) for a in result]
         elif 'range_flag' in rule:
             flag, repl = rule['range_flag'], rule['to']
-            for i, arg in enumerate(args[:-1]):
-                if arg == flag and '-' in args[i + 1]: args[i] = repl
+            for i, arg in enumerate(result[:-1]):
+                if arg == flag and '-' in result[i + 1]: result[i] = repl
         elif 'rename' in rule:
-            if rule['rename'] in args:
-                i = args.index(rule['rename'])
-                args[i] = rule['to']
-                if i + 1 < len(args): args[i + 1] = rule['values'].get(args[i + 1], args[i + 1])
-    return args
+            if rule['rename'] in result:
+                i = result.index(rule['rename'])
+                result[i] = rule['to']
+                if i + 1 < len(result): result[i + 1] = rule['values'].get(result[i + 1], result[i + 1])
+    return result
 
 
 def amass_profile(index):

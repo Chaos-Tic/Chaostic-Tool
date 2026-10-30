@@ -13,51 +13,17 @@ from types import MappingProxyType
 from typing import Any
 
 from core.tools import TOOLS
+from desktop.linux_install import PACKAGE_NAMES as _BRIDGE_PACKAGE_NAMES
 
-# Canonical distribution-package names. The standalone Linux bridge keeps a
-# generated-compatible copy until A3 makes it consume generated data directly.
+# Canonical distribution-package names. The one definition lives in the
+# standalone Linux bridge (``desktop/linux_install.py``), which is shipped as
+# source to SSH/frozen targets and therefore must not import the project. This
+# module is the side that can depend on it, so it re-exports the bridge table as
+# an immutable view instead of keeping a second, hand-synchronised copy. Values
+# are identical by construction; the characterization tests pin the invariance.
 PACKAGE_NAMES = MappingProxyType({
-    "apt": MappingProxyType({
-        "whois": "whois", "dig": "dnsutils", "subfinder": "subfinder",
-        "amass": "amass", "dnsrecon": "dnsrecon", "theharvester": "theharvester",
-        "shodan": "python3-shodan", "nmap": "nmap", "rustscan": "rustscan",
-        "masscan": "masscan", "naabu": "naabu", "gobuster": "gobuster",
-        "ffuf": "ffuf", "httpx": "httpx-toolkit", "wafw00f": "wafw00f",
-        "whatweb": "whatweb", "katana": "katana", "gau": "getallurls",
-        "waybackurls": "waybackurls", "nikto": "nikto", "nuclei": "nuclei",
-        "wpscan": "wpscan", "testssl.sh": "testssl.sh", "sslscan": "sslscan",
-        "sqlmap": "sqlmap", "xsstrike": "xsstrike", "dalfox": "dalfox",
-        "msfconsole": "metasploit-framework", "msfvenom": "metasploit-framework",
-        "secretsdump.py": "impacket-scripts",
-        "psexec.py": "impacket-scripts", "GetUserSPNs.py": "impacket-scripts",
-        "crackmapexec": "netexec", "bloodhound-python": "bloodhound.py",
-        "hashcat": "hashcat", "john": "john", "hydra": "hydra",
-        "airmon-ng": "aircrack-ng", "airodump-ng": "aircrack-ng",
-        "aircrack-ng": "aircrack-ng", "reaver": "reaver", "wifite": "wifite",
-        "bettercap": "bettercap", "ettercap": "ettercap-text-only",
-        "tcpdump": "tcpdump", "responder": "responder",
-    }),
-    "pacman": MappingProxyType({
-        "whois": "whois", "dig": "bind", "shodan": "python-shodan",
-        "nmap": "nmap", "rustscan": "rustscan", "masscan": "masscan",
-        "gobuster": "gobuster", "wafw00f": "wafw00f", "nikto": "nikto",
-        "wpscan": "wpscan", "testssl.sh": "testssl.sh", "sslscan": "sslscan",
-        "sqlmap": "sqlmap", "msfconsole": "metasploit", "msfvenom": "metasploit",
-        "secretsdump.py": "python-impacket", "psexec.py": "python-impacket",
-        "GetUserSPNs.py": "python-impacket", "hashcat": "hashcat",
-        "john": "john", "hydra": "hydra", "airmon-ng": "aircrack-ng",
-        "airodump-ng": "aircrack-ng", "aircrack-ng": "aircrack-ng",
-        "reaver": "reaver", "wifite": "wifite", "bettercap": "bettercap",
-        "ettercap": "ettercap", "tcpdump": "tcpdump",
-    }),
-    "dnf": MappingProxyType({
-        "whois": "whois", "dig": "bind-utils", "nmap": "nmap",
-        "masscan": "masscan", "nikto": "nikto", "sslscan": "sslscan",
-        "sqlmap": "sqlmap", "hashcat": "hashcat", "john": "john",
-        "hydra": "hydra", "airmon-ng": "aircrack-ng",
-        "airodump-ng": "aircrack-ng", "aircrack-ng": "aircrack-ng",
-        "ettercap": "ettercap", "tcpdump": "tcpdump",
-    }),
+    manager: MappingProxyType(dict(mapping))
+    for manager, mapping in _BRIDGE_PACKAGE_NAMES.items()
 })
 
 PLATFORMS = (

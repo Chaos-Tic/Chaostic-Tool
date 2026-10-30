@@ -52,8 +52,8 @@ def _get_original_user():
         try:
             return user, pwd.getpwnam(user)
         except KeyError:
-            LOG.warning("SUDO_USER %r not found in the password database; "
-                        "privilege drop will be skipped", user)
+            LOG.warning("SUDO_USER not found in the password database; "
+                        "privilege drop will be skipped")
     return None, None
 
 

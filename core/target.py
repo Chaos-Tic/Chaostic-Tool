@@ -203,6 +203,6 @@ def _chown_path(path):
         pw = pwd.getpwnam(sudo_user)
         os.chown(path, pw.pw_uid, pw.pw_gid)
     except (KeyError, OSError):
-        LOG.warning("Could not chown %s to sudo user %r", path, sudo_user,
+        LOG.warning("Could not chown %s to the sudo user", path,
                     exc_info=True)
         return

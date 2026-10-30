@@ -63,8 +63,8 @@ def _build_env():
             ])
             env["PATH"] = local_bins + ":" + env.get("PATH", "")
         except Exception:
-            LOG.exception("Could not switch the environment to sudo user %r; "
-                          "using the inherited root environment", sudo_user)
+            LOG.exception("Could not switch the environment to the sudo user; "
+                          "using the inherited root environment")
     from core import api_keys
     api_keys.apply_to_env(env)
     return env
@@ -374,5 +374,5 @@ def _chown_to_sudo_user(path):
         pw = pwd.getpwnam(sudo_user)
         os.chown(path, pw.pw_uid, pw.pw_gid)
     except Exception:
-        LOG.exception("Could not chown %s to sudo user %r", path, sudo_user)
+        LOG.exception("Could not chown %s to the sudo user", path)
         return

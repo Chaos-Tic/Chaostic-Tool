@@ -2,3 +2,10 @@
 *.py text eol=lf
 *.yml text eol=lf
 *.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.in text eol=lf
+*.spec text eol=lf
+*.cfg text eol=lf
+*.toml text eol=lf
+*.ps1 text eol=lf

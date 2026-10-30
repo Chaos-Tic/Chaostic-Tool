@@ -1,7 +1,7 @@
 # Desktop design system — Liquid Glass development preview
 
 This visual refresh follows the peach, sky and lilac material family of Lorenz
-and Lyapunov. It is a source development preview, not part of Desktop 1.1.5.
+and Lyapunov. It is a source development preview aligned with the unified 2.0.x release.
 
 ## Surfaces and typography
 

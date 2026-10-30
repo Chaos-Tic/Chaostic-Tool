@@ -9,7 +9,7 @@ Rules-Requires-Root: no
 
 Package: chaostictool
 Architecture: all
-Depends: ${misc:Depends}, python3 (>= 3.11), python3-rich (>= 13.7), python3-prompt-toolkit (>= 3), python3-pyside6.qtwidgets (>= 6.8), python3-pyside6.qtsvg, python3-psutil, python3-dnspython, python3-py7zr, python3-pyte, ca-certificates
+Depends: ${misc:Depends}, python3 (>= 3.11), python3-rich (>= 13.7), python3-prompt-toolkit (>= 3), python3-pyside6.qtwidgets (>= 6.8), python3-pyside6.qtsvg, python3-psutil, python3-dnspython, python3-py7zr, python3-pyte, python3-keyring, ca-certificates
 Provides: chaostictool-desktop (= ${binary:Version})
 Breaks: chaostictool-desktop (<< 2.0.0)
 Replaces: chaostictool-desktop (<< 2.0.0)

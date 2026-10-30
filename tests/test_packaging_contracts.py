@@ -99,6 +99,20 @@ class PackagingMetadataTests(unittest.TestCase):
                 self.assertNotIn(destructive, script,
                                  'maintainer scripts must notify, never auto-delete')
 
+    def test_aur_publish_ships_the_pacman_scriptlet_next_to_the_pkgbuild(self):
+        pkgbuild = (ROOT / 'packaging/arch/PKGBUILD').read_text()
+        aur = (ROOT / 'packaging/arch/aur.sh').read_text()
+        match = re.search(r"^install='([^']+)'$", pkgbuild, re.M)
+        self.assertIsNotNone(match, 'PKGBUILD must wire the pacman scriptlet')
+        scriptlet = match.group(1)
+        self.assertTrue((ROOT / 'packaging/arch' / scriptlet).is_file(), scriptlet)
+        # makepkg --printsrcinfo (and every user's makepkg) fails when install=
+        # names a file that is not next to the PKGBUILD, so the AUR update must
+        # copy the scriptlet into the clone and commit it together with PKGBUILD.
+        self.assertIn(f'packaging/arch/{scriptlet}', aur)
+        self.assertRegex(aur, rf'cp [^\n]*"\$work/aur/{re.escape(scriptlet)}"')
+        self.assertRegex(aur, rf'(?m)^git add [^\n]*\b{re.escape(scriptlet)}\b[^\n]*\.SRCINFO')
+
     @unittest.skipUnless(sys.platform.startswith('linux') and shutil.which('cmake'),
                          'Native package staging requires Linux and CMake')
     def test_staged_install_and_cpack_metadata(self):

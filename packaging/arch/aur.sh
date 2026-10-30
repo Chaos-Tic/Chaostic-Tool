@@ -22,13 +22,18 @@ work=$(mktemp -d)
 git clone -q ssh://aur@aur.archlinux.org/$package.git "$work/aur"
 pkgbuild="packaging/arch/PKGBUILD"
 sed -e "s/^pkgver=.*/pkgver=$version/" -e 's/^pkgrel=.*/pkgrel=1/' "$pkgbuild" >"$work/aur/PKGBUILD"
+# PKGBUILD declares install='chaostictool.install': makepkg --printsrcinfo (and
+# every user's makepkg) fails when that scriptlet is not next to the PKGBUILD,
+# so it is shipped and committed with it.
+scriptlet="packaging/arch/chaostictool.install"
+cp -- "$scriptlet" "$work/aur/chaostictool.install"
 id builder >/dev/null 2>&1 || useradd -m builder
 chown -R builder "$work"
 # Git refuses to work as root in a folder owned by builder unless told it is safe.
 git config --global --add safe.directory "$work/aur"
 (cd "$work/aur" && runuser -u builder -- updpkgsums && runuser -u builder -- makepkg --printsrcinfo >.SRCINFO)
 cd "$work/aur"
-git add PKGBUILD .SRCINFO
+git add PKGBUILD chaostictool.install .SRCINFO
 if git diff --cached --quiet; then
     echo "AUR $package is already at $version"
 else

@@ -1197,7 +1197,7 @@ class Window(QMainWindow):
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
             self.run_title.setText(T('Installation des paquets Linux'))
-            self.runner.start(T('Dépendances Linux'),T('Paquets Linux'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
+            self.runner.start('Dépendances Linux','Paquets Linux',{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
             self.navigate(3)
         except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 
@@ -1283,7 +1283,7 @@ class Window(QMainWindow):
             caption=T('Cet ordinateur / opérations locales') if key=='__local__' else target.get('label') or target.get('host') or key
             if target.get('url'):caption+=' — '+target['url']
             targets[key]=caption
-        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),T('Toutes les cibles')),(self.history_tool,[(s,s) for s in sorted({r['tool'] for r in self.history_rows})],T('Tous les outils'))]:
+        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),T('Toutes les cibles')),(self.history_tool,[(s,T(s)) for s in sorted({r['tool'] for r in self.history_rows})],T('Tous les outils'))]:
             old=widget.currentData();widget.blockSignals(True);widget.clear();widget.addItem(title,'')
             for key,caption in entries:widget.addItem(caption,key)
             widget.setCurrentIndex(max(0,widget.findData(old)));widget.blockSignals(False)

@@ -86,6 +86,22 @@ def _package_specs() -> dict[str, dict[str, Any]]:
     return json.loads(_PACKAGE_DATA.read_text(encoding="utf-8"))
 
 
+def _artifact_binary(spec: dict[str, Any], platform: str) -> str:
+    """Binary name as it ships on ``platform``'s OS.
+
+    Mirrors the runtime resolution in ``desktop/packages.py``: a per-OS override
+    in ``binary_by_os`` wins; otherwise the ``.exe`` suffix is stripped for every
+    non-Windows target. Without this the Linux records inherited the Windows
+    default (e.g. hashcat's ``hashcat.exe`` instead of ``hashcat.bin``).
+    """
+    os_name = platform.split("-", 1)[0]
+    by_os = spec.get("binary_by_os") or {}
+    if os_name in by_os:
+        return by_os[os_name]
+    binary = spec["binary"]
+    return binary if os_name == "windows" else binary.removesuffix(".exe")
+
+
 def _portable_record(tool: str, platform: str,
                      specs: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
     package = TOOL_PACKAGE_ALIASES.get(tool, tool)
@@ -111,7 +127,7 @@ def _portable_record(tool: str, platform: str,
         record["artifact"] = {
             "url": spec["url"],
             "sha256": spec["sha256"],
-            "binary": spec["binary"],
+            "binary": _artifact_binary(spec, platform),
         }
     elif spec["kind"] == "pip":
         record["python_package"] = spec["package"]

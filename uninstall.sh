@@ -544,7 +544,7 @@ if [ "${#M_REPOS[@]}" -gt 0 ]; then
                 # Bounded delete: remove the [id] header and its Include line only,
                 # stopping at the next section header, so a user section appended
                 # after ours (no blank line between) is never swallowed.
-                python3 - "$repo_path" "$repo_id" <<'PY' || true
+                if python3 - "$repo_path" "$repo_id" <<'PY'
 import re, sys
 path, repo_id = sys.argv[1], sys.argv[2]
 with open(path, encoding="utf-8", errors="surrogateescape") as handle:
@@ -569,9 +569,14 @@ while "\n\n\n" in text:
 with open(path, "w", encoding="utf-8", errors="surrogateescape") as handle:
     handle.write(text)
 PY
-                echo -e "  ${GREEN}[+] removed repo section:${NC} [${repo_id}] from $repo_path"
-                # Drop the now-orphaned sync database so pacman does not warn.
-                rm -f -- "/var/lib/pacman/sync/${repo_id}.db" 2>/dev/null || true
+                then
+                    echo -e "  ${GREEN}[+] removed repo section:${NC} [${repo_id}] from $repo_path"
+                    # Drop the now-orphaned sync database so pacman does not warn.
+                    rm -f -- "/var/lib/pacman/sync/${repo_id}.db" 2>/dev/null || true
+                else
+                    echo -e "  ${RED}[x] could not edit repo section [${repo_id}] in $repo_path${NC}"
+                    FAILED=$((FAILED + 1))
+                fi
             fi
             REMOVED=$((REMOVED + 1))
         fi
@@ -717,7 +722,9 @@ if [ "${#M_PKGS[@]}" -gt 0 ]; then
             fi
             if confirm "  Run the command above?"; then
                 if "${cmd[@]}"; then
-                    [ "$pm" = "dnf" ] && dnf autoremove -y >/dev/null 2>&1 || true
+                    if [ "$pm" = "dnf" ]; then
+                        dnf autoremove -y >/dev/null 2>&1 || true
+                    fi
                     REMOVED=$((REMOVED + ${#pkgs[@]}))
                 else
                     echo -e "  ${RED}[x] package removal reported an error for $pm${NC}"

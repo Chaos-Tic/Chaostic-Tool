@@ -92,10 +92,10 @@ def record(entry: str, *, source: str = "cli") -> None:
 def records(path: str | None = None) -> list[str]:
     """Return the manifest's payload lines (comments and blanks stripped)."""
     target = path or resolve_path()
-    if not target or not os.path.exists(target):
+    if not target or not os.path.exists(target) or os.path.islink(target):
         return []
     try:
-        with open(target, encoding="utf-8") as handle:
+        with open(os.path.realpath(target), encoding="utf-8") as handle:
             return [line.strip() for line in handle
                     if line.strip() and not line.lstrip().startswith("#")]
     except OSError:

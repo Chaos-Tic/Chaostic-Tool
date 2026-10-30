@@ -75,3 +75,17 @@ Arch: `yay -S chaostictool` or `paru -S chaostictool`.
 Fedora COPR: `sudo dnf copr enable chaostic/chaostictool && sudo dnf install chaostictool` (or install the release RPM directly with `sudo dnf install ./downloaded-package.rpm`). Use the native manager to
 remove packages and retain user data. Source installs via CMake and portable
 archives remain available independently of repository synchronization.
+
+## Windows with winget
+
+On Windows, once the package is accepted in `microsoft/winget-pkgs`, install and update
+ChaosticTool with the Windows Package Manager instead of the manual installer:
+
+```powershell
+winget install ChaosTic.ChaosticTool
+winget upgrade ChaosTic.ChaosticTool
+```
+
+Each tagged release refreshes the winget manifests automatically after the first
+submission. The signed installer is also attached to every GitHub Release; see
+[the Windows guide](../README_WINDOWS.md) for the manual download and checksum steps.

@@ -61,7 +61,7 @@ COPR and the signed Chaos-Tic apt repository.
 <td width="50%"><picture><source media="(prefers-color-scheme: light)" srcset="docs/media/liquid-glass-historique.png"><img src="docs/media/liquid-glass-historique-dark.png" alt="Mission report and structured run logs"></picture></td>
 </tr>
 <tr>
-<td><b>3. Shared tool arsenal.</b> Forty-six CLI tools and 136 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>
+<td><b>3. Shared tool arsenal.</b> Forty-six CLI tools and 137 launch profiles are categorized across ten phases; Desktop adds four built-in utilities and platform adapters.</td>
 <td><b>4. Intelligence & Audit.</b> Review parsed findings, inspect raw chunk logs, or export structured JSON reports. Atomic history clearing prevents symlink directory traversal.</td>
 </tr>
 </table>

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ChaosticTool uninstaller — reverses exactly what /var/lib/chaostictool/manifest
-# records; falls back to conservative detection when no manifest is present.
+# records. Without a manifest it removes nothing unless the heuristic detection
+# mode is requested explicitly with --force-detect.
 #
 # It is shipped by the native packages as `chaostictool-uninstall` and also runs
 # from a git checkout as ./uninstall.sh. Package removal (apt/dnf/pacman) never
@@ -36,14 +37,19 @@ Reverses exactly what ChaosticTool recorded in:
   $MANIFEST
 
 Options:
-  -n, --dry-run         Show what would be removed; change nothing.
-  -y, --yes             Do not prompt; remove user-local tools and restore configs.
+  -n, --dry-run         Print the full removal plan (every step, no prompts) and
+                        change nothing on disk — not even the manifest.
+  -y, --yes             Do not prompt for the removals the manifest records
+                        (user-local tools, config restores, --remove-packages).
+                        Never enables the heuristic detection mode on its own.
       --remove-packages Also remove the distribution packages ChaosticTool installed
                         (dependency-aware: pacman -Rns / apt purge --autoremove /
                         dnf remove + autoremove). Pre-existing packages are never listed,
                         so only packages ChaosticTool added are offered.
-      --force-detect    In detection mode (no manifest), allow -y to auto-approve the
-                        heuristic removals. Without it, detection never auto-removes.
+      --force-detect    No manifest (pre-v1.3.2 install): run the heuristic detection
+                        mode. Required to remove anything without a manifest, even
+                        with -y; -y then auto-approves the detected removals. Without
+                        it the uninstaller only explains how to proceed and exits.
   -h, --help            Show this help.
 
 Pre-existing tools are never recorded and therefore never removed.
@@ -95,6 +101,9 @@ FAILED=0
 # rather than guessed, so a piped or GUI-launched run cannot leave a half state.
 confirm() {
     local prompt="$1"
+    # A dry run prints the whole plan: every step is shown, none is executed
+    # (each removal helper below checks DRY_RUN itself before touching disk).
+    [ "$DRY_RUN" = "1" ] && return 0
     [ "$ASSUME_YES" = "1" ] && return 0
     if [ ! -t 0 ]; then
         echo -e "  ${DIM}[-] non-interactive and no --yes: skipping optional step.${NC}"
@@ -186,6 +195,32 @@ _pipx_uninstall() {
     env "${pipx_env[@]}" pipx uninstall "$pkg"
 }
 
+# Reverse a `pip install --user` done for the original user. A pip:PKG line is
+# recorded only when ChaosticTool itself installed the package into an empty
+# slot (core.installer checks `pip show` first), so a package the user already
+# had is never listed here. Best effort: pip may be gone or the user site may
+# have been cleaned by hand; a failure is reported, never hidden.
+_pip_uninstall() {
+    local pkg="$1"
+    local home="$ORIG_HOME"
+    # PIP_BREAK_SYSTEM_PACKAGES mirrors the --break-system-packages used at install
+    # time and is simply ignored by pip versions that predate the flag.
+    local pip_env=(HOME="$home" PATH="$home/.local/bin:$PATH" PIP_BREAK_SYSTEM_PACKAGES=1)
+    local runner=()
+    if [ -n "$ORIG_USER" ] && [ "$ORIG_USER" != "root" ]; then
+        if command -v runuser >/dev/null 2>&1; then
+            runner=(runuser -u "$ORIG_USER" --)
+        elif command -v sudo >/dev/null 2>&1; then
+            runner=(sudo -u "$ORIG_USER")
+        else
+            return 1
+        fi
+    fi
+    command -v python3 >/dev/null 2>&1 || return 1
+    # ${arr[@]+...} keeps an empty runner valid under set -u on every bash.
+    ${runner[@]+"${runner[@]}"} env "${pip_env[@]}" python3 -m pip uninstall -y "$pkg"
+}
+
 # ---------------------------------------------------------------------------
 # Detection mode — used when no manifest is present (pre-v1.3.2 installs)
 # ---------------------------------------------------------------------------
@@ -219,19 +254,47 @@ detect_and_remove() {
     done
 
     # Legacy PEASS assets from older releases carried a ChaosticTool-owned name.
-    echo -e "\n${CYAN}[D4] Direct downloads${NC}"
+    # There is no provenance record for them, so they are only offered when they
+    # exist and removed only after an explicit approval; _rm_file honours --dry-run.
+    echo -e "\n${CYAN}[D4] Legacy direct downloads${NC}"
+    local peas_found=()
     for f in /usr/local/bin/linpeas.sh /usr/local/bin/winpeas.exe; do
-        _rm_file "$f"
+        [ -f "$f" ] && peas_found+=("$f")
     done
+    if [ "${#peas_found[@]}" -gt 0 ]; then
+        echo -e "  ${YELLOW}Legacy PEASS files found:${NC}"
+        for f in "${peas_found[@]}"; do echo -e "    $f"; done
+        if _detect_confirm "  Remove these legacy PEASS files?"; then
+            for f in "${peas_found[@]}"; do _rm_file "$f"; done
+        else
+            SKIPPED=$((SKIPPED + ${#peas_found[@]}))
+        fi
+    else
+        echo -e "  ${DIM}[-] no legacy PEASS files present${NC}"
+    fi
 
+    # A symlink into a user-local tool directory is a strong hint, not a proof:
+    # list the matches and ask before removing them.
     echo -e "\n${CYAN}[D5] Symlinks to user-local binaries${NC}"
+    local link_found=()
     for p in /usr/local/bin/*; do
         [ -L "$p" ] || continue
         target="$(readlink "$p")"
         if echo "$target" | grep -qE "^/(home/[^/]+|root)/(go/bin|\.local/share/go/bin|\.cargo/bin|\.local/bin)/"; then
-            _rm_file "$p"
+            link_found+=("$p")
         fi
     done
+    if [ "${#link_found[@]}" -gt 0 ]; then
+        echo -e "  ${YELLOW}Symlinks into user-local tool directories:${NC}"
+        for p in "${link_found[@]}"; do echo -e "    $p -> $(readlink "$p")"; done
+        if _detect_confirm "  Remove these symlinks?"; then
+            for p in "${link_found[@]}"; do _rm_file "$p"; done
+        else
+            SKIPPED=$((SKIPPED + ${#link_found[@]}))
+        fi
+    else
+        echo -e "  ${DIM}[-] no matching symlinks${NC}"
+    fi
 
     echo -e "\n${CYAN}[D6] Source checkouts${NC}"
     _rm_dir /opt/chaostictool
@@ -258,12 +321,14 @@ detect_and_remove() {
     _detect_user_tools
 }
 
-# Heuristic removals are destructive without a provenance record, so they are
-# only auto-approved when the user explicitly passes --force-detect alongside -y.
+# Heuristic removals are destructive without a provenance record: they need the
+# explicit --force-detect flag, and -y auto-approves them only alongside it. The
+# no-manifest gate below already enforces this; keeping the check here as well
+# means no detection step can ever act on -y alone, whatever calls it.
 _detect_confirm() {
     local prompt="$1"
-    if [ "$ASSUME_YES" = "1" ] && [ "$FORCE_DETECT" != "1" ]; then
-        echo -e "  ${DIM}[-] --yes alone does not auto-approve detection removals; pass --force-detect.${NC}"
+    if [ "$FORCE_DETECT" != "1" ]; then
+        echo -e "  ${DIM}[-] detection removals require --force-detect (--yes alone never approves them).${NC}"
         return 1
     fi
     confirm "$prompt"
@@ -353,9 +418,16 @@ if [ ! -f "$MANIFEST" ]; then
     echo ""
     echo -e "  Option 1: re-run ${GREEN}sudo ./install.sh${NC} — it will generate a manifest,"
     echo -e "            then run this script again for a clean removal."
-    echo -e "  Option 2: run detection mode now — scans for known ChaosticTool"
-    echo -e "            artefacts and offers to remove them."
+    echo -e "  Option 2: re-run with ${GREEN}--force-detect${NC} — detection mode scans for known"
+    echo -e "            ChaosticTool artefacts and offers to remove them (preview with"
+    echo -e "            ${GREEN}--dry-run --force-detect${NC}; add ${GREEN}-y${NC} to approve them all)."
     echo ""
+    # Detection is heuristic, so it never starts on -y alone: without the explicit
+    # --force-detect flag nothing is removed, whatever else was passed.
+    if [ "$FORCE_DETECT" != "1" ]; then
+        echo -e "${DIM}Nothing was removed: detection mode requires --force-detect.${NC}"
+        exit 0
+    fi
     if ! confirm "Run detection mode now?"; then
         echo -e "${DIM}Aborted.${NC}"
         exit 0
@@ -380,6 +452,7 @@ declare -a M_DIRS=()
 declare -a M_GO=()
 declare -a M_CARGO=()
 declare -a M_PIPX=()
+declare -a M_PIP=()
 declare -a M_GEM=()
 declare -a M_REPOS=()
 declare -a M_PKGS=()
@@ -394,6 +467,7 @@ while IFS= read -r line; do
         go:*)          M_GO+=("${line#go:}") ;;
         cargo:*)       M_CARGO+=("${line#cargo:}") ;;
         pipx:*)        M_PIPX+=("${line#pipx:}") ;;
+        pip:*)         M_PIP+=("${line#pip:}") ;;
         gem:*)         M_GEM+=("${line#gem:}") ;;
         repo:*)        M_REPOS+=("${line#repo:}") ;;
         # Backups are restored below, then removed. Never delete them as files.
@@ -513,7 +587,7 @@ if [ "$APT_SOURCES_REMOVED" -eq 1 ] && [ "$DRY_RUN" -eq 0 ] && command -v apt >/
 fi
 
 # ---------------------------------------------------------------------------
-echo -e "\n${CYAN}[5] User-local tools (Go, Cargo, pipx, gem)${NC}"
+echo -e "\n${CYAN}[5] User-local tools (Go, Cargo, pipx, pip, gem)${NC}"
 
 if [ "${#M_GO[@]}" -gt 0 ]; then
     echo -e "  ${YELLOW}Go binaries installed by ChaosticTool:${NC}"
@@ -560,6 +634,30 @@ if [ "${#M_PIPX[@]}" -gt 0 ]; then
     fi
 else
     echo -e "  ${DIM}No pipx packages recorded.${NC}"
+fi
+
+if [ "${#M_PIP[@]}" -gt 0 ]; then
+    echo -e "  ${YELLOW}pip --user packages installed by ChaosticTool:${NC}"
+    for pkg in "${M_PIP[@]}"; do echo -e "    $pkg"; done
+    if confirm "  Uninstall these pip packages?"; then
+        for pkg in "${M_PIP[@]}"; do
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo -e "  ${CYAN}[~] would pip uninstall:${NC} $pkg"
+                REMOVED=$((REMOVED + 1))
+            elif _pip_uninstall "$pkg" >/dev/null 2>&1; then
+                echo -e "  ${GREEN}[+] pip uninstalled:${NC} $pkg"
+                REMOVED=$((REMOVED + 1))
+            else
+                echo -e "  ${RED}[x] pip uninstall failed (best effort):${NC} $pkg"
+                echo -e "  ${DIM}    remove it by hand: python3 -m pip uninstall $pkg${NC}"
+                FAILED=$((FAILED + 1))
+            fi
+        done
+    else
+        SKIPPED=$((SKIPPED + ${#M_PIP[@]}))
+    fi
+else
+    echo -e "  ${DIM}No pip packages recorded.${NC}"
 fi
 
 if [ "${#M_GEM[@]}" -gt 0 ]; then
@@ -650,7 +748,13 @@ fi
 
 # ---------------------------------------------------------------------------
 echo -e "\n${CYAN}[7] Manifest directory${NC}"
-_rm_dir "$MANIFEST_DIR"
+# The record is the only way to retry, so it is kept when a step failed. _rm_dir
+# honours --dry-run itself, so a dry run never loses the manifest either.
+if [ "$FAILED" -gt 0 ]; then
+    echo -e "  ${YELLOW}[!] kept (some removals failed; fix them and re-run):${NC} $MANIFEST_DIR"
+else
+    _rm_dir "$MANIFEST_DIR"
+fi
 
 # ---------------------------------------------------------------------------
 echo -e "\n${CYAN}=== Summary ===${NC}"

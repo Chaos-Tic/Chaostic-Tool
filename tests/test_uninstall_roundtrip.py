@@ -24,17 +24,19 @@ def _slice(text, start_anchor, end_anchor):
     return text[start:end]
 
 
-# The real helpers (confirm / _rm_file / _dir_allowed / _rm_dir / _pipx_uninstall)
-# and the real manifest-mode body (parse loop + sections [1]-[6]).
-HELPERS = _slice(SCRIPT, "confirm() {\n", "# -------------------------------------------"
-                 "--------------------------------\n# Detection mode")
-BODY = _slice(SCRIPT, "declare -a M_FILES=()",
-              '# ---------------------------------------------------------------------------\n'
-              'echo -e "\\n${CYAN}[7] Manifest directory')
+# The real helpers (confirm / _rm_file / _dir_allowed / _rm_dir / _pipx_uninstall /
+# _pip_uninstall), the real detection-mode functions, the real no-manifest gate
+# and the real manifest-mode body (parse loop + sections [1]-[7]).
+DASHES = "# ---------------------------------------------------------------------------\n"
+HELPERS = _slice(SCRIPT, "confirm() {\n", DASHES + "# Detection mode")
+DETECT = _slice(SCRIPT, "detect_and_remove() {\n", DASHES + "# No manifest")
+GATE = _slice(SCRIPT, 'if [ ! -f "$MANIFEST" ]; then\n', DASHES + "# Parse manifest into typed arrays")
+BODY = _slice(SCRIPT, "declare -a M_FILES=()", DASHES + 'echo -e "\\n${CYAN}=== Summary ===')
 
 
 def run_uninstall(prefix: Path, manifest_lines, *, assume_yes=1, remove_packages=0,
-                  dry_run=0, stub_pipx=True, stub_gem=True):
+                  dry_run=0, stub_pipx=True, stub_gem=True, stub_pip=True, extra_prelude="",
+                  body=None):
     manifest = prefix / "manifest"
     manifest.write_text("# ChaosticTool manifest\n" + "\n".join(manifest_lines) + "\n")
     opt = prefix / "opt" / "chaostictool"
@@ -42,6 +44,8 @@ def run_uninstall(prefix: Path, manifest_lines, *, assume_yes=1, remove_packages
     stubs = []
     if stub_pipx:
         stubs.append('_pipx_uninstall() { echo "PIPX_UNINSTALL $1" >>"$CALLLOG"; return 0; }')
+    if stub_pip:
+        stubs.append('_pip_uninstall() { echo "PIP_UNINSTALL $1" >>"$CALLLOG"; return 0; }')
     if stub_gem:
         stubs.append('gem() { echo "GEM $*" >>"$CALLLOG"; return 0; }')
         stubs.append('command() { if [ "$2" = gem ]; then return 0; fi; builtin command "$@"; }')
@@ -58,11 +62,46 @@ CALLLOG={prefix / 'calls.log'!s}
 ALLOWED_DIR_PREFIXES=("{opt}" "{cache}" "{prefix / 'var' / 'lib' / 'chaostictool'}")
 REMOVED=0; SKIPPED=0; FAILED=0
 APT_SOURCES_REMOVED=0
-"""
-    harness = prelude + HELPERS + "\n" + "\n".join(stubs) + "\n" + BODY
+""" + extra_prelude
+    harness = prelude + HELPERS + "\n" + "\n".join(stubs) + "\n" + (body or BODY)
     result = subprocess.run(["bash", "-c", harness], capture_output=True, text=True,
-                            env=dict(os.environ))
+                            env=dict(os.environ), stdin=subprocess.DEVNULL)
     return result
+
+
+def run_detection(prefix: Path, *, assume_yes, force_detect, dry_run=0):
+    """Run the real no-manifest gate + detection mode with logging removal stubs.
+
+    _rm_file/_rm_dir only log, so the hard-coded system paths detection scans
+    are never touched; /etc/ in the detection body is redirected into the
+    prefix so a Tor backup on the host cannot be picked up. The log proves
+    whether a removal was attempted at all.
+    """
+    prelude = f"""set -e
+GREEN=''; RED=''; CYAN=''; YELLOW=''; DIM=''; NC=''
+DRY_RUN={dry_run}
+ASSUME_YES={assume_yes}
+FORCE_DETECT={force_detect}
+ORIG_USER=''
+ORIG_HOME={prefix!s}
+SCRIPT_DIR={prefix!s}
+MANIFEST={prefix / 'no-such-manifest'!s}
+MANIFEST_DIR={prefix / 'var' / 'lib' / 'chaostictool'!s}
+CALLLOG={prefix / 'calls.log'!s}
+ALLOWED_DIR_PREFIXES=("/opt/chaostictool" "/var/cache/chaostictool" "{prefix}")
+REMOVED=0; SKIPPED=0; FAILED=0
+"""
+    stubs = """
+_rm_file() { echo "RM_FILE $1" >>"$CALLLOG"; }
+_rm_dir() { echo "RM_DIR $1" >>"$CALLLOG"; }
+_pipx_uninstall() { echo "PIPX_UNINSTALL $1" >>"$CALLLOG"; }
+pipx() { return 1; }
+gem() { return 1; }
+"""
+    detect = DETECT.replace("/etc/", f"{prefix}/etc/")
+    harness = prelude + HELPERS + detect + stubs + GATE
+    return subprocess.run(["bash", "-c", harness], capture_output=True, text=True,
+                          env=dict(os.environ), stdin=subprocess.DEVNULL)
 
 
 class UninstallReversalTests(unittest.TestCase):
@@ -190,6 +229,149 @@ pacman() {{ echo "PACMAN $*" >>"$CALLLOG"; return 0; }}
         self.assertTrue(wrapper.exists(), "dry run must not remove anything")
         self.assertIn("would remove", result.stdout)
 
+    def test_pip_entry_invokes_pip_uninstall_and_dry_run_only_announces_it(self):
+        result = run_uninstall(self.prefix, ["pip:xsstrike", "pip:shodan"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = (self.prefix / "calls.log").read_text()
+        self.assertIn("PIP_UNINSTALL xsstrike", calls)
+        self.assertIn("PIP_UNINSTALL shodan", calls)
+        self.assertIn("pip uninstalled", result.stdout)
+        (self.prefix / "calls.log").unlink()
+        result = run_uninstall(self.prefix, ["pip:xsstrike"], dry_run=1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.prefix / "calls.log").exists(), "dry run must not call pip")
+        self.assertIn("would pip uninstall: xsstrike", result.stdout)
+
+    def test_dry_run_is_a_true_no_op_for_every_entry_type_and_the_manifest_dir(self):
+        # One manifest exercising every entry type, plus the manifest directory
+        # itself and a Tor backup. Under --dry-run nothing on disk may change and
+        # no package manager may be invoked, yet the whole plan must be printed
+        # without prompting (stdin is not a terminal here).
+        wrapper = self.mk("usr/local/bin/responder")
+        real = self.mk("home/go/bin/subfinder")
+        link = self.mk("usr/local/bin/subfinder", link_to=real)
+        cargo_bin = self.mk("home/.cargo/bin/rustscan")
+        checkout = self.prefix / "opt" / "chaostictool" / "Responder"
+        checkout.mkdir(parents=True)
+        (checkout / "Responder.py").write_text("x")
+        conf_text = "[core]\nInclude = /x\n\n[chaotic-aur]\nInclude = /y\n"
+        conf = self.mk("etc/pacman.conf", content=conf_text)
+        torrc = self.mk("etc/tor/torrc", content="modified")
+        backup = self.mk("etc/tor/torrc.chaostictool.bak", content="original")
+        manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
+        manifest_dir.mkdir(parents=True)
+        (manifest_dir / "manifest").write_text("copy")
+        lines = [f"dir:{manifest_dir}", f"file:{wrapper}", f"symlink:{link}", f"dir:{checkout}",
+                 f"go:{real}", f"cargo:{cargo_bin}", "pipx:impacket", "pip:xsstrike", "gem:wpscan",
+                 f"repo:pacman:{conf}:chaotic-aur", "torrc:/etc/tor/torrc", "pkg:pacman:wpscan"]
+        body = BODY.replace("/etc/tor/", f"{self.prefix}/etc/tor/")
+        result = run_uninstall(self.prefix, lines, dry_run=1, remove_packages=1, body=body,
+                               extra_prelude='pacman() { echo "PACMAN $*" >>"$CALLLOG"; }\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for path in (wrapper, real, link, cargo_bin, checkout / "Responder.py", conf, torrc, backup,
+                     manifest_dir / "manifest"):
+            self.assertTrue(path.exists() or path.is_symlink(), f"dry run deleted {path}")
+        self.assertEqual(conf.read_text(), conf_text, "dry run edited pacman.conf")
+        self.assertEqual(torrc.read_text(), "modified", "dry run restored the Tor backup")
+        self.assertFalse((self.prefix / "calls.log").exists(),
+                         "dry run invoked pipx/pip/gem/pacman")
+        out = result.stdout
+        for expected in ("would remove: " + str(wrapper), "would remove: " + str(link),
+                         f"would remove dir: {checkout}", "would remove: " + str(real),
+                         "would remove: " + str(cargo_bin), "would pipx uninstall: impacket",
+                         "would pip uninstall: xsstrike", "would gem uninstall: wpscan",
+                         f"would remove repo section: [chaotic-aur] from {conf}",
+                         f"would restore: {torrc}", "pacman -Rns --noconfirm -- wpscan",
+                         f"would remove dir: {manifest_dir}"):
+            self.assertIn(expected, out)
+        self.assertNotIn("[y/N]", out, "a dry run must print the plan without prompting")
+        self.assertNotIn("non-interactive", out)
+
+    def test_manifest_dir_is_removed_after_a_clean_run(self):
+        manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
+        manifest_dir.mkdir(parents=True)
+        (manifest_dir / "manifest").write_text("copy")
+        wrapper = self.mk("usr/local/bin/responder")
+        result = run_uninstall(self.prefix, [f"dir:{manifest_dir}", f"file:{wrapper}"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(wrapper.exists())
+        self.assertFalse(manifest_dir.exists())
+
+    @unittest.skipIf(os.geteuid() == 0, "root can always remove the locked fixture")
+    def test_manifest_dir_is_kept_when_a_removal_failed(self):
+        manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
+        manifest_dir.mkdir(parents=True)
+        locked = self.prefix / "locked"
+        locked.mkdir()
+        victim = locked / "tool"
+        victim.write_text("x")
+        locked.chmod(0o555)
+        try:
+            result = run_uninstall(self.prefix, [f"file:{victim}"])
+        finally:
+            locked.chmod(0o755)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("could not remove", result.stdout)
+        self.assertTrue(victim.exists())
+        self.assertTrue(manifest_dir.exists(),
+                        "the manifest must survive a failed run so it can be retried")
+        self.assertIn("kept (some removals failed", result.stdout)
+
+
+class DetectionModeGateTests(unittest.TestCase):
+    """Without a manifest nothing is removed unless --force-detect is explicit."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.prefix = Path(self.temp.name)
+        self.go_bin = self.prefix / "go" / "bin" / "subfinder"
+        self.go_bin.parent.mkdir(parents=True)
+        self.go_bin.write_text("bin")
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_yes_alone_never_enters_detection_mode(self):
+        result = run_detection(self.prefix, assume_yes=1, force_detect=0)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("requires --force-detect", result.stdout)
+        self.assertFalse((self.prefix / "calls.log").exists(),
+                         "--yes alone attempted a heuristic removal")
+        self.assertTrue(self.go_bin.exists())
+
+    def test_yes_with_dry_run_still_does_not_enter_detection_mode(self):
+        result = run_detection(self.prefix, assume_yes=1, force_detect=0, dry_run=1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("requires --force-detect", result.stdout)
+        self.assertFalse((self.prefix / "calls.log").exists())
+
+    def test_force_detect_with_yes_runs_the_heuristic_removals(self):
+        result = run_detection(self.prefix, assume_yes=1, force_detect=1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = (self.prefix / "calls.log").read_text()
+        self.assertIn("RM_FILE /usr/local/bin/chaostictool", calls)
+        self.assertIn("RM_DIR /opt/chaostictool", calls)
+        self.assertIn(f"RM_FILE {self.go_bin}", calls, "detected Go binary approved by -y")
+
+    def test_force_detect_without_yes_is_not_approved_non_interactively(self):
+        result = run_detection(self.prefix, assume_yes=0, force_detect=1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Aborted.", result.stdout)
+        self.assertFalse((self.prefix / "calls.log").exists())
+
+    def test_detect_confirm_refuses_yes_without_force_detect(self):
+        # Defence in depth: even if a detection step were reached some other way,
+        # its approval helper must not treat -y as consent.
+        harness = ("set -e\nGREEN=''; RED=''; CYAN=''; YELLOW=''; DIM=''; NC=''\n"
+                   "DRY_RUN=0\nASSUME_YES=1\nFORCE_DETECT=0\nORIG_USER=''\nORIG_HOME=/nonexistent\n"
+                   "REMOVED=0; SKIPPED=0; FAILED=0\n" + HELPERS + DETECT +
+                   'if _detect_confirm "x"; then echo APPROVED; else echo REFUSED; fi\n')
+        result = subprocess.run(["bash", "-c", harness], capture_output=True, text=True,
+                                stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("REFUSED", result.stdout)
+        self.assertNotIn("APPROVED", result.stdout)
+
 
 class UninstallCliTests(unittest.TestCase):
     """Argument handling that runs before the root gate (safe as non-root)."""
@@ -201,6 +383,10 @@ class UninstallCliTests(unittest.TestCase):
         self.assertIn("--dry-run", result.stdout)
         self.assertIn("--remove-packages", result.stdout)
         self.assertIn("Pre-existing tools are never recorded", result.stdout)
+        # The help must describe the behaviour the gate enforces.
+        self.assertIn("--force-detect", result.stdout)
+        self.assertIn("Never enables the heuristic detection mode on its own", result.stdout)
+        self.assertIn("change nothing on disk", result.stdout)
 
     def test_unknown_option_is_rejected(self):
         result = subprocess.run(["bash", str(ROOT / "uninstall.sh"), "--not-an-option"],

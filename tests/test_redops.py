@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from PySide6.QtTest import QTest
 from PySide6.QtCore import Qt
-from test_desktop import APP
+from desktop_harness import APP
 from desktop import theme
 from desktop.storage import Store
 from desktop.window import Window

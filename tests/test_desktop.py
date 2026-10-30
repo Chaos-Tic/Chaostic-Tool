@@ -1,8 +1,4 @@
-import contextlib
 import http.server
-import json
-import os
-import socket
 import sys
 import tempfile
 import threading
@@ -11,44 +7,15 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
 import psutil
 
 from desktop.catalog import availability, build_arguments, catalog
 from desktop.process import Runner
-from desktop.storage import Store, parse_target, write_json
-from desktop.theme import apply_theme
+from desktop.storage import Store, parse_target
 from desktop.window import Window
 
-APP = QApplication.instance() or QApplication([])
-apply_theme(APP)
-
-
-def wait_run(runner, start, stop_after=None):
-    result = []
-    loop = QEventLoop()
-    def finish(record):
-        result.append(record)
-        loop.quit()
-    runner.completed.connect(finish)
-    timeout = QTimer()
-    timeout.setSingleShot(True)
-    timeout.timeout.connect(loop.quit)
-    timeout.start(15000)
-    start()
-    if stop_after is not None:
-        QTimer.singleShot(stop_after, lambda: runner.stop())
-    if not result:
-        loop.exec()
-    timeout.stop()
-    runner.completed.disconnect(finish)
-    if not result:
-        runner.shutdown()
-        raise AssertionError("Processus non terminé dans le délai du test")
-    return result[0]
+from desktop_harness import APP, wait_run
 
 
 class DesktopTests(unittest.TestCase):

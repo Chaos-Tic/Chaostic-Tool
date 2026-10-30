@@ -3,7 +3,6 @@ import asyncio
 import unittest
 from prompt_toolkit.input import create_pipe_input, DummyInput
 from prompt_toolkit.output import DummyOutput
-from rich.console import Console
 from core.theme import LIGHT, DARK, resolve_mode
 from core.tui import MenuScreen
 from chaostictool import MAIN_ENTRIES

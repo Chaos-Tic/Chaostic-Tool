@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 from desktop.storage import Store,write_json
 from desktop.release_audit import assert_clean_bundle
-from test_desktop import APP
+from desktop_harness import APP
 from desktop.window import Window
 from PySide6.QtWidgets import QMessageBox
 from desktop.flows import FlowSession

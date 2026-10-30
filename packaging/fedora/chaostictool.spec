@@ -16,7 +16,7 @@ AutoReqProv:    no
 BuildRequires:  cmake
 Requires:       python3 >= 3.11
 Requires:       python3-rich >= 13.7
-Requires:       python3-prompt-toolkit >= 3
+Requires:       python3-prompt-toolkit >= 3.0
 Requires:       python3-keyring
 Requires:       glibc >= 2.35
 Requires:       ca-certificates, dejavu-sans-fonts

@@ -5,6 +5,11 @@ import shutil
 import socket
 import subprocess
 
+try:
+    import pwd
+except ImportError:
+    pwd = None
+
 from rich import box
 from rich.console import Group
 from rich.markup import escape
@@ -174,6 +179,39 @@ def resolve_tool_binary(tool):
     return tool["binary"]
 
 
+def _user_home(name):
+    """Resolve a user's home directory, trusting the password database."""
+    if pwd is not None:
+        try:
+            return pwd.getpwnam(name).pw_dir
+        except (KeyError, OSError):
+            return ""
+    return ""
+
+
+def _discovery_homes():
+    """Home directories that may be searched for user-installed tool binaries.
+
+    Only the invoking user's home, the sudo-invoking user's home (SUDO_USER)
+    and root's home are considered. Running as root, the tool must never
+    discover — and later execute — a binary from an unrelated user's home:
+    that would be a local privilege-escalation vector (a hostile user could
+    plant a trojaned ``subfinder`` in their ``~/go/bin`` and have root run it).
+    """
+    homes = []
+
+    def add(path):
+        if path and path not in homes:
+            homes.append(path)
+
+    add(os.path.expanduser("~"))
+    sudo_user = os.environ.get("SUDO_USER", "")
+    if sudo_user and sudo_user != "root":
+        add(_user_home(sudo_user) or f"/home/{sudo_user}")
+    add(_user_home("root") or "/root")
+    return homes
+
+
 def _candidate_binaries(tool):
     binaries = [tool["binary"]] + list(tool.get("binary_alternatives", []))
     candidates = []
@@ -182,32 +220,12 @@ def _candidate_binaries(tool):
         if path:
             candidates.append(path)
 
-    sudo_user = os.environ.get("SUDO_USER", "")
     extra_dirs = []
-    if sudo_user:
-        extra_dirs += [
-            f"/home/{sudo_user}/go/bin",
-            f"/home/{sudo_user}/.local/share/go/bin",
-            f"/home/{sudo_user}/.cargo/bin",
-            f"/home/{sudo_user}/.local/bin",
-        ]
-    extra_dirs += [
-        os.path.expanduser("~/go/bin"),
-        os.path.expanduser("~/.local/share/go/bin"),
-        os.path.expanduser("~/.cargo/bin"),
-        os.path.expanduser("~/.local/bin"),
-    ]
-    # Scan all home dirs so go/cargo tools resolve even without SUDO_USER
-    try:
-        for entry in os.scandir("/home"):
-            if entry.is_dir() and entry.name != sudo_user:
-                base = entry.path
-                for sub in ("go/bin", ".local/share/go/bin", ".cargo/bin", ".local/bin"):
-                    d = os.path.join(base, sub)
-                    if d not in extra_dirs:
-                        extra_dirs.append(d)
-    except PermissionError:
-        pass
+    for home in _discovery_homes():
+        for sub in ("go/bin", ".local/share/go/bin", ".cargo/bin", ".local/bin"):
+            d = os.path.join(home, sub)
+            if d not in extra_dirs:
+                extra_dirs.append(d)
     for d in extra_dirs:
         for binary in binaries:
             path = os.path.join(d, binary)

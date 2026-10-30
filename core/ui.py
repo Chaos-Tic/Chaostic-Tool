@@ -22,7 +22,7 @@ from rich.text import Text
 from core import executor, tui
 from core import target as tgt
 from core.proxy import PROXY_STATE, route_status, should_proxy_tool, wrap_command
-from core.redaction import redact, secrets_for
+from core.redaction import SECRET_FIELDS, redact, secrets_for
 from core.terminal import console
 from core.theme import EYEBROW, EYEBROW_COMPACT
 from core.version import VERSION
@@ -265,9 +265,10 @@ def pause():
     console.input("\n[brand.muted]Press Enter to continue[/brand.muted] [brand.accent]▸[/brand.accent] ")
 
 
-def ask(prompt, default=None):
+def ask(prompt, default=None, *, password=False):
     suffix = f" [brand.muted]({escape(str(default))})[/brand.muted]" if default else ""
-    val = console.input(f"[brand.accent]{escape(prompt)}{suffix}[/brand.accent] [brand.white]▸[/brand.white] ").strip()
+    val = console.input(f"[brand.accent]{escape(prompt)}{suffix}[/brand.accent] [brand.white]▸[/brand.white] ",
+                        password=password).strip()
     return val or (default or "")
 
 
@@ -495,7 +496,7 @@ def run_preset(tool, preset, pause_after=True):
         tgt.TARGET["wordlist"] = shared["wordlist"]
     has_prompts = bool(preset.get("prompt"))
     for var, label in (preset.get("prompt") or {}).items():
-        val = ask(label)
+        val = ask(label, password=var in SECRET_FIELDS)
         if not val:
             console.print(f"[bright_yellow][!] '{label}' left empty — the command may fail.[/bright_yellow]")
         shared[var] = val

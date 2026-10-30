@@ -79,7 +79,7 @@ class ScreenConsole(Console):
         if self._sink is not None:
             from core import tui
             content = self._drain()
-            answer = tui.input_dialog(str(prompt), content, self._title)
+            answer = tui.input_dialog(str(prompt), content, self._title, password=password)
             # Keep capturing for whatever the caller prints next, but clear the
             # text already shown so dialogs don't repeat earlier output.
             self._sink = self._new_sink()

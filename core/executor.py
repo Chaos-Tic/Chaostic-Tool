@@ -338,8 +338,8 @@ def _stop_process(proc):
         for action, timeout in ((proc.terminate, 2), (proc.kill, 2)):
             try:
                 action()
-            except (ProcessLookupError, OSError):
-                pass
+            except (ProcessLookupError, OSError) as exc:
+                console.print(f"[dim]Process already stopped: {exc}[/dim]")
             try:
                 proc.wait(timeout=timeout)
                 return

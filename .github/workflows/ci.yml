@@ -73,6 +73,8 @@ jobs:
           CHAOSTIC_TEST_FONT='DejaVu Sans' QT_FONT_DPI=144 xvfb-run -a -s '-screen 0 1600x1000x24 -nolisten tcp' python scripts/check-native-ui.py
       - name: Check documentation links
         run: python scripts/check-docs.py
+      - name: Check packaging dependency floors
+        run: python scripts/check-packaging-deps.py
       - name: Check shell scripts syntax
         run: bash -n install.sh uninstall.sh packaging/linux/*.sh packaging/debian/*.sh packaging/arch/*.sh scripts/*.sh
 

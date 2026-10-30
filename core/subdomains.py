@@ -16,6 +16,7 @@ import ipaddress
 import re
 import shutil
 import subprocess
+import time
 
 _LABEL = re.compile(r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$")
 # A hostname-looking token anywhere in a line of tool output.
@@ -99,8 +100,14 @@ def command_for(name, domain):
     raise KeyError(name)
 
 
-def enumerate_subdomains(domain, env=None, timeout=240, runner=None, path=None):
+def enumerate_subdomains(domain, env=None, budget=240, runner=None, path=None):
     """Discover subdomains of ``domain``.
+
+    ``budget`` is a single time budget (seconds) shared across *all*
+    enumerators, not a per-tool timeout: each enumerator is given only the time
+    still left, and once the budget is spent the remaining tools are skipped.
+    This bounds the whole discovery at ``budget`` instead of
+    ``len(ENUMERATORS) * budget`` when a slow first tool runs to its own limit.
 
     Returns (subdomains, sources, error): ``sources`` lists the tools that
     produced results; ``error`` is set only when no enumerator could run at all.
@@ -112,11 +119,17 @@ def enumerate_subdomains(domain, env=None, timeout=240, runner=None, path=None):
     sources: list[str] = []
     ran_any = False
     last_error = ""
+    deadline = time.monotonic() + budget if budget else None
     for name, build in ENUMERATORS:
         if runner is _run and not shutil.which(name, path=(env or {}).get("PATH") if path is None else path):
             continue
+        remaining = None
+        if deadline is not None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
         ran_any = True
-        code, out, err = runner(build(domain), env, timeout)
+        code, out, err = runner(build(domain), env, remaining)
         hosts = parse_hosts(out, domain)
         if hosts:
             sources.append(name)

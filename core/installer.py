@@ -386,17 +386,25 @@ _DEP_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
 def _parse_srcinfo_deps(srcinfo_path):
     """Return (depends, makedepends) parsed from .SRCINFO — strips version constraints.
-    Each name is validated against _DEP_RE; entries that fail are silently dropped."""
+    Each name is validated against _DEP_RE; entries that fail are silently dropped.
+    The .SRCINFO comes from a freshly cloned third-party AUR tree, so before reading
+    it the path is confined to the root-owned staging area and a symlinked entry is
+    refused — closing any file-inclusion / symlink-escape vector."""
     deps, makedeps = [], []
     try:
-        for line in open(srcinfo_path, encoding="utf-8", errors="replace"):
-            line = line.strip()
-            for prefix, bucket in (("depends =", deps), ("makedepends =", makedeps)):
-                if line.startswith(prefix):
-                    name = re.split(r"[>=<]", line.split("=", 1)[1].strip())[0]
-                    if _DEP_RE.match(name):
-                        bucket.append(name)
-    except OSError:
+        resolved = os.path.realpath(srcinfo_path)
+        staging = os.path.realpath(_AUR_STAGING)
+        if os.path.islink(srcinfo_path) or os.path.commonpath((staging, resolved)) != staging:
+            return deps, makedeps
+        with open(resolved, encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                line = line.strip()
+                for prefix, bucket in (("depends =", deps), ("makedepends =", makedeps)):
+                    if line.startswith(prefix):
+                        name = re.split(r"[>=<]", line.split("=", 1)[1].strip())[0]
+                        if _DEP_RE.match(name):
+                            bucket.append(name)
+    except (OSError, ValueError):
         pass
     return deps, makedeps
 

@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import os
 try:
@@ -9,6 +10,8 @@ import ipaddress
 from urllib.parse import urlparse
 
 from core.paths import data_home, ensure_directory
+
+LOG = logging.getLogger(__name__)
 
 TARGETS_ROOT = data_home() / "targets"
 
@@ -200,4 +203,6 @@ def _chown_path(path):
         pw = pwd.getpwnam(sudo_user)
         os.chown(path, pw.pw_uid, pw.pw_gid)
     except (KeyError, OSError):
+        LOG.warning("Could not chown %s to sudo user %r", path, sudo_user,
+                    exc_info=True)
         return

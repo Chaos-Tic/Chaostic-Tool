@@ -20,21 +20,42 @@ from contextlib import suppress
 
 from rich.table import Table
 
+from core import manifest
 from core.terminal import console
 
 LOG = logging.getLogger(__name__)
 
 
 def _manifest_record(entry: str) -> None:
-    path = os.environ.get("CHAOSTICTOOL_MANIFEST", "")
-    if not path:
-        return
-    try:
-        with open(path, "a", encoding="utf-8") as fh:
-            fh.write(entry + "\n")
-    except OSError:
-        LOG.warning("Could not record install manifest entry %r to %s",
-                    entry, path, exc_info=True)
+    """Record one installed artifact through the shared manifest module.
+
+    The path is resolved once in :mod:`core.manifest`: ``CHAOSTICTOOL_MANIFEST``
+    when set (``install.sh``), otherwise the system default for a root process.
+    This is what lets installs launched from the TUI/CLI be recorded — and
+    therefore reversed — instead of leaving the manifest empty.
+    """
+    manifest.record(entry, source="cli")
+
+
+def _claim_path(path: str) -> bool:
+    """Whether ChaosticTool may write ``path`` without clobbering a stranger's file.
+
+    Returns ``True`` for a free slot, a dangling symlink, or a path already
+    recorded as ours (idempotent re-install). Returns ``False`` — with a clear
+    notice — when a real pre-existing file is there that the manifest does not
+    claim, so a later uninstall can never delete a file ChaosticTool did not
+    create. This makes the "never touch a pre-existing tool" rule hold at the
+    filesystem level for every writer, not only for ``_link_user_binary``.
+    """
+    if not os.path.lexists(path):
+        return True
+    if os.path.islink(path) and not os.path.exists(path):
+        return True  # dangling symlink: nothing real is lost
+    if manifest.has_record(f"file:{path}"):
+        return True  # already recorded as ours; safe to refresh
+    console.print(f"[brand.warn][!] {path} already exists and was not installed by "
+                  f"ChaosticTool — leaving it untouched.[/brand.warn]")
+    return False
 
 
 # Maps pipx install target → canonical package name used by `pipx uninstall`
@@ -654,7 +675,13 @@ def _install_build_deps(binary, pm):
         return
 
     console.print(f"\n[brand.info][*] Installing build dependencies for {binary}: {' '.join(pkgs)}[/brand.info]")
-    _run(cmd)
+    # pkgs are exactly the deps that were ABSENT before this install
+    # (_filter_installable_packages drops the already-installed ones), so
+    # recording them is safe: uninstall's package review lists only what
+    # ChaosticTool actually added, never a pre-existing build dependency.
+    if _run(cmd):
+        for pkg in pkgs:
+            _manifest_record(f"pkg:{pm}:{pkg}")
 
 
 def _pkg_for_pm(binary, pm):
@@ -685,6 +712,53 @@ def _link_user_binary(binary, dirs):
                 console.print(f"[brand.warn][!] Could not link {binary}: {e}[/brand.warn]")
                 return False
     return False
+
+
+def _record_user_install(entry, binary, link_dirs, pre_existed):
+    """Record a user-local install and expose it, unless the target pre-existed.
+
+    ``go install`` / ``cargo install`` write into the user's own ``~/go/bin`` /
+    ``~/.cargo/bin``. If a binary of this name was already there before the
+    install, it was not placed by ChaosticTool, so recording it would let
+    uninstall delete a file we did not create. In that case the record is
+    skipped (the ``/usr/local/bin`` symlink is still ours to create and remove).
+    """
+    if pre_existed:
+        console.print(f"[brand.muted]    {binary} was already present; "
+                      f"not recording it for removal.[/brand.muted]")
+    else:
+        _manifest_record(entry)
+    _link_user_binary(binary, link_dirs)
+
+
+def _pipx_already_installed(pipx_bin, canonical, as_user_pw, env):
+    """Whether ``canonical`` is already a pipx venv for the install user.
+
+    Checked before installing so a venv the user set up themselves is neither
+    reinstalled (we dropped ``--force``) nor recorded for removal.
+    """
+    try:
+        result = subprocess.run(
+            [pipx_bin, "list", "--short"],
+            capture_output=True, text=True,
+            preexec_fn=_drop_privs(as_user_pw) if as_user_pw else None,
+            env=env,
+        )
+    except (OSError, ValueError):
+        return False
+    names = {line.split()[0].lower() for line in result.stdout.splitlines() if line.split()}
+    return canonical.lower() in names
+
+
+def _gem_already_installed(gem_bin, pkg):
+    """Whether ``pkg`` is already installed as a gem (skip + do not record it)."""
+    try:
+        return subprocess.run(
+            [gem_bin, "list", "-i", pkg],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        ).returncode == 0
+    except (OSError, ValueError):
+        return False
 
 
 def _verify_download(binary, data, expected, source):
@@ -727,6 +801,8 @@ def _install_direct_download(binary, spec):
         # The downloaded bytes are exactly what lands in /usr/local/bin, so
         # verify them before touching the filesystem.
         if not _verify_download(binary, data, spec.get("sha256"), url):
+            return False
+        if not _claim_path(path):
             return False
         os.makedirs(os.path.dirname(path), exist_ok=True)
         tmp_path = f"{path}.tmp"
@@ -850,6 +926,8 @@ def _install_release_asset(binary, spec):
             return False
 
         path = spec["path"]
+        if not _claim_path(path):
+            return False
         os.makedirs(os.path.dirname(path), exist_ok=True)
         tmp_path = f"{path}.tmp"
         with open(tmp_path, "wb") as fh:
@@ -874,6 +952,8 @@ def _install_source_tool(binary, spec):
     wrapper = spec["wrapper"]
 
     console.print(f"\n[brand.info][*] source install {binary}[/brand.info]")
+    if not _claim_path(wrapper):
+        return False
     if os.path.isdir(os.path.join(path, ".git")):
         ok = _run(["git", "-C", path, "pull", "--ff-only"])
     else:
@@ -936,6 +1016,9 @@ def _install_python_module_wrapper(binary, spec):
     )
     if check.returncode != 0:
         console.print(f"[brand.warn][!] Python module unavailable for {binary}: {module}[/brand.warn]")
+        return False
+
+    if not _claim_path(wrapper):
         return False
 
     try:
@@ -1059,8 +1142,16 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
         "skipped": [],
     }
     plans = []
+    already_present = []
 
     for key, binary in missing_items:
+        # Idempotence and the pre-existing-tool guarantee, enforced here and not
+        # only at the caller: a tool that became available (or was never really
+        # missing) is skipped and never (re)installed or recorded, so uninstall
+        # can only ever remove what ChaosticTool actually placed.
+        if _tool_available(key, binary):
+            already_present.append(binary)
+            continue
         candidates = _candidate_methods(binary, pm, aur_helper)
         if allowed_methods is not None:
             candidates = [candidate for candidate in candidates if candidate[0] in allowed_methods]
@@ -1076,6 +1167,10 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
         groups[method].append((binary, pkg))
 
     console.print(table)
+
+    if already_present:
+        console.print(f"[brand.muted]Already present, skipped (not reinstalled, not recorded): "
+                      f"{', '.join(sorted(already_present))}[/brand.muted]")
 
     installable = [
         m for m in ("pacman", "apt", "dnf", "aur", "go", "cargo", "release", "pywrap", "pipx", "pip", "gem", "source", "direct")
@@ -1182,10 +1277,11 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
                 env["GOPATH"] = os.path.join(orig_pw.pw_dir, "go")
                 env["GOBIN"] = os.path.join(orig_pw.pw_dir, "go", "bin")
                 env["PATH"] = f"{env['GOBIN']}:/usr/local/go/bin:{env.get('PATH','')}"
+            target = os.path.join(env["GOBIN"], binary) if orig_pw else ""
+            pre = bool(target) and os.path.exists(target)
             ok = _run([go_bin, "install", pkg], as_user_pw=orig_pw, env=env)
             if ok and orig_pw:
-                _manifest_record(f"go:{os.path.join(env['GOBIN'], binary)}")
-                _link_user_binary(binary, [env["GOBIN"]])
+                _record_user_install(f"go:{target}", binary, [env["GOBIN"]], pre)
             return ok
 
         if method == "cargo":
@@ -1199,10 +1295,12 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
                 env["HOME"] = orig_pw.pw_dir
                 env["CARGO_HOME"] = os.path.join(orig_pw.pw_dir, ".cargo")
                 env["PATH"] = f"{env['CARGO_HOME']}/bin:{env.get('PATH','')}"
+            target = os.path.join(env["CARGO_HOME"], "bin", binary) if orig_pw else ""
+            pre = bool(target) and os.path.exists(target)
             ok = _run([cargo_bin, "install", pkg], as_user_pw=orig_pw, env=env)
             if ok and orig_pw:
-                _manifest_record(f"cargo:{os.path.join(env['CARGO_HOME'], 'bin', binary)}")
-                _link_user_binary(binary, [os.path.join(env["CARGO_HOME"], "bin")])
+                _record_user_install(f"cargo:{target}", binary,
+                                     [os.path.join(env["CARGO_HOME"], "bin")], pre)
             return ok
 
         if method == "pywrap":
@@ -1224,9 +1322,15 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
                 env["PIPX_HOME"] = os.path.join(orig_pw.pw_dir, ".local", "share", "pipx")
                 env["PIPX_BIN_DIR"] = os.path.join(orig_pw.pw_dir, ".local", "bin")
             if pkg not in pipx_results:
-                pipx_results[pkg] = _run([pipx_bin, "install", "--force", pkg], as_user_pw=orig_pw, env=env)
-                if pipx_results[pkg]:
-                    _manifest_record(f"pipx:{_PIPX_CANONICAL.get(pkg, pkg)}")
+                canonical = _PIPX_CANONICAL.get(pkg, pkg)
+                if _pipx_already_installed(pipx_bin, canonical, orig_pw, env):
+                    console.print(f"[brand.muted]    pipx package {canonical} already present; "
+                                  f"not reinstalling or recording it.[/brand.muted]")
+                    pipx_results[pkg] = True
+                else:
+                    pipx_results[pkg] = _run([pipx_bin, "install", pkg], as_user_pw=orig_pw, env=env)
+                    if pipx_results[pkg]:
+                        _manifest_record(f"pipx:{canonical}")
             if pipx_results[pkg] and orig_pw:
                 _link_user_binary(binary, [os.path.join(orig_pw.pw_dir, ".local", "bin")])
             return pipx_results[pkg]
@@ -1250,7 +1354,13 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
             _install_build_deps(binary, pm)
             _install_runtime("gem", {"pacman": "ruby", "apt": "ruby-full", "dnf": "ruby"})
             gem_bin = shutil.which("gem")
-            if gem_bin and _run([gem_bin, "install", pkg]):
+            if not gem_bin:
+                return False
+            if _gem_already_installed(gem_bin, pkg):
+                console.print(f"[brand.muted]    gem {pkg} already present; "
+                              f"not reinstalling or recording it.[/brand.muted]")
+                return True
+            if _run([gem_bin, "install", pkg]):
                 _manifest_record(f"gem:{pkg}")
                 return True
             return False
@@ -1305,11 +1415,12 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
                     env["GOPATH"] = os.path.join(orig_pw.pw_dir, "go")
                     env["GOBIN"]  = os.path.join(orig_pw.pw_dir, "go", "bin")
                     env["PATH"]   = f"{env['GOBIN']}:/usr/local/go/bin:{env.get('PATH','')}"
+                target = os.path.join(env["GOBIN"], binary) if orig_pw else ""
+                pre = bool(target) and os.path.exists(target)
                 if _run([go_bin, "install", module], as_user_pw=orig_pw, env=env):
                     console.print(f"[brand.ok][+] {binary} -> ~/go/bin/[/brand.ok]")
                     if orig_pw:
-                        _manifest_record(f"go:{os.path.join(env['GOBIN'], binary)}")
-                        _link_user_binary(binary, [env["GOBIN"]])
+                        _record_user_install(f"go:{target}", binary, [env["GOBIN"]], pre)
 
     # --- cargo install — drop root, Cargo home of the original user ---
     if groups["cargo"]:
@@ -1327,11 +1438,13 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
                     env["HOME"] = orig_pw.pw_dir
                     env["CARGO_HOME"] = os.path.join(orig_pw.pw_dir, ".cargo")
                     env["PATH"] = f"{env['CARGO_HOME']}/bin:{env.get('PATH','')}"
+                target = os.path.join(env["CARGO_HOME"], "bin", binary) if orig_pw else ""
+                pre = bool(target) and os.path.exists(target)
                 if _run([cargo_bin, "install", pkg], as_user_pw=orig_pw, env=env):
                     console.print(f"[brand.ok][+] {binary} -> ~/.cargo/bin/[/brand.ok]")
                     if orig_pw:
-                        _manifest_record(f"cargo:{os.path.join(env['CARGO_HOME'], 'bin', binary)}")
-                        _link_user_binary(binary, [os.path.join(env["CARGO_HOME"], "bin")])
+                        _record_user_install(f"cargo:{target}", binary,
+                                             [os.path.join(env["CARGO_HOME"], "bin")], pre)
 
     # --- Python module wrappers for distro packages that expose modules but not every script name ---
     if groups["pywrap"]:
@@ -1354,17 +1467,23 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
         else:
             pipx_results = {}
             for binary, pkg in groups["pipx"]:
+                env = dict(os.environ)
+                if orig_pw:
+                    env["HOME"] = orig_pw.pw_dir
+                    env["PATH"] = f"{orig_pw.pw_dir}/.local/bin:{env.get('PATH','')}"
+                    env["PIPX_HOME"] = os.path.join(orig_pw.pw_dir, ".local", "share", "pipx")
+                    env["PIPX_BIN_DIR"] = os.path.join(orig_pw.pw_dir, ".local", "bin")
                 if pkg not in pipx_results:
-                    console.print(f"\n[brand.info][*] pipx install {pkg}[/brand.info]")
-                    env = dict(os.environ)
-                    if orig_pw:
-                        env["HOME"] = orig_pw.pw_dir
-                        env["PATH"] = f"{orig_pw.pw_dir}/.local/bin:{env.get('PATH','')}"
-                        env["PIPX_HOME"] = os.path.join(orig_pw.pw_dir, ".local", "share", "pipx")
-                        env["PIPX_BIN_DIR"] = os.path.join(orig_pw.pw_dir, ".local", "bin")
-                    pipx_results[pkg] = _run([pipx_bin, "install", "--force", pkg], as_user_pw=orig_pw, env=env)
-                    if pipx_results[pkg]:
-                        _manifest_record(f"pipx:{_PIPX_CANONICAL.get(pkg, pkg)}")
+                    canonical = _PIPX_CANONICAL.get(pkg, pkg)
+                    if _pipx_already_installed(pipx_bin, canonical, orig_pw, env):
+                        console.print(f"[brand.muted]    pipx package {canonical} already present; "
+                                      f"not reinstalling or recording it.[/brand.muted]")
+                        pipx_results[pkg] = True
+                    else:
+                        console.print(f"\n[brand.info][*] pipx install {pkg}[/brand.info]")
+                        pipx_results[pkg] = _run([pipx_bin, "install", pkg], as_user_pw=orig_pw, env=env)
+                        if pipx_results[pkg]:
+                            _manifest_record(f"pipx:{canonical}")
                 if pipx_results[pkg] and orig_pw:
                     _link_user_binary(binary, [os.path.join(orig_pw.pw_dir, ".local", "bin")])
 
@@ -1394,6 +1513,10 @@ def install_missing(missing_items, assume_yes=False, allowed_methods=None):
                 console.print(f"[brand.muted]    Then: gem install {pkg}[/brand.muted]")
         else:
             for binary, pkg in groups["gem"]:
+                if _gem_already_installed(gem_bin, pkg):
+                    console.print(f"[brand.muted]    gem {pkg} already present; "
+                                  f"not reinstalling or recording it.[/brand.muted]")
+                    continue
                 console.print(f"\n[brand.info][*] gem install {pkg}[/brand.info]")
                 if _run([gem_bin, "install", pkg]):
                     _manifest_record(f"gem:{pkg}")

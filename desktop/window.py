@@ -52,8 +52,6 @@ def button(text, callback=None, kind=""):
         result.clicked.connect(callback)
     if kind:
         result.setObjectName(kind)
-    if kind == "primary":
-        effects.glow(result, "#9b75ff", blur=20, alpha=120)
     return result
 
 
@@ -67,7 +65,6 @@ def status_badge(text, color):
     dot = QLabel()
     dot.setFixedSize(8, 8)
     dot.setObjectName("statusDot")
-    effects.glow(dot, color, blur=10, alpha=210)
     caption = QLabel(text)
     caption.setObjectName("statusCaption")
     box.addWidget(dot)
@@ -424,7 +421,6 @@ class Window(QMainWindow):
         layout = self.page()
         self.hero = Hero(on_tools=lambda:self.navigate(2),on_flows=lambda:self.navigate(6))
         hero=self.hero
-        effects.glow(hero, "#9b75ff", blur=34, alpha=70)
         layout.addWidget(hero)
         missions=QBoxLayout(QBoxLayout.Direction.LeftToRight);missions.setSpacing(12)
         self.home_missions = missions
@@ -631,7 +627,6 @@ class Window(QMainWindow):
         self.stop_button.clicked.connect(self.stop_current)
         self.stop_button.setEnabled(False)
         self.stop_button.hide()
-        effects.pulse(self.stop_button, "#9b75ff", low=8, high=28, ms=900)
         actions.addWidget(self.stop_button)
         self.run_folder = button("Ouvrir les résultats", self.open_run_folder)
         self.run_folder.setEnabled(False)

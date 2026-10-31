@@ -129,8 +129,8 @@ class PackagingMetadataTests(unittest.TestCase):
                     out = result.stdout + result.stderr
                     self.assertIn(f'recorded {len(entries)} installed item(s)', out)
                     # Names are the last path/field component, sorted, 8 at most.
-                    self.assertIn('    chaotic-aur httpx impacket masscan nmap responder '
-                                  'Responder subfinder ...', out)
+                    self.assertIn('    Responder chaotic-aur httpx impacket masscan nmap '
+                                  'responder subfinder ...', out)
                     self.assertNotIn('xsstrike', out, 'the ninth name and beyond are elided')
                     self.assertIn('removes the chaostictool-uninstall command', out)
                     self.assertIn('reinstall', out)

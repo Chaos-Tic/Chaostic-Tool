@@ -764,16 +764,17 @@ class Window(QMainWindow):
 
     def build_api_keys_card(self, layout):
         from core import api_keys
+        api_keys.set_passphrase_prompt(self._ask_api_passphrase)
         frame, content = card()
         content.addWidget(label("Clés API", "sectionTitle"))
         content.addWidget(label("Certains outils embarqués utilisent une clé API. Enregistrez-la ici une fois : "
-                                "elle est conservée dans le coffre de clés sécurisé du système d’exploitation "
-                                "(chiffrée au repos), jamais en clair sur le disque.",
+                                "elle est réutilisée à chaque lancement et transmise à l’outil par sa variable "
+                                "d’environnement (une variable déjà exportée dans le shell a priorité).",
                                 "muted", True))
-        if not api_keys.secure_storage_available():
-            content.addWidget(label("Aucun coffre de clés sécurisé n’est disponible sur ce système : les clés "
-                                    "ne seront gardées que pour cette session.", "muted", True))
-        stored = api_keys.load()
+        self.api_storage_label = label(self._api_storage_text(), "muted", True)
+        content.addWidget(self.api_storage_label)
+        status = api_keys.storage_status()
+        stored = {} if status.locked else api_keys.load()
         self.api_key_fields = {}
         for spec in api_keys.KEY_SPECS:
             content.addWidget(label(f"{spec['label']} · {spec['env']}", "muted"))
@@ -789,17 +790,95 @@ class Window(QMainWindow):
             f.setEchoMode(QLineEdit.EchoMode.Normal if shown else QLineEdit.EchoMode.Password)
             for f in self.api_key_fields.values()])
         content.addWidget(reveal)
+        self.api_unlock_button = button("Déverrouiller le fichier de clés", self._unlock_api_store)
+        self.api_unlock_button.setVisible(status.locked)
+        content.addWidget(self.api_unlock_button)
         content.addWidget(button("Enregistrer les clés", self.save_api_keys))
         layout.addWidget(frame)
 
+    def _api_storage_text(self):
+        from core import api_keys
+        status = api_keys.storage_status()
+        if status.kind == "keyring":
+            return T("Stockage : coffre de clés sécurisé du système d’exploitation (chiffré au repos par le système).")
+        if status.kind == "file-encrypted":
+            text = T("Stockage : fichier chiffré (PBKDF2-HMAC-SHA256 + Fernet, phrase secrète demandée une fois par "
+                     "session) : {path}").format(path=status.path)
+            return text + (T(" — verrouillé : déverrouillez-le pour utiliser les clés.") if status.locked else "")
+        if status.kind == "file-plain":
+            return T("Stockage : fichier lisible par votre compte seulement (mode 0600) : {path}. Les valeurs sont "
+                     "encodées en base64 mais NON chiffrées ; seules les permissions du fichier les protègent.").format(path=status.path)
+        return T("Aucun coffre de clés sécurisé sur ce système : les clés ne sont gardées que pour cette session. "
+                 "À l’enregistrement, un fichier persistant vous sera proposé.")
+
+    def _ask_api_passphrase(self, reason):
+        if QThread.currentThread() is not QApplication.instance().thread():
+            return None  # never raise a dialog from a worker thread
+        title = T("Phrase secrète du fichier de clés")
+        prompt = {"new": T("Choisissez une phrase secrète (vide = fichier 0600 non chiffré) :"),
+                  "confirm": T("Confirmez la phrase secrète :")}.get(reason, T("Phrase secrète du fichier de clés chiffré :"))
+        value, ok = QInputDialog.getText(self, title, prompt, QLineEdit.EchoMode.Password)
+        return value if ok and value else None
+
+    def _refresh_api_storage(self):
+        from core import api_keys
+        self.api_storage_label.setText(self._api_storage_text())
+        self.api_unlock_button.setVisible(api_keys.storage_status().locked)
+
+    def _unlock_api_store(self):
+        from core import api_keys
+        passphrase = self._ask_api_passphrase("unlock")
+        if not passphrase:
+            return False
+        if not api_keys.unlock_file_store(passphrase):
+            QMessageBox.warning(self, T("Clés API"), T("Phrase secrète incorrecte."))
+            return False
+        for key_id, value in api_keys.load().items():
+            self.api_key_fields[key_id].setText(value)
+        self._refresh_api_storage()
+        return True
+
+    def _offer_api_file_store(self):
+        from core import api_keys
+        status = api_keys.storage_status()
+        detail = (T("Le fichier sera chiffré avec une phrase secrète (PBKDF2-HMAC-SHA256 → Fernet) demandée une fois par session.")
+                  if status.can_encrypt else
+                  T("La bibliothèque « cryptography » n’est pas installée : le fichier serait encodé en base64 mais NON chiffré ; seules ses permissions 0600 le protègent."))
+        question = T("Aucun coffre de clés sécurisé. Enregistrer les clés dans un fichier persistant ?\n{path}\n"
+                     "(dossier 0700, fichier 0600, écriture atomique)\n\n{detail}").format(path=status.path, detail=detail)
+        answer = QMessageBox.question(self, T("Clés API"), question,
+                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                      QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        passphrase = self._ask_api_passphrase("new") if status.can_encrypt else None
+        if passphrase and self._ask_api_passphrase("confirm") != passphrase:
+            QMessageBox.warning(self, T("Clés API"), T("Les phrases secrètes diffèrent : clés gardées pour cette session seulement."))
+            return
+        api_keys.enable_file_store(passphrase)
+
     def save_api_keys(self):
         from core import api_keys
+        fields = getattr(self, "api_key_fields", {})
+        if api_keys.storage_status().locked and not self._unlock_api_store():
+            self.statusBar().showMessage(T("Fichier de clés verrouillé : rien n’a été enregistré."), 4000)
+            return
+        if api_keys.file_store_offerable() and any(f.text().strip() for f in fields.values()):
+            self._offer_api_file_store()
         persisted = True
-        for key_id, field in getattr(self, "api_key_fields", {}).items():
+        for key_id, field in fields.items():
             persisted = api_keys.set_key(key_id, field.text()) and persisted
-        self.statusBar().showMessage(
-            T("Clés API enregistrées.") if persisted
-            else T("Clés gardées pour cette session (aucun coffre sécurisé)."), 4000)
+        self._refresh_api_storage()
+        kind = api_keys.storage_status().kind
+        if not persisted:
+            message = T("Clés gardées pour cette session (aucun stockage persistant).")
+        elif kind == "keyring":
+            message = T("Clés API enregistrées dans le coffre du système.")
+        elif kind == "file-encrypted":
+            message = T("Clés API enregistrées dans le fichier chiffré.")
+        else:
+            message = T("Clés API enregistrées dans le fichier 0600 (non chiffré).")
+        self.statusBar().showMessage(message, 4000)
 
     def _sync_theme_button(self):
         self.theme_button.setText(T("  Mode sombre") if theme.MODE == "light" else T("  Mode clair"))

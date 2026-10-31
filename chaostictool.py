@@ -125,14 +125,63 @@ def configure_api_keys():
         tail = value[-4:] if len(value) > 4 else value
         return f"[brand.ok]set[/brand.ok] [brand.muted](…{tail})[/brand.muted]"
 
+    def storage_line():
+        status = ak.storage_status()
+        if status.kind == "keyring":
+            return "[brand.muted]Storage: the operating system's secure key store (encrypted at rest by the OS).[/brand.muted]"
+        if status.kind == "file-encrypted":
+            state = " [bright_yellow]— locked (enter the passphrase to use the keys)[/bright_yellow]" if status.locked else ""
+            return (f"[brand.muted]Storage: encrypted file (PBKDF2-HMAC-SHA256 + Fernet, passphrase asked once per "
+                    f"session) at {status.path}[/brand.muted]{state}")
+        if status.kind == "file-plain":
+            return (f"[bright_yellow]Storage: file readable by your account only (mode 0600) at {status.path}. "
+                    "Values are base64-encoded, NOT encrypted — file permissions are the only protection.[/bright_yellow]")
+        return ("[bright_yellow][!] No secure key store on this system — keys are kept for this session only. "
+                "Saving a key offers a persistent file instead; exporting the variable (e.g. SHODAN_API_KEY) also works.[/bright_yellow]")
+
+    def unlock():
+        """Ask for the passphrase of an encrypted file store; True when usable."""
+        for _ in range(3):
+            passphrase = ui.ask("Key file passphrase", password=True)
+            if not passphrase:
+                return False
+            if ak.unlock_file_store(passphrase):
+                return True
+            ui.console.print("[bright_red]Wrong passphrase.[/bright_red]")
+        return False
+
+    def offer_file_store():
+        """Propose the on-disk fallback once; the choice is remembered by the file itself."""
+        status = ak.storage_status()
+        ui.console.print(f"\n[bright_yellow][!] No secure key store. Keys can be saved to {status.path} "
+                         "(directory 0700, file 0600, atomic writes) so they survive relaunches.[/bright_yellow]")
+        if status.can_encrypt:
+            ui.console.print("[brand.muted]The file will be encrypted with a passphrase (PBKDF2-HMAC-SHA256 → Fernet) "
+                             "that you enter once per session.[/brand.muted]")
+        else:
+            ui.console.print("[bright_yellow]The `cryptography` library is not installed: the file would be "
+                             "base64-encoded but NOT encrypted; only its 0600 permissions protect it.[/bright_yellow]")
+        if ui.ask("Save keys to this file? [y/N]").lower() not in ("y", "yes", "o", "oui"):
+            return
+        passphrase = None
+        if status.can_encrypt:
+            passphrase = ui.ask("Passphrase (leave blank for an unencrypted 0600 file)", password=True)
+            if passphrase and ui.ask("Confirm passphrase", password=True) != passphrase:
+                ui.console.print("[bright_red]Passphrases differ — keys kept for this session only.[/bright_red]")
+                return
+        mode = ak.enable_file_store(passphrase or None)
+        ui.console.print("[brand.ok][+] Encrypted key file created.[/brand.ok]" if mode == "fernet"
+                         else "[bright_yellow][+] Unencrypted 0600 key file created.[/bright_yellow]")
+
+    ak.set_passphrase_prompt(lambda reason: ui.ask("Key file passphrase", password=True) or None)
     while True:
         ui.header("API keys")
-        ui.console.print("[brand.muted]Stored in the operating system's secure key store and reused on every "
-                         "launch. Each key is passed to the tools that read it from the environment.[/brand.muted]")
-        if not ak.secure_storage_available():
-            ui.console.print("[bright_yellow][!] No secure key store on this system — keys are kept for this "
-                             "session only. Export the environment variable to persist, e.g. SHODAN_API_KEY.[/bright_yellow]")
+        ui.console.print("[brand.muted]Set once and reused on every launch. Each key is passed to the tools that "
+                         "read it from the environment; a variable already exported in your shell wins.[/brand.muted]")
+        ui.console.print(storage_line())
         ui.console.print("")
+        if ak.storage_status().locked and not unlock():
+            return
         stored = ak.load()
         entries = []
         for index, spec in enumerate(ak.KEY_SPECS, start=1):
@@ -148,15 +197,22 @@ def configure_api_keys():
         spec = ak.KEY_SPECS[int(choice) - 1]
         ui.console.print(f"\n[brand.white]{spec['label']}[/brand.white] [brand.muted]({spec['env']})[/brand.muted]")
         ui.console.print(f"[brand.muted]{spec['help']}[/brand.muted]")
-        ui.console.print("[brand.muted]Leave blank to remove the stored key.[/brand.muted]")
-        value = ui.ask("Key / token")
+        ui.console.print("[brand.muted]Leave blank to remove the stored key. Input is hidden.[/brand.muted]")
+        value = ui.ask("Key / token", password=True)
+        if value.strip() and ak.file_store_offerable():
+            offer_file_store()
         persisted = ak.set_key(spec["id"], value)
+        kind = ak.storage_status().kind
         if not value.strip():
             ui.console.print("[brand.ok][+] Removed.[/brand.ok]")
-        elif persisted:
+        elif not persisted:
+            ui.console.print("[bright_yellow][+] Kept for this session only (no persistent key store).[/bright_yellow]")
+        elif kind == "keyring":
             ui.console.print("[brand.ok][+] Saved to the system key store.[/brand.ok]")
+        elif kind == "file-encrypted":
+            ui.console.print("[brand.ok][+] Saved to the encrypted key file.[/brand.ok]")
         else:
-            ui.console.print("[bright_yellow][+] Kept for this session only (no secure key store).[/bright_yellow]")
+            ui.console.print("[bright_yellow][+] Saved to the 0600 key file (not encrypted).[/bright_yellow]")
         ui.pause()
 
 

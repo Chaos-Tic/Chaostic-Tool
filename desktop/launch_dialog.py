@@ -7,6 +7,21 @@ from desktop.backends import get_config,linux_status
 from desktop.profiles import SECRETS,INPUT_FILES,OUTPUT_FILES,secrets_for,redact
 from desktop.i18n import T
 
+
+def command_preview(tool,preset,target,wordlist,fields,backend='native'):
+    """Build the redacted command line a launch would run.
+
+    Shared by the launch dialog, the flow step list and the flow preparation
+    screen so the previewed command always matches what gets executed. Raises
+    ValueError/KeyError/TypeError when the arguments cannot be composed yet
+    (missing target, incomplete field); callers decide how to present that.
+    """
+    args=build_arguments(tool,0,target,wordlist,fields,preset=preset,backend=backend)
+    text=subprocess.list2cmdline([tool.get('binary',preset.get('worker','diagnostic')),*args])
+    key_value=preset_key_value(preset)
+    return redact(text,secrets_for(preset,fields)+([key_value] if key_value else []))
+
+
 class LaunchDialog(QDialog):
     def __init__(self,tool,store,parent=None):
         super().__init__(parent)
@@ -105,8 +120,5 @@ class LaunchDialog(QDialog):
         if not getattr(self,'current_presets',None): return
         preset=self.preset()
         try:
-            args=build_arguments(self.tool,0,self.target(),self.wordlist.text(),self.field_values(),preset=preset,backend=self.effective_backend())
-            text=subprocess.list2cmdline([self.tool.get('binary',preset.get('worker','diagnostic')),*args])
-            key_value=preset_key_value(preset)
-            self.preview.setText(redact(text,secrets_for(preset,self.field_values())+([key_value] if key_value else [])))
+            self.preview.setText(command_preview(self.tool,preset,self.target(),self.wordlist.text(),self.field_values(),self.effective_backend()))
         except (ValueError,KeyError,TypeError) as exc: self.preview.setText(T(str(exc)))

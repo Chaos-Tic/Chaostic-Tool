@@ -1101,7 +1101,7 @@ class Window(QMainWindow):
         if tool := self.selected_tool():
             self.launch(tool["key"])
 
-    def launch(self,key,show_dialog=True,tool_override=None,metadata=None,target_override=None):
+    def launch(self,key,show_dialog=True,tool_override=None,metadata=None,target_override=None,field_overrides=None,wordlist_override=None):
         if self.runner.active:
             self.navigate(3); return False
         tool=tool_override or self.tool_by_key[key]
@@ -1116,8 +1116,13 @@ class Window(QMainWindow):
             if show_dialog and dialog.exec()!=QDialog.DialogCode.Accepted: return False
             preset=dialog.preset(); backend=dialog.backend.currentData()
             target=(target_override or dialog.target()) if preset.get('needs_target',True) else None
+            # Flow runs collect their typed fields once up front; apply those values
+            # over the dialog defaults so no per-step modal is needed.
+            fields=dialog.field_values()
+            if field_overrides: fields={**fields,**field_overrides}
+            wordlist=dialog.wordlist.text() if wordlist_override is None else wordlist_override
             spec=dict(tool=tool,key=key,preset=preset,backend=backend,eff_backend=dialog.effective_backend(),
-                      fields=dialog.field_values(),wordlist=dialog.wordlist.text(),metadata=metadata)
+                      fields=fields,wordlist=wordlist,metadata=metadata)
             try:
                 hosts=self._scope_targets(preset,target)
                 self._fanout_total=len(hosts)
@@ -1166,13 +1171,32 @@ class Window(QMainWindow):
             import pyte
             self.terminal_screen=pyte.Screen(120,30); self.terminal_stream=pyte.Stream(self.terminal_screen)
         self.input_row.setVisible(interactive)
-        title=T(tool['name'])+' · '+T(preset['label'])
-        if target and getattr(self,'_fanout_total',1)>1: title+=' · '+target['host']
+        # Position within a subdomain fan-out (base host is 1; the last host clears
+        # the queue). The per-run metadata carries this so a flow step is only
+        # marked done after its final host, and the title can show "host k/N".
+        host_total=getattr(self,'_fanout_total',1)
+        host_index=host_total-len(self._fanout)
+        meta=dict(spec['metadata']) if spec['metadata'] else None
+        if meta is not None:
+            meta['flow_host_index']=host_index; meta['flow_host_total']=host_total; meta['flow_last']=not self._fanout
+        flow_meta=spec['metadata'] or {}
+        if flow_meta.get('flow_total'):
+            title=T('Flow {name} — étape {i}/{n}').format(name=T(flow_meta.get('flow_name','')),i=flow_meta['flow_step']+1,n=flow_meta['flow_total'])+' · '+T(preset['label'])
+        else:
+            title=T(tool['name'])+' · '+T(preset['label'])
+        if target and host_total>1: title+=' · '+T('hôte {k}/{n}').format(k=host_index,n=host_total)
         self.run_title.setText(title)
         self.run_info.setText((T('Cible : ')+target['url'] if target else T('Environnement local sélectionné'))+T(' · En cours'))
         self.flow_return.setVisible(bool(spec['metadata']))
         self.execution_tool.setCurrentIndex(self.execution_tool.findData(key))
-        self.runner.start(tool['name'],preset['label'],request,metadata=spec['metadata'],**kwargs)
+        self.runner.start(tool['name'],preset['label'],request,metadata=meta,**kwargs)
+        # runner.start fired activeChanged -> an indeterminate bar; switch to a
+        # determinate "step i/N" bar while a flow is running.
+        if flow_meta.get('flow_total'):
+            self.progress.setRange(0,flow_meta['flow_total']); self.progress.setValue(min(flow_meta['flow_step']+1,flow_meta['flow_total']))
+            self.progress.setFormat(T('Étape %v/%m')); self.progress.setTextVisible(True)
+        else:
+            self.progress.setTextVisible(False)
         self.run_folder.setEnabled(True); self.navigate(3)
         return True
 

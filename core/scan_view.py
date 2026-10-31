@@ -120,6 +120,20 @@ def run_scan(state, start, abort, context, cmd, output_path):
     def category():
         return str(context.get("category") or "Tools")
 
+    def breadcrumb():
+        # Inside a flow, the masthead names the flow and the step position instead
+        # of the generic "Home / <category>" trail, so the operator always knows
+        # where in the chain this run sits. The flow context (name/index/total) is
+        # threaded through run_preset -> executor.run_tool -> here.
+        flow = context.get("flow")
+        if flow:
+            return [("class:name", f"Flow {flow.get('name', '')}"),
+                    ("class:muted",
+                     f"   ·   step {flow.get('index', '?')}/{flow.get('total', '?')}   ·   "),
+                    ("class:name", tool_name())]
+        return [("class:name", tool_name()), ("class:muted", "   —   Home / "),
+                ("class:muted", category())]
+
     def activity():
         # A small live scan bar while running (btop-style motion), a static
         # marker once finished. Driven by the frozen clock so it stops too.
@@ -140,9 +154,8 @@ def run_scan(state, start, abort, context, cmd, output_path):
                ("class:wordmark2", "TOOL"), ("class:muted", "   ·   OPERATION")]
         r1r = [(status_badge(word), f" {word} "), ("", "   "),
                ("class:faint", "ELAPSED "), ("class:clock", secs)]
-        # Row 2: tool · breadcrumb, live activity bar.
-        r2l = [("class:name", tool_name()), ("class:muted", "   —   Home / "),
-               ("class:muted", category())]
+        # Row 2: tool · breadcrumb (flow-aware), live activity bar.
+        r2l = breadcrumb()
         r2r = activity()
         top = [("class:frame", " ╭" + "─" * (width - 4) + "╮ \n")]
         bot = [("class:frame", " ╰" + "─" * (width - 4) + "╯ ")]

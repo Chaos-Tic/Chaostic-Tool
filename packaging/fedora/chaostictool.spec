@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.1.0
+Version:        2.1.1
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -81,6 +81,9 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Sat Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.1.1-1
+- Flows UX: deduplicated built-in attack flows and a chained execution model (preview, run-all/step modes, progress) across the CLI and desktop; editable targets in the desktop.
+
 * Sat Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.1.0-1
 - 2.1.0 release: shared-core alignment — security hardening, honest 46-tool catalog, single-source manifest and desktop catalog, shared run-session, PTY-backed interactive execution, and manifest-based clean install/uninstall.
 

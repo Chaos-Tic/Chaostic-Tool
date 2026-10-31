@@ -22,7 +22,7 @@ from desktop import VERSION
 from desktop import effects
 from desktop import theme
 from desktop.identity import BrandPanel, RailButton
-from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command, preset_key_value
+from desktop.catalog import availability, availability_state, build_arguments, catalog, find_executable, native_command, preset_key_value
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
 from desktop.profiles import secrets_for,INPUT_FILES,placeholders
@@ -31,6 +31,13 @@ from desktop.backend_dialog import BackendDialog
 from desktop.packages import PORTABLE_PACK, PYTHON_PACK, MANIFEST, find_python, installed, installation_error, can_install
 
 STATUS = {"running": "En cours", "success": "Terminé", "failed": "Échec", "cancelled": "Arrêté", "interrupted": "Interrompu"}
+
+# Stable, never-translated identities for the two internal "install" runs. They
+# are STORED as the run's tool name and COMPARED on completion; using the same
+# constant on both sides keeps check_backend() firing after a Linux install even
+# when the UI language differs (a translated literal would silently stop matching).
+INSTALL_NATIVE = "Dépendances natives"
+INSTALL_LINUX = "Dépendances Linux"
 
 
 from desktop.i18n import T, set_language, language
@@ -100,7 +107,7 @@ def _pill_cell(text):
     box = QHBoxLayout(holder)
     box.setContentsMargins(10, 2, 10, 2)
     box.setSpacing(0)
-    box.addWidget(effects.status_pill(str(text)),0,Qt.AlignmentFlag.AlignVCenter)
+    box.addWidget(effects.status_pill(text),0,Qt.AlignmentFlag.AlignVCenter)
     box.addStretch()
     holder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
     return holder
@@ -111,12 +118,10 @@ def fill_table(widget, rows, pill_cols=()):
     for r, values in enumerate(rows):
         for c, value in enumerate(values):
             if c in pill_cols:
-                accessible_item=QTableWidgetItem('');accessible_item.setData(Qt.ItemDataRole.AccessibleTextRole,str(value));accessible_item.setToolTip(str(value))
+                label=effects.status_label(value)
+                accessible_item=QTableWidgetItem('');accessible_item.setData(Qt.ItemDataRole.AccessibleTextRole,label);accessible_item.setToolTip(label)
                 widget.setItem(r,c,accessible_item)
-                if str(value) not in ("", "—"):
-                    widget.setCellWidget(r, c, _pill_cell(value))
-                else:
-                    widget.setCellWidget(r, c, None)
+                widget.setCellWidget(r, c, _pill_cell(value) if label else None)
                 continue
             widget.setCellWidget(r, c, None)
             item = QTableWidgetItem(str(value))
@@ -864,9 +869,9 @@ class Window(QMainWindow):
         target = self.store.active_target
         self.active_name.setText(target["label"] if target else T("Aucune cible"))
         self.active_host.setText(target["url"] if target else T("Ajoutez votre premier environnement."))
-        fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
+        fill_table(self.target_table, [(t["label"], t["url"], t["port"], "active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
         self._refresh_subdomain_ui()
-        rows = [(T(r["tool"]), (r.get("target") or {}).get("label", T("Cet ordinateur")), T(STATUS.get(r["status"], r["status"])), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
+        rows = [(T(r["tool"]), (r.get("target") or {}).get("label", T("Cet ordinateur")), "run:" + r["status"], r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
         fill_table(self.recent, rows[:3], pill_cols=(2,))
         self.recent_empty.setVisible(not rows)
         self.filter_history()
@@ -999,7 +1004,7 @@ class Window(QMainWindow):
                                and (category is None or t["key"] in members or (category=="builtin" and t["key"].startswith("desktop-")))
                                and (not self.only_ready.isChecked() or availability(t, self.store.settings["executables"], self.store.root)[1])]
         self.tool_table.blockSignals(True)
-        fill_table(self.tool_table, [(T(t["name"]), T(t["group"]), availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools], pill_cols=(2,))
+        fill_table(self.tool_table, [(T(t["name"]), T(t["group"]), availability_state(t, self.store.settings["executables"], self.store.root)) for t in self.filtered_tools], pill_cols=(2,))
         self.tool_table.blockSignals(False)
         self.tool_count.setText(f"{len(self.filtered_tools)} " + T("outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux"))
         if self.filtered_tools:
@@ -1091,7 +1096,7 @@ class Window(QMainWindow):
         self.run_title.setText(T("Installation des outils"))
         self.run_info.setText(T("Téléchargement, vérification et installation · En cours"))
         try:
-            self.runner.start("Dépendances natives", ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
+            self.runner.start(INSTALL_NATIVE, ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
             self.run_folder.setEnabled(True)
             self.navigate(3)
         except (OSError, RuntimeError, ValueError) as exc:
@@ -1237,7 +1242,7 @@ class Window(QMainWindow):
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
             self.run_title.setText(T('Installation des paquets Linux'))
-            self.runner.start('Dépendances Linux','Paquets Linux',{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
+            self.runner.start(INSTALL_LINUX,'Paquets Linux',{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
             self.navigate(3)
         except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 
@@ -1307,7 +1312,7 @@ class Window(QMainWindow):
             return not query or query in (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('flow_target') or r.get('target') or {})).casefold()
         self.visible_history=[r for r in self.history_rows if matches(r)]
         fill_table(self.history_table,[(T(r['tool'])+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
-            (r.get('flow_target') or r.get('target') or {}).get('label',T('Cet ordinateur')),T(STATUS.get(r['status'],r['status'])),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
+            (r.get('flow_target') or r.get('target') or {}).get('label',T('Cet ordinateur')),'run:'+r['status'],r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
         self.history_count.setText(T('{shown} résultat(s) affiché(s) sur {total}').format(shown=len(self.visible_history),total=len(self.history_rows)))
         self.show_history()
 
@@ -1378,7 +1383,7 @@ class Window(QMainWindow):
                     self.statusBar().showMessage(text)
             except (OSError,ValueError):pass
         self.refresh()
-        if result['tool']=='Dépendances natives':
+        if result['tool']==INSTALL_NATIVE:
             pending=getattr(self,'pending_installers',[]); self.pending_installers=[]
             if result['status']=='success' and os.name=='nt':
                 for package in pending:
@@ -1390,7 +1395,7 @@ class Window(QMainWindow):
                         os.startfile(str(path))
                         self.run_info.setText(T('Assistant officiel ouvert. Terminez l’installation puis cliquez sur Actualiser dans la boîte à outils.'))
                     except (OSError,ValueError) as exc: QMessageBox.warning(self,T('Installateur'),str(exc))
-        if result['tool']=='Dépendances Linux':
+        if result['tool']==INSTALL_LINUX:
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0,self.check_backend)
         if self._fanout:

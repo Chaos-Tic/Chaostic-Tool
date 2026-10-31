@@ -51,11 +51,15 @@ class PackageTests(unittest.TestCase):
         Path(command[0]).unlink()
         self.assertIsNone(managed_command('ffuf',root=self.root))
 
-    def test_no_service_is_counted_ready_for_amass(self):
+    def test_amass_is_ready_when_installed_no_engine_needed(self):
+        # Amass v5 needs no collection engine; once the binary resolves it is
+        # plainly Ready (the old 'Service requis' state was misleading).
         tool = next(t for t in catalog() if t['key']=='amass')
-        self.assertFalse(availability(tool,{},self.root)[1])
+        with patch('desktop.catalog.native_command',return_value=None), \
+             patch('desktop.catalog.linux_status',return_value={}):
+            self.assertFalse(availability(tool,{},self.root)[1])
         with patch('desktop.catalog.native_command',return_value=['amass']):
-            self.assertEqual(availability(tool,{},self.root), ('Service requis',False))
+            self.assertEqual(availability(tool,{},self.root), ('Prêt',True))
 
     def test_all_portable_archives_have_pinned_hashes(self):
         for spec in MANIFEST.values():

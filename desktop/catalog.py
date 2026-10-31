@@ -49,15 +49,16 @@ def _rewrite_args(args, rules):
 def amass_profile(index):
     """One honest Amass v5 desktop profile for CLI preset *index*.
 
-    Amass v5 always enumerates through a collection engine (``-engine``,
-    default http://127.0.0.1:4000). Passive is the default; CLI preset 1 is the
+    Amass v5 enumerates with no collection engine and no ``-passive`` flag
+    (passive is the default); discovered names go to stdout. CLI preset 1 is the
     active mode (``-active``), which adds zone transfers and certificate name
-    grabs. ``-passive`` is deprecated in v5 and a no-op, so it is not emitted.
+    grabs. The old ``-engine http://127.0.0.1:4000`` was misleading — amass does
+    not need a running engine — so it is not emitted.
     """
     active = index == 1
-    args = ['enum', '-active', '-d', '{host}', '-engine', '{engine}'] if active else ['enum', '-d', '{host}', '-engine', '{engine}']
-    label = 'Énumération active (transferts de zone et certificats)' if active else 'Énumération passive (moteur Amass)'
-    return dict(label=label, args=args, fields={'engine': ('Moteur de collecte Amass 5', 'http://127.0.0.1:4000')}, domain_only=True)
+    args = ['enum', '-active', '-d', '{host}'] if active else ['enum', '-d', '{host}']
+    label = 'Énumération active (transferts de zone et certificats)' if active else 'Énumération passive (sources par défaut)'
+    return dict(label=label, args=args, domain_only=True)
 
 
 # Declarative per-tool desktop transforms, applied generically by linux_presets /
@@ -177,7 +178,7 @@ for _key,_adapter in ADAPTERS.items():
     for _p in _adapter['presets']:
         _p['interactive']=bool(TOOLS[_key].get('interactive'))
 ADAPTERS['nuclei']['note']+=' Les modèles sont téléchargés lors du premier usage.'
-ADAPTERS['amass']['note']+=' Un moteur de collecte Amass configuré doit être accessible à l’URL indiquée.'
+ADAPTERS['amass']['note']+=' Amass v5 énumère sans moteur de collecte ; les noms trouvés sont affichés directement.'
 ADAPTERS['hashcat']['note']+=' Un pilote GPU/OpenCL compatible est requis.'
 
 BUILTINS['whois']=dict(name='Whois',category='osint',desc='Consultez les informations d’enregistrement auprès du serveur Whois.',presets=[dict(label='Requête Whois',worker='whois',needs_target=True)])
@@ -307,15 +308,38 @@ def find_executable(tool, configured=None, root=None):
     return None
 
 
-def availability(tool,settings,root=None):
-    if tool['mode']=='builtin': return 'Inclus',True
-    if tool['mode']=='native' and native_command(tool,settings.get(tool['key']),root):
-        return ('Service requis',False) if tool['key']=='amass' else ('Prêt',True)
+def availability_state(tool,settings,root=None):
+    """Resolve a tool to a shared :class:`core.availability.Availability`.
+
+    The single source of truth both front-ends read. Amass is plain READY once
+    installed (v5 needs no engine). Key-gated tools whose key is missing surface
+    NEEDS_KEY; a declared install error is BLOCKED; everything unresolved is
+    NOT_INSTALLED, with the French label kept so the GUI pill/legend is unchanged.
+    """
+    from core import availability as av
+    key=tool['key']
+    def _resolved(label,tone):
+        gated=av.KEY_GATED.get(key)
+        if gated and not av.key_present(gated):
+            return av.Availability(av.NEEDS_KEY,label='Clé requise',tone='warn',
+                                   reason=f'{gated} API key')
+        return av.Availability(av.READY,label=label,tone=tone)
+    if tool['mode']=='builtin': return av.Availability(av.READY,label='Inclus',tone='ok')
+    if tool['mode']=='native' and native_command(tool,settings.get(key),root):
+        return _resolved('Prêt','ok')
     status=linux_status(root)
-    if tool['key'] in status.get('tools',{}): return ('Service requis',False) if tool['key']=='amass' else ('Prêt · Linux',True)
-    if tool.get('package') and installation_error(tool['package'],root): return 'Échec installation',False
-    if tool['mode']=='native': return 'À installer',False
-    return ('À installer · Linux',False) if status.get('tools') else ('Linux à configurer',False)
+    if key in status.get('tools',{}): return _resolved('Prêt · Linux','info')
+    if tool.get('package') and installation_error(tool['package'],root):
+        return av.Availability(av.BLOCKED,label='Échec installation',tone='bad')
+    if tool['mode']=='native': return av.Availability(av.NOT_INSTALLED,label='À installer',tone='bad')
+    label='À installer · Linux' if status.get('tools') else 'Linux à configurer'
+    return av.Availability(av.NOT_INSTALLED,label=label,tone='bad')
+
+
+def availability(tool,settings,root=None):
+    """Legacy ``(French label, ready)`` tuple over :func:`availability_state`."""
+    state=availability_state(tool,settings,root)
+    return state.label,state.ready
 
 
 def build_arguments(tool,preset_index,target,wordlist='',fields=None,preset=None,backend='native'):

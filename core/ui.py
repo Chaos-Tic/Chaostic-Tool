@@ -19,6 +19,7 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
+from core import availability as av
 from core import executor, tui
 from core import target as tgt
 from core.proxy import PROXY_STATE, route_status, should_proxy_tool, wrap_command
@@ -170,6 +171,21 @@ def tool_available(tool):
         if _binary_matches_tool(tool, binary):
             return True
     return False
+
+
+def tool_availability(key, tool):
+    """Shared availability state for a CLI tool: PATH probe + API-key gating.
+
+    The terminal reads the same :class:`core.availability.Availability` as the
+    desktop app, so a tool shows Ready / Not installed / Needs key / Blocked
+    consistently instead of only READY/MISSING.
+    """
+    return av.for_cli(key, tool, tool_available(tool))
+
+
+def _availability_badge(state):
+    text, style = av.CLI_BADGE.get(state.state, ("", "brand.badge.bad"))
+    return _badge(text, style)
 
 
 def resolve_tool_binary(tool):
@@ -584,6 +600,11 @@ def run_preset(tool, preset, pause_after=True, flow_context=None):
         label = preset["label"] + (f" · {host}" if multi else "")
         context = {"tool": tool["name"], "preset": label,
                    "category": tool["category"], "route": route, "wait": pause_after}
+        if multi:
+            # Subdomain fan-out: tell the scan view which host of the batch this is,
+            # so the operator sees "host k/N" instead of a bare repeat of the run.
+            context["host_index"] = hosts.index(host) + 1
+            context["host_total"] = len(hosts)
         if flow_context:
             context["flow"] = flow_context
         rc = executor.run_tool(
@@ -660,10 +681,16 @@ def run_tool_menu(tool, _key=None, *, choose_preset=False):
         return
 
     while True:
-        entries = [
-            (str(i + 1), p["label"], "brand.ok", "ready-to-run command preset", _badge("READY", "brand.badge.ok"))
-            for i, p in enumerate(presets)
-        ]
+        entries = []
+        for i, p in enumerate(presets):
+            missing = av.preset_key_missing(p)
+            if missing:
+                entries.append((str(i + 1), p["label"], "brand.warn",
+                                f"needs the {missing} API key (set it: k · API keys)",
+                                _badge("NEEDS KEY", "brand.badge.warn")))
+            else:
+                entries.append((str(i + 1), p["label"], "brand.ok",
+                                "ready-to-run command preset", _badge("READY", "brand.badge.ok")))
         tool_footer = context_footer()
         tool_footer.append(f"[brand.faint]binary[/brand.faint] [brand.command]{escape(resolve_tool_binary(tool))}[/brand.command]")
         choice = menu(
@@ -701,10 +728,11 @@ def category_menu(title, tool_keys):
             if tool is None:
                 continue
             desc = tool.get("desc", "")
-            if tool_available(tool):
-                entries.append((str(i), tool["name"], "brand.ok", desc, _badge("READY", "brand.badge.ok")))
-            else:
-                entries.append((str(i), tool["name"], "brand.danger", desc, _badge("MISSING", "brand.badge.bad")))
+            avail = tool_availability(k, tool)
+            if avail.reason:
+                desc = f"{desc}  ·  {avail.reason}" if desc else avail.reason
+            entries.append((str(i), tool["name"], av.CLI_ROW_STYLE.get(avail.state, "brand.danger"),
+                            desc, _availability_badge(avail)))
             idx_map[str(i)] = k
 
         choice = menu(title, entries, footer_extra=context_footer())
@@ -734,25 +762,26 @@ def startup_check():
 
     header("Arsenal readiness scan")
 
-    present = []
-    missing = []
+    ready = []
+    attention = []  # (key, binary, tool, availability) for anything not plain-ready
     with console.status("[brand.accent]Mapping local tools...[/brand.accent]", spinner="dots"):
         for key, tool in {**TOOLS, **SUPPORT_TOOLS}.items():
-            binary = tool["binary"]
-            ok = tool_available(tool)
-            (present if ok else missing).append((key, binary, tool))
+            avail = tool_availability(key, tool)
+            (ready if avail.ready else attention).append((key, tool["binary"], tool, avail))
 
-    ok_count  = len(present)
-    nok_count = len(missing)
+    ok_count  = len(ready)
+    nok_count = len(attention)
     total     = ok_count + nok_count
-    ratio = f"{ok_count}/{total}"
+    needs_key = [row for row in attention if row[3].state == av.NEEDS_KEY]
+    missing   = [row for row in attention if row[3].state == av.NOT_INSTALLED]
 
     summary = Table.grid(expand=True)
-    for _ in range(3):
+    for _ in range(4):
         summary.add_column(ratio=1)
     summary.add_row(
-        _metric("READY", ratio, "brand.ok" if nok_count == 0 else "brand.warn"),
-        _metric("MISSING", nok_count, "brand.ok" if nok_count == 0 else "brand.danger"),
+        _metric("READY", f"{ok_count}/{total}", "brand.ok" if nok_count == 0 else "brand.warn"),
+        _metric("NOT INSTALLED", len(missing), "brand.ok" if not missing else "brand.danger"),
+        _metric("NEEDS KEY", len(needs_key), "brand.ok" if not needs_key else "brand.warn"),
         _metric("MODE", "root session", "brand.accent"),
     )
     console.print(Padding(Panel(summary, box=box.ROUNDED, border_style="brand.dim", padding=(0, 2)), (1, 0, 1, 0)))
@@ -775,22 +804,36 @@ def startup_check():
         pad_edge=True,
         header_style="brand.faint",
     )
-    table.add_column("TOOL", style="brand.danger", no_wrap=True)
+    table.add_column("TOOL", style="brand.white", no_wrap=True)
     table.add_column("BINARY", style="brand.command", no_wrap=True)
+    table.add_column("STATE", justify="right", no_wrap=True)
     table.add_column("WHY IT MATTERS", style="brand.muted", ratio=1)
-    for _, binary, tool in missing:
-        name = tool["name"]
-        desc = tool.get("desc", "")
+    for _, binary, tool, avail in attention:
         hint = ""
         if binary == "httpx" and shutil.which("httpx"):
             hint = " [brand.muted](system httpx is the Python library, not ProjectDiscovery)[/brand.muted]"
-        table.add_row(escape(name), escape(binary), f"{escape(desc)}{hint}")
+        why = tool.get("desc", "")
+        if avail.reason:
+            why = f"{why} — {avail.reason}" if why else avail.reason
+        table.add_row(escape(tool["name"]), escape(binary), _availability_badge(avail), f"{escape(why)}{hint}")
     console.print(table)
+
+    if not missing:
+        console.print(
+            Panel(
+                "[brand.warn]Every missing tool only needs an API key — set it from the main menu "
+                "(k · API keys).[/brand.warn]",
+                border_style="brand.warn",
+                box=box.ROUNDED,
+            )
+        )
+        pause()
+        return
 
     console.print(
         Panel(
             "[brand.warn]Missing binaries:[/brand.warn] "
-            + ", ".join(f"[brand.command]{escape(b)}[/brand.command]" for _, b, _ in missing),
+            + ", ".join(f"[brand.command]{escape(b)}[/brand.command]" for _, b, _, _ in missing),
             border_style="brand.warn",
             box=box.ROUNDED,
         )
@@ -800,7 +843,7 @@ def startup_check():
     ).strip().lower()
 
     if rep in ("", "y", "yes", "o", "oui"):
-        install_missing([(k, b) for k, b, _ in missing], assume_yes=True)
+        install_missing([(k, b) for k, b, _, _ in missing], assume_yes=True)
 
     console.print()
     pause()

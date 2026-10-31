@@ -3,25 +3,57 @@ from PySide6.QtCore import Qt,QVariantAnimation,QPropertyAnimation,QEasingCurve,
 from PySide6.QtGui import QColor,QPainter,QPen
 from PySide6.QtWidgets import QLabel,QPushButton,QGraphicsOpacityEffect,QGraphicsDropShadowEffect,QSizePolicy
 
-READY='#16a34a';LINUX='#0891b2';PENDING='#b45309';FAIL='#dc2626';RUNNING='#e3324f';MUTED='#5b6472'
+from core.availability import Availability
 
-def status_color(text):
-    from desktop import theme
-    colors=theme.COLORS
-    value=text.casefold()
-    if any(w in value for w in ('échec','arrêté','interrompu','invalide','failed','stopped','interrupted','invalid')):return colors['DANGER']
-    if any(w in value for w in ('en cours','running','in progress')):return colors['ACCENT']
-    if any(w in value for w in ('inclus','détecté','prêt','terminé','actif','active','bundled','detected','ready','done')):return colors['INFO'] if 'linux' in value else colors['GOOD']
-    if any(w in value for w in ('installer','requis','configurer','à faire','passé','install','required','configure','to do','skipped')):return colors['WARNING']
-    return colors['MUTED']
+# A status is chosen by a STABLE KEY (or an Availability), never by matching an
+# already-translated display label. The old substring matcher greyed English
+# pills whenever a translation did not happen to contain the French needle; keys
+# are language-independent, so classification is identical in FR and EN.
+#
+# tone -> desktop.theme.COLORS role (violet has no desktop role → the accent blue)
+_TONE={'ok':'GOOD','bad':'DANGER','warn':'WARNING','info':'INFO','accent':'ACCENT','violet':'ACCENT','muted':'MUTED'}
 
-def status_pill(text,parent=None):
+# Stable status key -> (French source label, tone). Flow-step states and the
+# run/history vocabulary (short labels) are distinct keys so each keeps its own
+# wording while both classify by key.
+STATUS_KEYS={
+    # flow step states (flow_panel)
+    'pending':('À faire','warn'),'running':('En cours','accent'),
+    'success':('Terminé','ok'),'failed':('Échec — relançable','bad'),
+    'cancelled':('Arrêté — relançable','warn'),'skipped':('Passé','warn'),
+    'deleted':('Résultat supprimé — relançable','warn'),
+    # run/history states (window STATUS map)
+    'run:running':('En cours','accent'),'run:success':('Terminé','ok'),
+    'run:failed':('Échec','bad'),'run:cancelled':('Arrêté','warn'),
+    'run:interrupted':('Interrompu','warn'),
+    # target table
+    'active':('Active','ok'),
+}
+
+def _parts(status):
+    """(French source label, tone) for an Availability or a stable key."""
+    if isinstance(status,Availability):
+        return status.label,status.shade
+    return STATUS_KEYS.get(status,(str(status),'muted'))
+
+def status_label(status):
+    """Translated display label for a status key/Availability ('' when empty)."""
     from desktop.i18n import T
-    pill=QLabel(T(str(text)),parent);pill.setTextFormat(Qt.TextFormat.PlainText)
-    c=QColor(status_color(text));pill.setFixedHeight(24)
+    label,_=_parts(status)
+    return '' if label in ('','—') else T(label)
+
+def status_color(status):
+    from desktop import theme
+    _,tone=_parts(status)
+    return theme.COLORS[_TONE.get(tone,'MUTED')]
+
+def status_pill(status,parent=None):
+    text=status_label(status) or str(status)
+    c=QColor(status_color(status));pill=QLabel(text,parent);pill.setTextFormat(Qt.TextFormat.PlainText)
+    pill.setFixedHeight(24)
     pill.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Fixed)
     pill.setStyleSheet(f'color:{c.name()}; background:rgba({c.red()},{c.green()},{c.blue()},26); border:1px solid rgba({c.red()},{c.green()},{c.blue()},90); border-radius:4px; padding:2px 12px; font-size:12px; font-weight:600;')
-    pill.setToolTip(str(text));pill.setAccessibleName(str(text));pill.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
+    pill.setToolTip(text);pill.setAccessibleName(text);pill.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
     return pill
 
 

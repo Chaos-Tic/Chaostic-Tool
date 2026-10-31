@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt,QSize
 from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QLabel,QComboBox,QPushButton,QListWidget,QListWidgetItem,QDialog,QDialogButtonBox,QLineEdit,QFileDialog,QMessageBox,QScrollArea,QFrame,QFormLayout,QCheckBox
 from core.tools import TOOLS
-from desktop.catalog import availability
+from desktop.catalog import availability,availability_state
 from desktop.flows import load_flows,save_custom,import_flows,validate_flow,step_tool,FlowSession
 from desktop.launch_dialog import LaunchDialog,command_preview
 from desktop import effects
@@ -79,7 +79,7 @@ class FlowPrepareDialog(QDialog):
     def _step_group(self,i,key,index):
         group=QFrame(); group.setObjectName('cmdcard'); gl=QVBoxLayout(group)
         tool=self.window.tool_by_key[key]
-        ready=availability(tool,self.window.store.settings['executables'],self.window.store.root)[0]
+        ready=availability_state(tool,self.window.store.settings['executables'],self.window.store.root)
         title=QLabel(f"{i+1:02d} · {T(tool['name'])} — {T(TOOLS[key]['presets'][index]['label'])}")
         title.setStyleSheet('font-weight:600; background:transparent;'); title.setWordWrap(True); gl.addWidget(title)
         pills=QHBoxLayout(); pills.addWidget(effects.status_pill(ready)); pills.addStretch(); gl.addLayout(pills)
@@ -188,9 +188,9 @@ class FlowPanel(QWidget):
         states={'pending':T('À faire'),'success':T('Terminé'),'failed':T('Échec — relançable'),'cancelled':T('Arrêté — relançable'),'skipped':T('Passé'),'running':T('En cours'),'deleted':T('Résultat supprimé — relançable')}
         for index,(key,preset) in enumerate(flow['steps']):
             state=self.session.record['steps'][index]['status'] if self.session else 'pending'
-            tool=self.window.tool_by_key[key]; ready=availability(tool,self.window.store.settings['executables'],self.window.store.root)[0]
+            tool=self.window.tool_by_key[key]; ready=availability_state(tool,self.window.store.settings['executables'],self.window.store.root)
             item=QListWidgetItem(); item.setData(Qt.ItemDataRole.AccessibleTextRole, f"{index+1} {tool['name']} {states.get(state,state)}"); self.list.addItem(item)
-            self.list.setItemWidget(item,self._step_widget(index,tool['name'],TOOLS[key]['presets'][preset]['label'],states.get(state,state),ready,self._step_command(key,preset,target)))
+            self.list.setItemWidget(item,self._step_widget(index,tool['name'],TOOLS[key]['presets'][preset]['label'],state,ready,self._step_command(key,preset,target)))
             item.setSizeHint(QSize(0,118))
         self.list.setCurrentRow(max(0,current))
     def _step_command(self,key,index,target):
@@ -201,7 +201,7 @@ class FlowPanel(QWidget):
             return command_preview(resolved,preset,(target or None) if preset.get('needs_target',True) else None,'',{},backend)
         except (ValueError,KeyError,TypeError,IndexError):
             return ''
-    def _step_widget(self,index,tool_name,preset_label,state_text,ready_text,command=''):
+    def _step_widget(self,index,tool_name,preset_label,state_key,ready,command=''):
         holder=QWidget(); holder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
         box=QVBoxLayout(holder); box.setContentsMargins(6,4,6,4); box.setSpacing(5)
         title=QLabel(f"{index+1:02d} · {T(tool_name)} — {T(preset_label)}")
@@ -209,7 +209,7 @@ class FlowPanel(QWidget):
         title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
         box.addWidget(title)
         pills=QHBoxLayout(); pills.setContentsMargins(0,0,0,0); pills.setSpacing(8)
-        pills.addWidget(effects.status_pill(state_text)); pills.addWidget(effects.status_pill(ready_text)); pills.addStretch()
+        pills.addWidget(effects.status_pill(state_key)); pills.addWidget(effects.status_pill(ready)); pills.addStretch()
         box.addLayout(pills)
         if command:
             cmd=QLabel(command); cmd.setObjectName('cmdlabel'); cmd.setWordWrap(True); cmd.setTextFormat(Qt.TextFormat.PlainText)

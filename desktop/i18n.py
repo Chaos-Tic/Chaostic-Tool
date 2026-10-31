@@ -145,10 +145,12 @@ FR_EN = {
     "Prêt": "Ready",
     "Prêt · Linux": "Ready · Linux",
     "Service requis": "Service required",
+    "Clé requise": "Key required",
     "Échec installation": "Install failed",
     "À installer": "To install",
     "À installer · Linux": "To install · Linux",
     "Linux à configurer": "Configure Linux",
+    "Active": "Active",
 
     # --- Réglages ---
     "Apparence": "Appearance",

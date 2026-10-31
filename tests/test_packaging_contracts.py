@@ -99,6 +99,51 @@ class PackagingMetadataTests(unittest.TestCase):
                 self.assertNotIn(destructive, script,
                                  'maintainer scripts must notify, never auto-delete')
 
+    @unittest.skipIf(shutil.which('sh') is None, 'POSIX sh required')
+    def test_removal_notice_names_the_recorded_tools_and_stays_true_after_removal(self):
+        # The scriptlets print their notice while chaostictool-uninstall is about to
+        # disappear with the package, so they must not tell the user to run it next;
+        # they name what was recorded (8 names at most) and the two real ways out.
+        entries = ['file:/usr/local/bin/responder', 'symlink:/usr/local/bin/subfinder',
+                   'dir:/opt/chaostictool/Responder', 'pipx:impacket', 'pip:xsstrike',
+                   'gem:wpscan', 'repo:pacman:/etc/pacman.conf:chaotic-aur',
+                   'torrc:/etc/tor/torrc', 'pkg:pacman:nmap', 'pkg:apt:masscan',
+                   'go:/home/u/go/bin/httpx']
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / 'manifest'
+            manifest.write_text('# ChaosticTool manifest\n' + '\n'.join(entries) + '\n')
+            prerm = (ROOT / 'packaging/debian/prerm').read_text()
+            preun = (ROOT / 'packaging/fedora/preun.sh').read_text()
+            archinstall = (ROOT / 'packaging/arch/chaostictool.install').read_text()
+            runs = {
+                'prerm': (prerm, ['remove']),
+                'preun': (preun, ['0']),
+                'arch': (archinstall + '\npre_remove "$@"\n', ['chaostictool']),
+            }
+            for name, (text, args) in runs.items():
+                with self.subTest(script=name):
+                    text = text.replace('/var/lib/chaostictool/manifest', str(manifest))
+                    result = subprocess.run(['sh', '-c', text, name, *args],
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    out = result.stdout + result.stderr
+                    self.assertIn(f'recorded {len(entries)} installed item(s)', out)
+                    # Names are the last path/field component, sorted, 8 at most.
+                    self.assertIn('    chaotic-aur httpx impacket masscan nmap responder '
+                                  'Responder subfinder ...', out)
+                    self.assertNotIn('xsstrike', out, 'the ninth name and beyond are elided')
+                    self.assertIn('removes the chaostictool-uninstall command', out)
+                    self.assertIn('reinstall', out)
+                    self.assertIn('./uninstall.sh', out)
+                    self.assertNotIn('--dry-run   # preview', out,
+                                     'the command no longer exists after the removal')
+            # An untouched or empty manifest prints nothing at all.
+            manifest.write_text('# ChaosticTool manifest\n')
+            text = prerm.replace('/var/lib/chaostictool/manifest', str(manifest))
+            result = subprocess.run(['sh', '-c', text, 'prerm', 'remove'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout + result.stderr, '')
+
     def test_aur_publish_ships_the_pacman_scriptlet_next_to_the_pkgbuild(self):
         pkgbuild = (ROOT / 'packaging/arch/PKGBUILD').read_text()
         aur = (ROOT / 'packaging/arch/aur.sh').read_text()

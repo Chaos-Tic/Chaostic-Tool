@@ -118,6 +118,27 @@ confirm() {
     esac
 }
 
+# Counts and closing note shared by both modes. A dry run only plans the
+# removals it counted, and the "project directory" note is only meaningful
+# when running from a source checkout (the packaged command lives in /usr/bin).
+_print_summary() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo -e "  Would remove : ${GREEN}${REMOVED}${NC}"
+        echo -e "  Skipped      : ${DIM}${SKIPPED}${NC}"
+    else
+        echo -e "  Removed : ${GREEN}${REMOVED}${NC}"
+        echo -e "  Skipped : ${DIM}${SKIPPED}${NC}"
+    fi
+    [ "$FAILED" -gt 0 ] && echo -e "  Failed  : ${RED}${FAILED}${NC}"
+    echo ""
+    if [ "${BASH_SOURCE[0]:-}" = "$0" ] && [ -f "$SCRIPT_DIR/uninstall.sh" ] && [ -f "$SCRIPT_DIR/install.sh" ]; then
+        echo -e "${DIM}The project directory was not touched: ${SCRIPT_DIR}${NC}"
+        echo -e "${DIM}To fully remove it: sudo rm -rf ${SCRIPT_DIR}${NC}"
+    else
+        echo -e "${DIM}The ChaosticTool package itself is removed with your package manager.${NC}"
+    fi
+}
+
 _rm_file() {
     local path="$1"
     if [ -e "$path" ] || [ -L "$path" ]; then
@@ -236,9 +257,11 @@ detect_and_remove() {
         path="/usr/local/bin/$name"
         if [ -f "$path" ] && grep -q "opt/chaostictool" "$path" 2>/dev/null; then
             _rm_file "$path"
-        else
+        elif [ -e "$path" ]; then
             echo -e "  ${DIM}[-] not a ChaosticTool wrapper: $name${NC}"
             SKIPPED=$((SKIPPED + 1))
+        else
+            echo -e "  ${DIM}[-] not present: $name${NC}"
         fi
     done
 
@@ -247,9 +270,11 @@ detect_and_remove() {
         path="/usr/local/bin/$name"
         if [ -f "$path" ] && grep -q "impacket" "$path" 2>/dev/null; then
             _rm_file "$path"
-        else
+        elif [ -e "$path" ]; then
             echo -e "  ${DIM}[-] not a ChaosticTool wrapper: $name${NC}"
             SKIPPED=$((SKIPPED + 1))
+        else
+            echo -e "  ${DIM}[-] not present: $name${NC}"
         fi
     done
 
@@ -434,11 +459,7 @@ if [ ! -f "$MANIFEST" ]; then
     fi
     detect_and_remove
     echo -e "\n${CYAN}=== Summary ===${NC}"
-    echo -e "  Removed : ${GREEN}${REMOVED}${NC}"
-    echo -e "  Skipped : ${DIM}${SKIPPED}${NC}"
-    [ "$FAILED" -gt 0 ] && echo -e "  Failed  : ${RED}${FAILED}${NC}"
-    echo ""
-    echo -e "${DIM}The project directory was not touched: ${SCRIPT_DIR}${NC}"
+    _print_summary
     [ "$FAILED" -gt 0 ] && exit 1
     exit 0
 fi
@@ -456,6 +477,9 @@ declare -a M_PIP=()
 declare -a M_GEM=()
 declare -a M_REPOS=()
 declare -a M_PKGS=()
+# pkg: entries this run leaves installed (no --remove-packages, declined, or an
+# unknown manager): the manifest must keep them so --remove-packages can follow.
+declare -a M_PKGS_KEPT=()
 
 while IFS= read -r line; do
     [[ "$line" =~ ^# ]] && continue
@@ -463,7 +487,8 @@ while IFS= read -r line; do
     case "$line" in
         file:*)        M_FILES+=("${line#file:}") ;;
         symlink:*)     M_SYMLINKS+=("${line#symlink:}") ;;
-        dir:*)         M_DIRS+=("${line#dir:}") ;;
+        # The manifest directory itself is handled by section [7].
+        dir:*)         [ "${line#dir:}" = "$MANIFEST_DIR" ] || M_DIRS+=("${line#dir:}") ;;
         go:*)          M_GO+=("${line#go:}") ;;
         cargo:*)       M_CARGO+=("${line#cargo:}") ;;
         pipx:*)        M_PIPX+=("${line#pipx:}") ;;
@@ -714,7 +739,9 @@ if [ "${#M_PKGS[@]}" -gt 0 ]; then
                 dnf)    cmd=(dnf remove -y "${pkgs[@]}") ;;
                 zypper) cmd=(zypper --non-interactive rm --clean-deps "${pkgs[@]}") ;;
                 apk)    cmd=(apk del "${pkgs[@]}") ;;
-                *)      echo -e "  ${DIM}unknown manager $pm: ${pkgs[*]}${NC}"; continue ;;
+                *)      echo -e "  ${DIM}unknown manager $pm: ${pkgs[*]}${NC}"
+                        for pkg in "${pkgs[@]}"; do M_PKGS_KEPT+=("$pm:$pkg"); done
+                        continue ;;
             esac
             echo -e "  ${DIM}\$ ${cmd[*]}${NC}"
             if [ "$DRY_RUN" -eq 1 ]; then
@@ -732,9 +759,11 @@ if [ "${#M_PKGS[@]}" -gt 0 ]; then
                 fi
             else
                 SKIPPED=$((SKIPPED + ${#pkgs[@]}))
+                for pkg in "${pkgs[@]}"; do M_PKGS_KEPT+=("$pm:$pkg"); done
             fi
         done
     else
+        M_PKGS_KEPT=("${M_PKGS[@]}")
         echo -e "  ${DIM}These packages were installed by ChaosticTool. Re-run with --remove-packages${NC}"
         echo -e "  ${DIM}to remove them automatically (dependency-aware), or remove manually:${NC}\n"
         for pm in "${!by_pm[@]}"; do
@@ -757,24 +786,29 @@ fi
 echo -e "\n${CYAN}[7] Manifest directory${NC}"
 # The record is the only way to retry, so it is kept when a step failed. _rm_dir
 # honours --dry-run itself, so a dry run never loses the manifest either.
+# When packages stay installed, the manifest is reduced to those pkg: lines so a
+# later --remove-packages still knows what to remove; nothing else is left to
+# reverse, so the lines already handled are dropped.
 if [ "$FAILED" -gt 0 ]; then
     echo -e "  ${YELLOW}[!] kept (some removals failed; fix them and re-run):${NC} $MANIFEST_DIR"
+elif [ "${#M_PKGS_KEPT[@]}" -gt 0 ]; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo -e "  ${CYAN}[~] would keep manifest (${#M_PKGS_KEPT[@]} package(s) still installed):${NC} $MANIFEST"
+    else
+        {
+            echo "# ChaosticTool manifest"
+            echo "# reduced by the uninstaller: packages still installed (use --remove-packages)"
+            for entry in "${M_PKGS_KEPT[@]}"; do echo "pkg:$entry"; done
+        } > "$MANIFEST"
+        echo -e "  ${YELLOW}[!] kept (${#M_PKGS_KEPT[@]} package(s) still installed; re-run with --remove-packages):${NC} $MANIFEST"
+    fi
 else
     _rm_dir "$MANIFEST_DIR"
 fi
 
 # ---------------------------------------------------------------------------
 echo -e "\n${CYAN}=== Summary ===${NC}"
-echo -e "  Removed : ${GREEN}${REMOVED}${NC}"
-echo -e "  Skipped : ${DIM}${SKIPPED}${NC}"
-[ "$FAILED" -gt 0 ] && echo -e "  Failed  : ${RED}${FAILED}${NC}"
-echo ""
-if [ "${BASH_SOURCE[0]}" = "$0" ] && [ -f "$SCRIPT_DIR/uninstall.sh" ] && [ -f "$SCRIPT_DIR/install.sh" ]; then
-    echo -e "${DIM}The project directory was not touched: ${SCRIPT_DIR}${NC}"
-    echo -e "${DIM}To fully remove it: sudo rm -rf ${SCRIPT_DIR}${NC}"
-else
-    echo -e "${DIM}The ChaosticTool package itself is removed with your package manager.${NC}"
-fi
+_print_summary
 
 [ "$FAILED" -gt 0 ] && exit 1
 exit 0

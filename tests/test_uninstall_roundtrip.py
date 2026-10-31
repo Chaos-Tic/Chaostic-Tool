@@ -306,6 +306,52 @@ pacman() {{ echo "PACMAN $*" >>"$CALLLOG"; return 0; }}
         self.assertFalse(wrapper.exists())
         self.assertFalse(manifest_dir.exists())
 
+    def test_manifest_is_reduced_to_the_packages_left_installed_without_remove_packages(self):
+        # -y alone must not lose the record of the pkg: entries it did not remove,
+        # otherwise a later --remove-packages has nothing to work from. Everything
+        # already reversed is dropped from the kept manifest.
+        manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
+        manifest_dir.mkdir(parents=True)
+        wrapper = self.mk("usr/local/bin/responder")
+        lines = [f"dir:{manifest_dir}", f"file:{wrapper}", "pkg:pacman:wpscan", "pkg:pacman:nmap"]
+        result = run_uninstall(self.prefix, lines, remove_packages=0,
+                               extra_prelude='pacman() { echo "PACMAN $*" >>"$CALLLOG"; }\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(wrapper.exists())
+        self.assertFalse((self.prefix / "calls.log").exists(), "no package manager without --remove-packages")
+        self.assertTrue(manifest_dir.exists(), "the manifest dir must survive while packages remain")
+        self.assertIn("2 package(s) still installed; re-run with --remove-packages", result.stdout)
+        kept = [l for l in (self.prefix / "manifest").read_text().splitlines()
+                if l and not l.startswith("#")]
+        self.assertEqual(kept, ["pkg:pacman:wpscan", "pkg:pacman:nmap"])
+        # A second pass with --remove-packages still finds exactly those packages.
+        (self.prefix / "var" / "lib" / "chaostictool").mkdir(parents=True, exist_ok=True)
+        result = run_uninstall(self.prefix, kept, remove_packages=1,
+                               extra_prelude='pacman() { echo "PACMAN $*" >>"$CALLLOG"; }\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PACMAN -Rns --noconfirm -- wpscan nmap", (self.prefix / "calls.log").read_text())
+        self.assertFalse(manifest_dir.exists(), "nothing left to reverse: the manifest goes")
+
+    def test_dry_run_without_remove_packages_only_announces_the_kept_manifest(self):
+        manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
+        manifest_dir.mkdir(parents=True)
+        lines = [f"dir:{manifest_dir}", "pkg:apt:nmap"]
+        result = run_uninstall(self.prefix, lines, remove_packages=0, dry_run=1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would keep manifest (1 package(s) still installed)", result.stdout)
+        self.assertNotIn("would remove dir: " + str(manifest_dir), result.stdout)
+        self.assertEqual((self.prefix / "manifest").read_text(),
+                         "# ChaosticTool manifest\n" + "\n".join(lines) + "\n",
+                         "a dry run must not rewrite the manifest")
+
+    def test_manifest_dir_entry_alone_does_not_list_a_source_checkout(self):
+        manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
+        manifest_dir.mkdir(parents=True)
+        result = run_uninstall(self.prefix, [f"dir:{manifest_dir}"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("No source directories recorded.", result.stdout)
+        self.assertFalse(manifest_dir.exists())
+
     @unittest.skipIf(os.geteuid() == 0, "root can always remove the locked fixture")
     def test_manifest_dir_is_kept_when_a_removal_failed(self):
         manifest_dir = self.prefix / "var" / "lib" / "chaostictool"
@@ -361,6 +407,18 @@ class DetectionModeGateTests(unittest.TestCase):
         self.assertIn("RM_FILE /usr/local/bin/chaostictool", calls)
         self.assertIn("RM_DIR /opt/chaostictool", calls)
         self.assertIn(f"RM_FILE {self.go_bin}", calls, "detected Go binary approved by -y")
+
+    def test_dry_run_summary_says_would_remove_and_omits_the_checkout_note(self):
+        result = run_detection(self.prefix, assume_yes=1, force_detect=1, dry_run=1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Would remove :", result.stdout)
+        self.assertNotIn("Removed :", result.stdout)
+        # SCRIPT_DIR holds no uninstall.sh here (packaged command): no checkout note.
+        self.assertNotIn("The project directory was not touched", result.stdout)
+        self.assertIn("removed with your package manager", result.stdout)
+        # An absent wrapper is reported as absent, not as a foreign wrapper.
+        self.assertIn("not present: responder", result.stdout)
+        self.assertNotIn("not a ChaosticTool wrapper: responder", result.stdout)
 
     def test_force_detect_without_yes_is_not_approved_non_interactively(self):
         result = run_detection(self.prefix, assume_yes=0, force_detect=1)

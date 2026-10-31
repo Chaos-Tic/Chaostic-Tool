@@ -12,8 +12,6 @@ except ImportError:
     pwd = None
 import re
 import shlex
-import signal
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -220,6 +218,176 @@ def _capture_worker(state, cmd, output_path, textual, timeout, redactions):
             state.done.set()
 
 
+def _fileno(stream):
+    """Return a stream's real OS descriptor, or None when it has none."""
+    try:
+        fd = stream.fileno()
+    except (AttributeError, OSError, ValueError):
+        return None
+    return fd if isinstance(fd, int) and fd >= 0 else None
+
+
+def _write_all(fd, data):
+    """Write every byte to a descriptor, tolerating a vanished terminal."""
+    view = memoryview(data)
+    while view:
+        try:
+            written = os.write(fd, view)
+        except BlockingIOError:
+            continue
+        except OSError:
+            return
+        view = view[written:]
+
+
+def _window_size(fd):
+    """Current (rows, cols) of a terminal descriptor, with a sane fallback."""
+    if fd is not None:
+        import fcntl, struct, termios
+        try:
+            packed = fcntl.ioctl(fd, termios.TIOCGWINSZ, b"\x00" * 8)
+            rows, cols = struct.unpack("HHHH", packed)[:2]
+            if rows and cols:
+                return rows, cols
+        except (OSError, ValueError):
+            pass
+    return 24, 80
+
+
+def _final_rc(result):
+    return result.returncode if result is not None else 1
+
+
+def _report_interactive_error(result, rc, cmd):
+    """Mirror the capture path's missing-binary / failure messages."""
+    if result is None or not result.error:
+        return
+    if rc == 127:
+        console.print(f"[bright_red]Binary not found: {escape(cmd[0])}[/bright_red]")
+    else:
+        console.print(Text(f"Execution failed: {result.error}", style="bright_red"))
+
+
+def _pump_terminal(runner, backend, stdin_fd, size_fd=None):
+    """Bridge the user's terminal to the PTY master until the child exits.
+
+    Output already reaches the real terminal through the Runner's on_output
+    callback on the worker thread; this loop forwards keystrokes the other way,
+    signals EOF when the user's stdin closes, and tracks window-size changes.
+    Size is polled rather than driven from a SIGWINCH handler so it never has to
+    take the backend lock from inside a signal handler."""
+    import select
+    last_size = [None]
+
+    def track_size():
+        if size_fd is None:
+            return
+        size = _window_size(size_fd)
+        if size != last_size[0]:
+            last_size[0] = size
+            backend.resize(*size)
+
+    forwarding = stdin_fd is not None
+    if not forwarding:
+        runner.close_input()
+    while True:
+        track_size()
+        result = runner.wait(timeout=0)
+        if result is not None:
+            return result
+        if not forwarding:
+            runner.wait(timeout=0.05)
+            continue
+        ready, _, _ = select.select([stdin_fd], [], [], 0.05)
+        if not ready:
+            continue
+        try:
+            data = os.read(stdin_fd, 65536)
+        except OSError:
+            data = b""
+        if data:
+            backend.write_bytes(data)
+        else:
+            runner.close_input()
+            forwarding = False
+
+
+def _run_interactive(cmd):
+    """Run an interactive tool through the neutral Runner over a real PTY.
+
+    On POSIX the child gets its own controlling terminal (isatty, job control,
+    window size) through PtyBackend, and this process bridges the user's
+    terminal to it: raw mode so keystrokes and a typed Ctrl-C reach the tool
+    untouched, window-size tracking, and a termios restore on exit. Elsewhere
+    there is no POSIX PTY -- native interactive tools run through the WSL2
+    (POSIX) backend -- so a plain Runner stream keeps the one lifecycle."""
+    import sys
+    env = _build_env()
+    env.setdefault("TERM", "xterm-256color")
+    if os.name != "posix":
+        return _run_interactive_plain(cmd, env)
+    import termios
+    import tty
+    from core.backends.pty import PtyBackend
+
+    stdin_fd = _fileno(sys.stdin)
+    out_fd = _fileno(sys.stdout)
+    sink_fd = out_fd if out_fd is not None else 1
+    size_fd = out_fd if (out_fd is not None and os.isatty(out_fd)) else None
+    backend = PtyBackend(winsize=_window_size(size_fd if size_fd is not None else stdin_fd))
+    runner = Runner(backend)
+
+    raw_stdin = stdin_fd is not None and os.isatty(stdin_fd)
+    saved_attr = None
+    result = None
+    rc = 1
+    try:
+        if raw_stdin:
+            saved_attr = termios.tcgetattr(stdin_fd)
+            tty.setraw(stdin_fd)
+        runner.start(RunRequest(cmd, env=env, stop_grace=2, inherit_stdin=False,
+                                raw_output=True), lambda data: _write_all(sink_fd, data))
+        _register_process(runner)
+        result = _pump_terminal(runner, backend, stdin_fd, size_fd)
+        rc = _final_rc(result)
+    except KeyboardInterrupt:
+        _stop_process(runner)
+        rc = 130
+    except OSError as exc:
+        _stop_process(runner)
+        console.print(Text(f"Execution failed: {exc}", style="bright_red"))
+        rc = 1
+    finally:
+        if saved_attr is not None:
+            termios.tcsetattr(stdin_fd, termios.TCSADRAIN, saved_attr)
+        _forget_process(runner)
+    _report_interactive_error(result, rc, cmd)
+    return rc
+
+
+def _run_interactive_plain(cmd, env):
+    """Non-POSIX fallback: stream through the default Runner, no PTY or bridge."""
+    import sys
+    runner = Runner()
+    sink_fd = _fileno(sys.stdout)
+    result = None
+    rc = 1
+    try:
+        runner.start(RunRequest(cmd, env=env, stop_grace=2, inherit_stdin=True,
+                                raw_output=True),
+                     lambda data: _write_all(sink_fd if sink_fd is not None else 1, data))
+        _register_process(runner)
+        result = runner.wait()
+        rc = _final_rc(result)
+    except KeyboardInterrupt:
+        _stop_process(runner)
+        rc = 130
+    finally:
+        _forget_process(runner)
+    _report_interactive_error(result, rc, cmd)
+    return rc
+
+
 def run_tool(cmd, output_path=None, interactive=False, context=None, *, timeout=None,
              redactions=()):
     """Run an argv command; TTY capture uses a fullscreen bounded live view.
@@ -230,45 +398,13 @@ def run_tool(cmd, output_path=None, interactive=False, context=None, *, timeout=
     context = dict(context or {})
     display_cmd = [redact(argument, redactions) for argument in cmd]
     if interactive:
-        # The menu application has already exited; the child inherits the real
-        # terminal so curses/REPL tools (msfconsole, sqlmap prompts) keep their
-        # TTY. That rules out the capture Runner, whose pipe would break them.
-        #
-        # Windows limitation: there is no POSIX session/termios here, so the
-        # process-group isolation and terminal save/restore below are guarded by
-        # os.name == "posix". On Windows the child is launched directly without a
-        # dedicated job object; the interactive AD/console tools run through the
-        # WSL2 (POSIX) backend anyway.
+        # The menu application has already exited. The interactive tool runs
+        # through the neutral Runner over a real pseudo-terminal (PtyBackend):
+        # curses/REPL tools (msfconsole, the console suite) get a genuine
+        # controlling TTY, isatty() and job control, while ACTIVE_PROCS cleanup
+        # and Ctrl+C reaping flow through the single Runner lifecycle below.
         _print_command_panel(display_cmd, output_path, True)
-        posix = os.name == "posix"
-        proc = None
-        terminal = None
-        try:
-            import sys
-            if posix and sys.stdin.isatty():
-                import termios
-                terminal = (sys.stdin.fileno(), termios.tcgetattr(sys.stdin.fileno()))
-            # start_new_session puts the child in its own process group so a
-            # Ctrl+C reaches the whole tree; it is a POSIX-only Popen option.
-            popen_kwargs = {"start_new_session": True} if posix else {}
-            proc = subprocess.Popen(cmd, env=_build_env(), **popen_kwargs)
-            _register_process(proc)
-            rc = proc.wait()
-        except FileNotFoundError:
-            console.print(f"[bright_red]Binary not found: {escape(cmd[0])}[/bright_red]")
-            rc = 127
-        except KeyboardInterrupt:
-            _stop_process(proc)
-            rc = 130
-        except OSError as exc:
-            console.print(Text(f"Execution failed: {exc}", style="bright_red"))
-            _stop_process(proc)
-            rc = 1
-        finally:
-            _forget_process(proc)
-            if terminal is not None:
-                import termios
-                termios.tcsetattr(terminal[0], termios.TCSADRAIN, terminal[1])
+        rc = _run_interactive(cmd)
         console.print(_result_panel(rc, output_path, False))
         return rc
 
@@ -314,8 +450,7 @@ def cleanup_processes():
     with _ACTIVE_PROCS_LOCK:
         procs = list(ACTIVE_PROCS)
     for proc in procs:
-        if isinstance(proc, Runner) or proc.poll() is None:
-            _stop_process(proc)
+        _stop_process(proc)
         _forget_process(proc)
 
 
@@ -328,43 +463,17 @@ def _forget_process(proc):
 
 
 def _stop_process(proc):
-    """Stop the child's session, escalating with bounded waits and reaping it."""
+    """Cancel the run through the Runner and reap it with a bounded wait.
+
+    Both execution paths -- the capture worker and the interactive PTY bridge --
+    register a Runner, so the lifecycle is uniform: stop() is an idempotent,
+    asynchronous cancel the backend turns into its own SIGINT/SIGTERM/SIGKILL
+    escalation on the process group (or job termination on Windows), and wait()
+    reaps the child within the bound."""
     if proc is None:
         return
-    if isinstance(proc, Runner):
-        proc.stop()
-        proc.wait(timeout=8)
-        return
-    # A raw Popen from the interactive path. Process-group signalling with
-    # os.killpg (and SIGKILL) is POSIX-only; on Windows fall back to the
-    # cross-platform terminate()/kill() escalation.
-    if os.name != "posix":
-        for action, timeout in ((proc.terminate, 2), (proc.kill, 2)):
-            try:
-                action()
-            except (ProcessLookupError, OSError) as exc:
-                console.print(f"[dim]Process already stopped: {exc}[/dim]")
-            try:
-                proc.wait(timeout=timeout)
-                return
-            except subprocess.TimeoutExpired:
-                continue
-        return
-    for sig, timeout in ((signal.SIGINT, 2), (signal.SIGTERM, 2), (signal.SIGKILL, 2)):
-        try:
-            os.killpg(proc.pid, sig)
-        except ProcessLookupError:
-            pass
-        except OSError:
-            try:
-                proc.send_signal(sig)
-            except ProcessLookupError:
-                pass
-        try:
-            proc.wait(timeout=timeout)
-            return
-        except subprocess.TimeoutExpired:
-            continue
+    proc.stop()
+    proc.wait(timeout=8)
 
 
 def _chown_to_sudo_user(path):

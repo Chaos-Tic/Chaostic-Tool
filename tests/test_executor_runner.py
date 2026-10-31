@@ -170,11 +170,28 @@ assert rc == 130, rc
                 proc.kill()
                 proc.communicate(timeout=5)
 
-    def test_interactive_execution_keeps_the_inherited_terminal_path(self):
-        with patch.object(executor, "Runner", side_effect=AssertionError("captured runner used")), \
+    def test_interactive_execution_routes_through_a_pty_backed_runner(self):
+        # Contract change: the interactive path used to bypass the Runner and
+        # inherit the parent's descriptors, so the old test asserted the Runner
+        # was NOT used. It now runs through the neutral Runner over a real
+        # pseudo-terminal, so the child sees a genuine controlling TTY (isatty
+        # on fd 0/1, not the StringIO we patch in) and the Runner lifecycle
+        # still empties ACTIVE_PROCS. The assertion is inverted accordingly.
+        from core.backends.pty import PtyBackend
+        backends = []
+        real_runner = executor.Runner
+
+        def record(backend=None):
+            backends.append(backend)
+            return real_runner(backend)
+
+        child = "import os, sys; sys.exit(9 if os.isatty(0) and os.isatty(1) else 7)"
+        with patch.object(executor, "Runner", record), \
                 patch.object(sys, "stdin", io.StringIO()), patch.object(executor.console, "print"):
-            rc = executor.run_tool([sys.executable, "-c", "raise SystemExit(9)"], interactive=True)
-        self.assertEqual(rc, 9)
+            rc = executor.run_tool([sys.executable, "-c", child], interactive=True)
+        self.assertEqual(rc, 9, "the interactive child must see a real TTY on fd 0/1")
+        self.assertTrue(backends and isinstance(backends[0], PtyBackend),
+                        "interactive execution must route through the PTY backend")
         self.assertEqual(executor.ACTIVE_PROCS, [])
 
 

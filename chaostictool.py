@@ -49,34 +49,87 @@ def configure_target():
     ui.console.print(f"\n[brand.ok][+] Target set:[/brand.ok] [brand.white]{tgt.summary()}[/brand.white]")
     if d:
         ui.console.print(f"[brand.ok][+] Directory:[/brand.ok] [brand.command]{d}[/brand.command]")
+    _warn_if_unresolved()
     _configure_subdomain_scope()
     ui.pause()
 
 
+def _warn_if_unresolved():
+    """Flag a domain target that has no A/AAAA record, so it is not mistaken for a bug."""
+    from core import subdomains as sd
+    warning = sd.resolution_warning(tgt.TARGET["host"])
+    if warning:
+        ui.console.print(f"[bright_yellow][!] {warning}[/bright_yellow]")
+
+
 def _configure_subdomain_scope():
-    """Offer subdomain scope for a domain target: enumerate once, toggle on/off."""
+    """Offer subdomain scope for a domain target: enumerate, toggle, exclude."""
     from core import subdomains as sd
     host = tgt.TARGET["host"]
     if not sd.is_domain(host):
         return
+    while True:
+        cached = tgt.SCOPE["subdomains"]
+        excluded = set(tgt.SCOPE["excluded"])
+        state = "on" if tgt.SCOPE["include_subdomains"] else "off"
+        status = f"\n[brand.muted]Subdomain scope: {state}"
+        if cached:
+            active = len([s for s in cached if s not in excluded])
+            status += f", {len(cached)} cached"
+            if excluded:
+                status += f", {len(excluded)} excluded ({active} in scope)"
+        status += ".[/brand.muted]"
+        ui.console.print(status)
+        options = "[brand.accent]e[/brand.accent] enumerate now"
+        if cached:
+            options += "    [brand.accent]t[/brand.accent] turn " + ("off" if state == "on" else "on")
+            options += "    [brand.accent]x[/brand.accent] exclude / include subdomains"
+        options += "    [brand.accent]Enter[/brand.accent] done"
+        ui.console.print(options)
+        choice = ui.console.input("[brand.white]▸[/brand.white] ").strip().lower()
+        if choice == "e":
+            _enumerate_subdomains()
+        elif choice == "t" and cached:
+            tgt.set_scope_enabled(state == "off")
+            ui.console.print(f"[brand.ok][+] Subdomain scope {'enabled' if tgt.SCOPE['include_subdomains'] else 'disabled'}.[/brand.ok]")
+        elif choice == "x" and cached:
+            _manage_subdomain_exclusions()
+        else:
+            return
+
+
+def _manage_subdomain_exclusions():
+    """List discovered subdomains and toggle which are excluded from the fan-out."""
     cached = tgt.SCOPE["subdomains"]
-    state = "on" if tgt.SCOPE["include_subdomains"] else "off"
-    ui.console.print(f"\n[brand.muted]Subdomain scope: {state}"
-                     + (f", {len(cached)} subdomains cached" if cached else "") + ".[/brand.muted]")
-    options = "[brand.accent]e[/brand.accent] enumerate now"
-    if cached:
-        options += "    [brand.accent]t[/brand.accent] turn " + ("off" if state == "on" else "on")
-    options += "    [brand.accent]Enter[/brand.accent] skip"
-    ui.console.print(options)
-    choice = ui.console.input("[brand.white]▸[/brand.white] ").strip().lower()
-    if choice == "e":
-        _enumerate_subdomains()
-    elif choice == "t" and cached:
-        tgt.set_scope_enabled(state == "off")
-        ui.console.print(f"[brand.ok][+] Subdomain scope {'enabled' if tgt.SCOPE['include_subdomains'] else 'disabled'}.[/brand.ok]")
+    if not cached:
+        return
+    while True:
+        excluded = set(tgt.SCOPE["excluded"])
+        ui.console.print("\n[brand.muted]Discovered subdomains (✗ excluded from scope):[/brand.muted]")
+        for index, sub in enumerate(cached, start=1):
+            mark = "[bright_red]✗[/bright_red]" if sub in excluded else "[brand.ok]•[/brand.ok]"
+            ui.console.print(f"  {mark} [brand.accent]{index}[/brand.accent] {sub}")
+        ui.console.print("[brand.muted]Number toggles exclusion    [brand.accent]a[/brand.accent] include all"
+                         "    [brand.accent]n[/brand.accent] exclude all    [brand.accent]Enter[/brand.accent] back[/brand.muted]")
+        choice = ui.console.input("[brand.white]▸[/brand.white] ").strip().lower()
+        if not choice:
+            return
+        if choice == "a":
+            tgt.set_excluded([])
+            ui.console.print("[brand.ok][+] All subdomains included in scope.[/brand.ok]")
+        elif choice == "n":
+            tgt.set_excluded(list(cached))
+            ui.console.print("[bright_yellow][+] All subdomains excluded from scope.[/bright_yellow]")
+        elif choice.isdigit() and 1 <= int(choice) <= len(cached):
+            sub = cached[int(choice) - 1]
+            now_excluded = tgt.toggle_excluded(sub)
+            ui.console.print(f"[brand.ok][+] {sub} {'excluded from' if now_excluded else 'included in'} scope.[/brand.ok]")
+        else:
+            ui.console.print("[bright_red]Invalid choice.[/bright_red]")
 
 
 def _enumerate_subdomains():
+    """Enumerate via the shared path (subfinder primary + amass best-effort)."""
     from core import subdomains as sd
     host = tgt.TARGET["host"]
     env = executor._build_env()
@@ -84,36 +137,32 @@ def _enumerate_subdomains():
     if not tools:
         ui.console.print("[bright_red][!] Install subfinder (recommended) or amass to enumerate subdomains.[/bright_red]")
         return
-    # Run the enumerator through the shared operation view (same live, scrollable
-    # full-screen panel as any other tool) and parse its saved output.
-    name = tools[0]
-    cat = tgt.category_dir("osint")
-    output_path = str(executor.target_path(cat, "subdomains_raw", tgt.target_name())) if cat is not None else None
+    running = ", ".join(f"{name} (best-effort)" if name == "amass" else name for name in tools)
+    ui.console.print(f"[brand.muted][*] Enumerating subdomains with {running}…[/brand.muted]")
     try:
-        executor.run_tool(
-            sd.command_for(name, host), output_path=output_path, interactive=False,
-            context={"tool": f"{name} (subdomains)", "preset": host,
-                     "category": "osint", "route": "LOCAL / direct", "wait": True},
-            timeout=600,
-        )
+        with ui.console.status(f"[brand.accent]Running {running}…[/brand.accent]", spinner="dots"):
+            subs, counts, error = sd.enumerate_subdomains(host, env=env, budget=600)
     except Exception as exc:
         ui.console.print(f"[bright_red][!] Subdomain enumeration failed: {exc}[/bright_red]")
         return
-    text = ""
-    if output_path:
+    # Keep a plain copy of the discovered hosts in the OSINT folder for reference.
+    cat = tgt.category_dir("osint")
+    if cat is not None and subs:
         try:
-            with open(output_path, encoding="utf-8", errors="replace") as handle:
-                text = handle.read()
+            output_path = executor.target_path(cat, "subdomains", tgt.target_name())
+            output_path.write_text("\n".join(subs) + "\n", encoding="utf-8")
         except OSError:
-            text = ""
-    subs = sd.parse_hosts(text, host)
+            pass
     tgt.set_subdomains(subs)
     if subs:
         tgt.set_scope_enabled(True)
-        ui.console.print(f"[brand.ok][+] {len(subs)} subdomains found via {name}. "
+        ui.console.print(f"[brand.ok][+] {sd.enumeration_summary(len(subs), counts)} "
                          f"Subdomain scope enabled — host-targeted tools will run on all of them.[/brand.ok]")
+    elif error:
+        ui.console.print(f"[bright_yellow][!] {error}[/bright_yellow]")
     else:
-        ui.console.print("[bright_yellow][!] No subdomains found via {}.[/bright_yellow]".format(name))
+        ui.console.print("[bright_yellow][!] No subdomains found.[/bright_yellow]")
+    _warn_if_unresolved()
 
 
 def configure_api_keys():

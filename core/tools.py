@@ -1,3 +1,12 @@
+import os
+
+# Amass v5 writes the discovered names only to its ``-o`` file; stdout carries
+# progress. The enum presets therefore point ``-o`` at the process' own stdout,
+# which the executor already captures, so a standalone arsenal run shows names.
+# Windows has no /dev/stdout: there the presets stay progress-only rather than
+# fail on an unopenable path. Shared by the CLI presets and the desktop catalog.
+AMASS_STDOUT = ["-o", "/dev/stdout"] if os.name == "posix" else []
+
 TOOLS = {
     # ---------------- OSINT ----------------
     "whois": {
@@ -47,12 +56,13 @@ TOOLS = {
         "output_dir": "osint",
         "requires_root": False,
         # Amass v5 dropped the ``-passive`` flag (passive is the default) and runs
-        # without any collection engine; discovered names go to stdout. The two
-        # presets differ by what they actually do: the default passive pass versus
-        # ``-active`` (zone transfers + certificate name grabs).
+        # without any collection engine; discovered names go to the ``-o`` file
+        # (AMASS_STDOUT routes it to stdout). The two presets differ by what they
+        # actually do: the default passive pass versus ``-active`` (zone
+        # transfers + certificate name grabs).
         "presets": [
-            {"label": "Passive enumeration (default sources)",         "cmd": ["amass", "enum", "-d", "{host}"], "output": "amass_passive"},
-            {"label": "Active enumeration (zone transfers + certs)",   "cmd": ["amass", "enum", "-active", "-d", "{host}"], "output": "amass_active"},
+            {"label": "Passive enumeration (default sources)",         "cmd": ["amass", "enum", "-d", "{host}", *AMASS_STDOUT], "output": "amass_passive"},
+            {"label": "Active enumeration (zone transfers + certs)",   "cmd": ["amass", "enum", "-active", "-d", "{host}", *AMASS_STDOUT], "output": "amass_active"},
         ],
     },
     "dnsrecon": {

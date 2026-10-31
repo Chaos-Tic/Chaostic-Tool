@@ -5,7 +5,7 @@ import os
 import re
 import shutil
 from pathlib import Path
-from core.tools import TOOLS
+from core.tools import TOOLS, AMASS_STDOUT
 from core.phases import PHASES
 from desktop.tool_paths import resolve_tool
 from desktop.packages import MANIFEST, managed_command, installation_error, can_install, find_python, installed
@@ -50,13 +50,14 @@ def amass_profile(index):
     """One honest Amass v5 desktop profile for CLI preset *index*.
 
     Amass v5 enumerates with no collection engine and no ``-passive`` flag
-    (passive is the default); discovered names go to stdout. CLI preset 1 is the
-    active mode (``-active``), which adds zone transfers and certificate name
-    grabs. The old ``-engine http://127.0.0.1:4000`` was misleading — amass does
-    not need a running engine — so it is not emitted.
+    (passive is the default); discovered names go only to the ``-o`` file, so
+    the shared ``AMASS_STDOUT`` points it at stdout (captured by the runner).
+    CLI preset 1 is the active mode (``-active``), which adds zone transfers and
+    certificate name grabs. The old ``-engine http://127.0.0.1:4000`` was
+    misleading — amass does not need a running engine — so it is not emitted.
     """
     active = index == 1
-    args = ['enum', '-active', '-d', '{host}'] if active else ['enum', '-d', '{host}']
+    args = ['enum', '-active', '-d', '{host}', *AMASS_STDOUT] if active else ['enum', '-d', '{host}', *AMASS_STDOUT]
     label = 'Énumération active (transferts de zone et certificats)' if active else 'Énumération passive (sources par défaut)'
     return dict(label=label, args=args, domain_only=True)
 

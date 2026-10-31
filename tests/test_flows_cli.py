@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from core import flows, ui
 from core.flow_definitions import FLOWS
-from core.tools import TOOLS, get_tool
+from core.tools import TOOLS, AMASS_STDOUT, get_tool
 
 
 class FakeConsole:
@@ -222,6 +222,17 @@ class HonestAmassTests(unittest.TestCase):
         self.assertNotIn("-active", presets[0]["cmd"])
         self.assertIn("-active", presets[1]["cmd"])
 
+    def test_cli_amass_routes_names_to_stdout_on_posix(self):
+        # amass v5 writes discovered names only to its -o file; without it a
+        # standalone run shows progress only. /dev/stdout has no Windows
+        # counterpart, so the suffix is empty there.
+        import os
+        expected = ["-o", "/dev/stdout"] if os.name == "posix" else []
+        self.assertEqual(AMASS_STDOUT, expected)
+        for p in TOOLS["amass"]["presets"]:
+            self.assertEqual(p["cmd"][-len(expected):] if expected else [], expected)
+            self.assertEqual(p["cmd"].count("-o"), 1 if expected else 0)
+
     def test_cli_and_gui_amass_describe_the_same_thing(self):
         from desktop.catalog import catalog
         cli = TOOLS["amass"]["presets"]
@@ -232,6 +243,9 @@ class HonestAmassTests(unittest.TestCase):
             self.assertNotIn("-passive", p["args"])
         self.assertNotIn("-active", gui[0]["args"])
         self.assertIn("-active", gui[1]["args"])
+        for c, g in zip(cli, gui):  # the GUI emits the same -o routing as the CLI
+            self.assertEqual(g["args"][-len(AMASS_STDOUT):] if AMASS_STDOUT else [], AMASS_STDOUT)
+            self.assertEqual(c["cmd"][1:], g["args"])
 
 
 class FlowPreviewKeyTests(unittest.TestCase):

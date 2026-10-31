@@ -20,3 +20,15 @@ Linux packages use their existing system channel. AppImage replacement keeps a
 backup and is atomic. Source checkouts are never reset by the updater.
 
 Checksums protect file integrity and do not replace OS publisher signatures.
+
+## API key storage
+
+API keys (Shodan, WPScan, GitHub) are stored, in order of preference, in the
+operating system's secret store through `keyring` (encrypted at rest by the OS),
+or, only after the user accepts, in a `0600` file under the application data
+directory. That file is encrypted with a user passphrase (PBKDF2-HMAC-SHA256 →
+Fernet) when the optional `cryptography` library is installed; otherwise it is
+base64-encoded but **not encrypted** and the interfaces say so. Without either,
+keys stay in memory for the current session. Keys are injected into tool
+environments only; a variable already set in the shell wins. See
+[User guide §4](docs/USER_GUIDE.md#4-api-keys).

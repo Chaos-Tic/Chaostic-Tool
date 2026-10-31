@@ -45,6 +45,28 @@ class DesktopTests(unittest.TestCase):
         self.store.remove_target(target["id"])
         self.assertIsNone(self.store.active_target)
 
+    def test_target_update_keeps_id_and_scope_rules(self):
+        target = self.store.add_target("example.com", "Avant")
+        self.store.set_target_scope(target["id"], subdomains=["api.example.com"], include=True)
+        # Same host: id preserved, label/port refreshed, subdomain scope kept.
+        updated = self.store.update_target(target["id"], "https://example.com:8443", "Après")
+        self.assertEqual(updated["id"], target["id"])
+        self.assertEqual(updated["label"], "Après")
+        self.assertEqual(updated["port"], 8443)
+        self.assertEqual(updated["subdomains"], ["api.example.com"])
+        self.assertTrue(updated["include_subdomains"])
+        self.assertEqual(len(self.store.targets), 1)
+        self.assertEqual(Store(self.store.root).targets[0]["id"], target["id"])
+        # Changing the host drops the now-stale subdomain scope.
+        moved = self.store.update_target(target["id"], "other.test", "")
+        self.assertEqual(moved["host"], "other.test")
+        self.assertEqual(moved.get("subdomains", []), [])
+        self.assertFalse(moved.get("include_subdomains", False))
+        # Unknown id returns None; an invalid address raises (handled by the dialog loop).
+        self.assertIsNone(self.store.update_target("nope", "x.test"))
+        with self.assertRaises(ValueError):
+            self.store.update_target(target["id"], "-oN")
+
     def test_corrupt_settings_are_preserved(self):
         self.store.path.write_text("{broken", encoding="utf-8")
         store = Store(self.store.root)

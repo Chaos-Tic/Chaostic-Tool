@@ -131,6 +131,23 @@ class Store:
         self.save()
         return target
 
+    def update_target(self, identifier, value, label=""):
+        target = next((t for t in self.targets if t["id"] == identifier), None)
+        if target is None:
+            return None
+        updated = parse_target(value, label)
+        updated["id"] = target["id"]
+        updated["created"] = target.get("created", updated["created"])
+        if updated["host"] == target.get("host"):
+            # Same host: keep the cached subdomain scope; a host change drops it.
+            for key in ("subdomains", "include_subdomains"):
+                if key in target:
+                    updated[key] = target[key]
+        target.clear()
+        target.update(updated)
+        self.save()
+        return target
+
     def set_target_scope(self, identifier, include=None, subdomains=None):
         """Store subdomain scope on a target: cached list and/or the on/off flag."""
         from core import subdomains as sd

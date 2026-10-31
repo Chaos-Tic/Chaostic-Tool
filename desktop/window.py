@@ -128,27 +128,31 @@ from desktop.hud import Hero,GridBackground,ScanOverlay,CircuitCard,HUDRail,cloc
 
 
 class TargetDialog(QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, *, name="", address="", editing=False):
         super().__init__(parent)
-        self.setWindowTitle(T("Ajouter une cible"))
+        self.setWindowTitle(T("Modifier la cible") if editing else T("Ajouter une cible"))
         self.setMinimumWidth(480)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(26, 26, 26, 26)
         layout.setSpacing(18)
-        layout.addWidget(label("Nouvelle cible", "sectionTitle"))  # i18n: traduit via label()
+        layout.addWidget(label("Modifier la cible" if editing else "Nouvelle cible", "sectionTitle"))  # i18n: traduit via label()
         layout.addWidget(label("Un domaine, une adresse IP ou une URL complète.\nL’ajout n’effectue aucune connexion réseau.", "muted", True))
         form = QFormLayout()
         form.setSpacing(14)
         self.name = QLineEdit()
         self.name.setPlaceholderText(T("Ex. Mon environnement de test"))
+        if name:
+            self.name.setText(name)
         self.address = QLineEdit()
         self.address.setPlaceholderText(T("https://example.com ou 127.0.0.1"))
         self.address.setObjectName("targetAddress")
+        if address:
+            self.address.setText(address)
         form.addRow(T("Nom (facultatif)"), self.name)
         form.addRow(T("Adresse"), self.address)
         layout.addLayout(form)
         actions = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
-        actions.button(QDialogButtonBox.StandardButton.Ok).setText(T("Ajouter la cible"))
+        actions.button(QDialogButtonBox.StandardButton.Ok).setText(T("Enregistrer") if editing else T("Ajouter la cible"))
         actions.button(QDialogButtonBox.StandardButton.Ok).setObjectName("primary")
         actions.button(QDialogButtonBox.StandardButton.Cancel).setText(T("Annuler"))
         actions.accepted.connect(self.accept)
@@ -471,6 +475,7 @@ class Window(QMainWindow):
         layout.addWidget(self.target_table, 1)
         actions = QHBoxLayout()
         actions.addWidget(button("Définir comme cible active", self.activate_target))
+        actions.addWidget(button("Modifier la cible", self.edit_target))
         actions.addWidget(button("Retirer la cible", self.remove_target))
         actions.addStretch()
         layout.addLayout(actions)
@@ -967,6 +972,22 @@ class Window(QMainWindow):
             if QMessageBox.question(self, T("Retirer la cible"), T("Retirer « {label} » ? Les résultats seront conservés.").format(label=target['label'])) == QMessageBox.StandardButton.Yes:
                 self.store.remove_target(target["id"])
                 self.refresh()
+
+    def edit_target(self):
+        row = self.target_table.currentRow()
+        if not (0 <= row < len(self.store.targets)):
+            return
+        target = self.store.targets[row]
+        dialog = TargetDialog(self, name=target.get("label", ""), address=target.get("url", ""), editing=True)
+        while dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.store.update_target(target["id"], dialog.address.text(), dialog.name.text())
+            except (ValueError, OSError) as exc:
+                QMessageBox.warning(self, T("Cible non modifiée"), str(exc))
+                continue
+            self.refresh()
+            self.statusBar().showMessage(T("Cible modifiée."))
+            break
 
     def filter_tools(self):
         selected = self.selected_tool()

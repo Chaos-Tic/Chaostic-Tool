@@ -20,7 +20,12 @@ chaostictool-desktop
 
 Run the GUI as a regular user. The application menu entry uses the same launcher.
 Use `apt remove chaostictool` or `dnf remove chaostictool` to remove
-it. User settings and results remain in the user data folder.
+it. User settings and results remain in the user data folder. Package removal never
+removes the external security tools ChaosticTool installed at runtime: run
+`sudo chaostictool-uninstall --dry-run`, then `sudo chaostictool-uninstall`, **before**
+removing the package to reverse exactly what `/var/lib/chaostictool/manifest` records
+(pre-existing tools are never listed); the maintainer scriptlet only prints a notice.
+See the [Uninstall section of the README](../README.md#uninstall).
 
 ## Source installation with CMake
 
@@ -87,5 +92,5 @@ winget upgrade ChaosTic.ChaosticTool
 ```
 
 Each tagged release refreshes the winget manifests automatically after the first
-submission. The signed installer is also attached to every GitHub Release; see
+submission. The installer (unsigned, with its SHA-256) is also attached to every GitHub Release; see
 [the Windows guide](../README_WINDOWS.md) for the manual download and checksum steps.

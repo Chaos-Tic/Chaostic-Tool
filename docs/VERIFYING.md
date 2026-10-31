@@ -11,8 +11,8 @@ who produced the file.
 
 Each release contains a `SHA256SUMS` file covering all installer packages:
 - Linux packages (`.deb`, `.rpm`, `.AppImage`, `.tar.gz`)
-- Windows installers (`.exe`, `.zip`)
-- macOS bundles (`.dmg`, `.tar.gz`)
+- Windows installers (`.exe`)
+- macOS disk images (`.dmg`)
 
 ### Verifying on Linux / macOS:
 ```bash

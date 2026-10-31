@@ -46,11 +46,9 @@ CATALOG_ORDER = [
 ]
 
 AMASS = [
-    ('Énumération passive (moteur Amass)', ['enum', '-d', '{host}', '-engine', '{engine}'],
-     {'engine': ('Moteur de collecte Amass 5', 'http://127.0.0.1:4000')}),
+    ('Énumération passive (sources par défaut)', ['enum', '-d', '{host}'], {}),
     ('Énumération active (transferts de zone et certificats)',
-     ['enum', '-active', '-d', '{host}', '-engine', '{engine}'],
-     {'engine': ('Moteur de collecte Amass 5', 'http://127.0.0.1:4000')}),
+     ['enum', '-active', '-d', '{host}'], {}),
 ]
 
 # label, native-args, native-fields, linux-args, linux-fields for the five tools.

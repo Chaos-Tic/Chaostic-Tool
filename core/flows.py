@@ -2,6 +2,7 @@ import json
 import shlex
 from pathlib import Path
 
+from core import availability as av
 from core import target as tgt
 from core import ui
 from core.paths import data_home, ensure_directory
@@ -324,9 +325,14 @@ def _render_preview(records):
             ui.console.print(f"  {mark} [brand.red]{i}.[/brand.red] [brand.white]{tname}[/brand.white] "
                              f"[bright_red]— {r['problem']}[/bright_red]")
             continue
-        avail = "" if r["available"] else " [bright_red](not installed)[/bright_red]"
+        if not r["available"]:
+            note = " [bright_red](not installed)[/bright_red]"
+        elif (missing := av.preset_key_missing(r["preset"])):
+            note = f" [brand.warn](needs the {missing} API key)[/brand.warn]"
+        else:
+            note = ""
         ui.console.print(f"  {mark} [brand.red]{i}.[/brand.red] [brand.white]{tname}[/brand.white] "
-                         f"[brand.muted]— {r['preset']['label']}[/brand.muted]{avail}")
+                         f"[brand.muted]— {r['preset']['label']}[/brand.muted]{note}")
         ui.console.print(f"        [brand.command]{shlex.join(_preview_command(tool, r['preset']))}[/brand.command]")
 
 
@@ -396,7 +402,7 @@ def _progress_recap(active, current_index):
     for idx, r in enumerate(active):
         name = r["tool"]["name"] if r["tool"] else r["tool_key"]
         if idx == current_index:
-            glyph, style, word = "▶", "brand.accent", "now"
+            glyph, style, word = "▶", "brand.violet", "now"
         elif idx < current_index:
             glyph, style = _PROGRESS_GLYPH.get(r["status"], ("·", "brand.faint"))
             word = r["status"]

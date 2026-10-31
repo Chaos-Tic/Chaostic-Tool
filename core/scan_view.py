@@ -120,6 +120,12 @@ def run_scan(state, start, abort, context, cmd, output_path):
     def category():
         return str(context.get("category") or "Tools")
 
+    def host_tail():
+        # Subdomain fan-out position, when run_preset threaded it through: a plain
+        # "host k/N" counter so a long batch never looks like a stuck repeat.
+        hi, ht = context.get("host_index"), context.get("host_total")
+        return [("class:muted", "   ·   "), ("class:violet", f"host {hi}/{ht}")] if hi and ht else []
+
     def breadcrumb():
         # Inside a flow, the masthead names the flow and the step position instead
         # of the generic "Home / <category>" trail, so the operator always knows
@@ -127,12 +133,12 @@ def run_scan(state, start, abort, context, cmd, output_path):
         # threaded through run_preset -> executor.run_tool -> here.
         flow = context.get("flow")
         if flow:
-            return [("class:name", f"Flow {flow.get('name', '')}"),
-                    ("class:muted",
-                     f"   ·   step {flow.get('index', '?')}/{flow.get('total', '?')}   ·   "),
-                    ("class:name", tool_name())]
-        return [("class:name", tool_name()), ("class:muted", "   —   Home / "),
-                ("class:muted", category())]
+            return ([("class:name", f"Flow {flow.get('name', '')}"),
+                     ("class:muted",
+                      f"   ·   step {flow.get('index', '?')}/{flow.get('total', '?')}   ·   "),
+                     ("class:name", tool_name())] + host_tail())
+        return ([("class:name", tool_name()), ("class:muted", "   —   Home / "),
+                 ("class:muted", category())] + host_tail())
 
     def activity():
         # A small live scan bar while running (btop-style motion), a static
@@ -286,6 +292,7 @@ def run_scan(state, start, abort, context, cmd, output_path):
         "brand": f"bold {COLORS['text']}",
         "name": f"bold {COLORS['text']}",
         "accent": f"bold {COLORS['accent']}",
+        "violet": f"bold {COLORS['violet']}",
         "cmd": COLORS["accent"],
         "muted": COLORS["muted"], "faint": COLORS["faint"],
         "eyebrow": COLORS["faint"], "line": COLORS["line_soft"],

@@ -143,6 +143,7 @@ CATALOG = {
     "Vérifier cet ordinateur": "Check this computer",
     "Vérifier le certificat": "Check the certificate",
     "Énumération passive (moteur Amass)": "Passive enumeration (Amass engine)",
+    "Énumération passive (sources par défaut)": "Passive enumeration (default sources)",
     "Énumération active (transferts de zone et certificats)": "Active enumeration (zone transfers and certificates)",
     "Énumération complète de ce PC": "Full enumeration of this PC",
 

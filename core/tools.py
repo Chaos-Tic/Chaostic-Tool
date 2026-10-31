@@ -46,9 +46,13 @@ TOOLS = {
         "category": "osint",
         "output_dir": "osint",
         "requires_root": False,
+        # Amass v5 dropped the ``-passive`` flag (passive is the default) and runs
+        # without any collection engine; discovered names go to stdout. The two
+        # presets differ by what they actually do: the default passive pass versus
+        # ``-active`` (zone transfers + certificate name grabs).
         "presets": [
-            {"label": "Passive enumeration (no noise)",    "cmd": ["amass", "enum", "-passive", "-d", "{host}"], "output": "amass_passive"},
-            {"label": "Active enumeration (DNS bruteforce)", "cmd": ["amass", "enum", "-active", "-d", "{host}"], "output": "amass_active"},
+            {"label": "Passive enumeration (default sources)",         "cmd": ["amass", "enum", "-d", "{host}"], "output": "amass_passive"},
+            {"label": "Active enumeration (zone transfers + certs)",   "cmd": ["amass", "enum", "-active", "-d", "{host}"], "output": "amass_active"},
         ],
     },
     "dnsrecon": {

@@ -434,6 +434,10 @@ TOOLS = {
         "binary_alternatives": ["impacket-GetUserSPNs", "GetUserSPNs"],
         "desc": "Kerberoasting: retrieves TGS tickets to crack passwords offline",
         "category": "postexploit",
+        # Assessment phase, when it differs from a plain rename of the category:
+        # this Active Directory tool lives in the 08_windows phase, a hand-picked
+        # subset of the postexploit category (see core/phases.py).
+        "phase": "08_windows",
         "output_dir": "postexploit",
         "requires_root": False,
         "presets": [
@@ -460,6 +464,7 @@ TOOLS = {
         "binary": "bloodhound-python",
         "desc": "AD data collection for BloodHound: ACLs, GPOs, attack paths",
         "category": "postexploit",
+        "phase": "08_windows",  # Active Directory phase, split out of postexploit (see core/phases.py)
         "output_dir": "postexploit",
         "requires_root": False,
         "presets": [

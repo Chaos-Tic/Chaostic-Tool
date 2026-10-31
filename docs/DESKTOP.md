@@ -122,7 +122,7 @@ produits par les outils eux-mêmes peuvent contenir des données sensibles.
 
 ## Exécuter depuis les sources
 
-Utiliser Python 3.14 et cloner la branche `main`. Depuis la racine du clone :
+Utiliser Python 3.11 ou plus récent et cloner la branche `main`. Depuis la racine du clone :
 
 ```sh
 python -m venv .venv

@@ -17,7 +17,7 @@ in light mode; existing theme preferences are preserved.
 
 ## Run from source
 
-Use Python 3.14 and a desktop session with the Qt graphics libraries installed.
+Use Python 3.11 or newer and a desktop session with the Qt graphics libraries installed.
 On Debian/Ubuntu, the graphics packages are:
 
 ```sh
@@ -29,7 +29,7 @@ Then prepare an isolated Python environment:
 ```sh
 git clone https://github.com/Chaos-Tic/Chaostic-Tool.git
 cd Chaostic-Tool
-python3.14 -m venv .venv
+python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-desktop.txt
 python chaostic_desktop.py

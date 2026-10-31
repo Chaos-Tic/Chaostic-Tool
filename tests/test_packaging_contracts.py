@@ -100,6 +100,7 @@ class PackagingMetadataTests(unittest.TestCase):
                                  'maintainer scripts must notify, never auto-delete')
 
     @unittest.skipIf(shutil.which('sh') is None, 'POSIX sh required')
+    @unittest.skipIf(os.name == 'nt', 'maintainer scriptlets are POSIX shell, not run on Windows')
     def test_removal_notice_names_the_recorded_tools_and_stays_true_after_removal(self):
         # The scriptlets print their notice while chaostictool-uninstall is about to
         # disappear with the package, so they must not tell the user to run it next;

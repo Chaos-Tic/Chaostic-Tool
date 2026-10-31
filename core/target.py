@@ -28,9 +28,11 @@ TARGET = {
 }
 
 # Subdomain scope for the active target. When enabled, host-targeted tools run
-# against the base host and every discovered subdomain. Cached per target so an
-# enumeration is reused across launches.
-SCOPE = {"include_subdomains": False, "subdomains": []}
+# against the base host and every discovered subdomain (minus any excluded).
+# Cached per target so an enumeration is reused across launches. ``excluded``
+# holds discovered subdomains the user chose to skip; ``fanout_limit`` is an
+# optional per-target override of the shared hard cap (None = use the default).
+SCOPE = {"include_subdomains": False, "subdomains": [], "excluded": [], "fanout_limit": None}
 
 
 def _safe_name(value):
@@ -123,6 +125,8 @@ def load_scope():
     """Reload the active target's cached subdomain scope from disk."""
     SCOPE["include_subdomains"] = False
     SCOPE["subdomains"] = []
+    SCOPE["excluded"] = []
+    SCOPE["fanout_limit"] = None
     path = _scope_path()
     if path is None or not path.exists():
         return
@@ -133,6 +137,10 @@ def load_scope():
     if isinstance(data, dict):
         subs = data.get("subdomains", [])
         SCOPE["subdomains"] = [s for s in subs if isinstance(s, str)] if isinstance(subs, list) else []
+        excluded = data.get("excluded", [])
+        SCOPE["excluded"] = [s for s in excluded if isinstance(s, str)] if isinstance(excluded, list) else []
+        limit = data.get("fanout_limit")
+        SCOPE["fanout_limit"] = limit if isinstance(limit, int) and limit > 0 else None
         SCOPE["include_subdomains"] = bool(data.get("include_subdomains")) and bool(SCOPE["subdomains"])
 
 
@@ -142,7 +150,9 @@ def save_scope():
         return
     ensure_directory(path.parent)
     path.write_text(json.dumps({"include_subdomains": SCOPE["include_subdomains"],
-                                "subdomains": SCOPE["subdomains"]}, indent=2), encoding="utf-8")
+                                "subdomains": SCOPE["subdomains"],
+                                "excluded": SCOPE["excluded"],
+                                "fanout_limit": SCOPE["fanout_limit"]}, indent=2), encoding="utf-8")
     _chown_path(path)
 
 
@@ -152,6 +162,8 @@ def set_subdomains(subdomains):
     host = TARGET["host"]
     SCOPE["subdomains"] = sorted({s.strip().lower().rstrip(".") for s in subdomains
                                   if isinstance(s, str) and s.strip() and sd.within_domain(s, host) and s.strip().lower().rstrip(".") != host.lower()})
+    # Drop exclusions that no longer refer to a discovered subdomain.
+    SCOPE["excluded"] = [s for s in SCOPE["excluded"] if s in SCOPE["subdomains"]]
     if not SCOPE["subdomains"]:
         SCOPE["include_subdomains"] = False
     save_scope()
@@ -162,10 +174,52 @@ def set_scope_enabled(enabled):
     save_scope()
 
 
-def scope_hosts():
-    """Hosts the active target expands to: base first, then subdomains."""
+def set_excluded(excluded):
+    """Replace the set of discovered subdomains excluded from the fan-out."""
+    allowed = set(SCOPE["subdomains"])
+    SCOPE["excluded"] = sorted({s.strip().lower().rstrip(".") for s in excluded
+                                if isinstance(s, str) and s.strip().lower().rstrip(".") in allowed})
+    save_scope()
+
+
+def toggle_excluded(host):
+    """Flip the exclusion of one discovered subdomain; returns True if excluded."""
+    host = (host or "").strip().lower().rstrip(".")
+    if host not in set(SCOPE["subdomains"]):
+        return host in SCOPE["excluded"]
+    excluded = set(SCOPE["excluded"])
+    excluded.symmetric_difference_update({host})
+    SCOPE["excluded"] = sorted(excluded)
+    save_scope()
+    return host in excluded
+
+
+def effective_fanout_limit():
+    """The hard cap on hosts for the active target (per-target override or default)."""
     from core import subdomains as sd
-    return sd.scope_hosts(TARGET["host"], SCOPE["subdomains"], SCOPE["include_subdomains"])
+    limit = SCOPE.get("fanout_limit")
+    return limit if isinstance(limit, int) and limit > 0 else sd.MAX_FANOUT
+
+
+def fanout_count():
+    """Hosts the active target would expand to, uncapped (base plus subs)."""
+    from core import subdomains as sd
+    return sd.fanout_count(TARGET["host"], SCOPE["subdomains"],
+                           SCOPE["include_subdomains"], excluded=SCOPE["excluded"])
+
+
+def scope_hosts(limit="default"):
+    """Hosts the active target expands to: base first, then subdomains.
+
+    Exclusions are always applied. ``limit`` caps the count (base first); the
+    default applies the per-target hard cap so a run never fans out silently to
+    an unbounded number of hosts. Pass an explicit integer to run only the first
+    K, or ``None`` to disable the cap entirely.
+    """
+    from core import subdomains as sd
+    cap = effective_fanout_limit() if limit == "default" else limit
+    return sd.scope_hosts(TARGET["host"], SCOPE["subdomains"], SCOPE["include_subdomains"],
+                          limit=cap, excluded=SCOPE["excluded"])
 
 
 def scope_url(host):
@@ -183,7 +237,11 @@ def summary():
         parts.append(f"url={TARGET['url']}")
     parts.append(f"port={TARGET['port']}")
     if SCOPE["include_subdomains"] and SCOPE["subdomains"]:
-        parts.append(f"+{len(SCOPE['subdomains'])} subdomains")
+        active = len([s for s in SCOPE["subdomains"] if s not in set(SCOPE["excluded"])])
+        extra = f"+{active} subdomains"
+        if SCOPE["excluded"]:
+            extra += f" ({len(SCOPE['excluded'])} excluded)"
+        parts.append(extra)
     return " | ".join(parts)
 
 

@@ -12,11 +12,13 @@ from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradien
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QBoxLayout, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QListWidget, QListWidgetItem,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
     QInputDialog, QScrollArea, QMenu, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.phases import PHASES
+from core.subdomains import WARN_FANOUT
 from desktop.flow_panel import FlowPanel
 from desktop import VERSION
 from desktop import effects
@@ -164,8 +166,15 @@ from desktop.launch_dialog import LaunchDialog
 
 
 class SubdomainWorker(QThread):
-    """Enumerate a domain's subdomains off the UI thread."""
-    done = Signal(list, list, str)
+    """Enumerate a domain's subdomains off the UI thread.
+
+    subfinder (fast) runs first and its results are emitted immediately via
+    ``partial`` so the UI never looks frozen while amass — slow and best-effort —
+    finishes in the background. ``done`` carries the merged result plus the
+    target's DNS-resolution status so a non-resolving target can be flagged.
+    """
+    partial = Signal(list, dict)            # subs, counts — subfinder is in
+    done = Signal(list, dict, str, bool, str)  # subs, counts, error, resolves, www_alt
 
     def __init__(self, domain, env, parent=None):
         super().__init__(parent)
@@ -173,8 +182,28 @@ class SubdomainWorker(QThread):
 
     def run(self):
         from core import subdomains as sd
-        subs, sources, error = sd.enumerate_subdomains(self.domain, env=self.env)
-        self.done.emit(subs, sources, error)
+        tools = sd.available_enumerators(self.env.get("PATH"))
+        merged: dict[str, None] = {}
+        counts: dict[str, int] = {}
+        last_error = ""
+        for index, name in enumerate(tools):
+            # subfinder returns in seconds; give amass a longer best-effort slot.
+            budget = 60 if name == "subfinder" else 180
+            hosts, code, err = sd.run_enumerator(name, self.domain, env=self.env, timeout=budget)
+            if hosts:
+                counts[name] = len(hosts)
+                merged.update(dict.fromkeys(hosts))
+            elif code not in (0, None):
+                last_error = (err or "").strip() or last_error
+            if index < len(tools) - 1:
+                self.partial.emit(sorted(merged), dict(counts))
+        resolves, www_alt = sd.resolution_status(self.domain)
+        if not tools:
+            self.done.emit([], {}, "No subdomain enumerator found. Install subfinder (recommended) or amass.",
+                           resolves, www_alt)
+        else:
+            error = "" if (merged or not last_error) else last_error
+            self.done.emit(sorted(merged), counts, error, resolves, www_alt)
 
 
 class Window(QMainWindow):
@@ -494,6 +523,14 @@ class Window(QMainWindow):
         scope_box.addLayout(row)
         self.subdomain_status = label("", "muted", True)
         scope_box.addWidget(self.subdomain_status)
+        self.subdomain_hint = label("Décochez un sous-domaine pour l’exclure du périmètre.", "muted", True)
+        scope_box.addWidget(self.subdomain_hint)
+        self.subdomain_list = QListWidget()
+        self.subdomain_list.setObjectName("subdomainList")
+        self.subdomain_list.setMaximumHeight(170)
+        self.subdomain_list.setAccessibleName(T("Sous-domaines découverts"))
+        self.subdomain_list.itemChanged.connect(self._subdomain_exclusion_changed)
+        scope_box.addWidget(self.subdomain_list)
         layout.addWidget(scope)
         layout.addWidget(label("Les résultats restent dans l’historique.", "muted", True))
 
@@ -958,12 +995,26 @@ class Window(QMainWindow):
         target = self.store.active_target
         is_domain = bool(target and sd.is_domain(target.get("host", "")))
         cached = list(target.get("subdomains") or []) if target else []
+        excluded = set(target.get("excluded") or []) if target else set()
         busy = self._enum_thread is not None
         self.subdomain_toggle.setEnabled(is_domain and bool(cached))
         self.enumerate_button.setEnabled(is_domain and not busy and not self.runner.active)
         self.subdomain_toggle.blockSignals(True)
         self.subdomain_toggle.setChecked(bool(target and target.get("include_subdomains")))
         self.subdomain_toggle.blockSignals(False)
+        # Rebuild the exclusion checklist (checked = in scope, unchecked = excluded).
+        self.subdomain_list.blockSignals(True)
+        self.subdomain_list.clear()
+        for sub in cached:
+            item = QListWidgetItem(sub)
+            item.setData(Qt.ItemDataRole.UserRole, sub)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked if sub in excluded else Qt.CheckState.Checked)
+            self.subdomain_list.addItem(item)
+        self.subdomain_list.setEnabled(is_domain and bool(cached) and not busy)
+        self.subdomain_list.blockSignals(False)
+        self.subdomain_list.setVisible(bool(cached))
+        self.subdomain_hint.setVisible(bool(cached))
         if not target:
             text = T("Définissez une cible active.")
         elif not is_domain:
@@ -971,10 +1022,42 @@ class Window(QMainWindow):
         elif busy:
             text = T("Énumération en cours…")
         elif cached:
-            text = T("{n} sous-domaines en cache.").format(n=len(cached))
+            active = len([s for s in cached if s not in excluded])
+            if excluded:
+                text = T("{n} sous-domaines en cache, {x} exclus ({a} dans le périmètre).").format(
+                    n=len(cached), x=len(excluded), a=active)
+            else:
+                text = T("{n} sous-domaines en cache.").format(n=len(cached))
         else:
             text = T("Aucun sous-domaine en cache — lancez l’énumération.")
         self.subdomain_status.setText(text)
+
+    def _subdomain_exclusion_changed(self, _item):
+        target = self.store.active_target
+        if not target:
+            return
+        excluded = [self.subdomain_list.item(i).data(Qt.ItemDataRole.UserRole)
+                    for i in range(self.subdomain_list.count())
+                    if self.subdomain_list.item(i).checkState() != Qt.CheckState.Checked]
+        self.store.set_target_scope(target["id"], excluded=excluded)
+        self._refresh_subdomain_ui()
+
+    def _enum_summary(self, count, counts):
+        """Explicit, bilingual result line with per-source counts."""
+        if not count:
+            return T("Aucun sous-domaine trouvé.")
+        detail = ", ".join("{s} : {n}".format(s=s, n=n) for s, n in counts.items())
+        return T("{n} sous-domaines trouvés ({d}).").format(n=count, d=detail)
+
+    def _resolve_warning_text(self, resolves, www_alt, host):
+        if resolves:
+            return ""
+        if www_alt:
+            return T("{host} n’a aucun enregistrement A/AAAA (ne résout pas) ; seul {www} résout. "
+                     "Les outils visant {host} ne renverront rien — c’est le DNS de la cible, pas un bug.").format(
+                         host=host, www=www_alt)
+        return T("{host} n’a aucun enregistrement A/AAAA (ne résout pas). Les outils visant un hôte "
+                 "ne renverront rien tant qu’il ne résout pas — c’est le DNS de la cible, pas un bug.").format(host=host)
 
     def toggle_subdomain_scope(self, checked):
         target = self.store.active_target
@@ -994,12 +1077,24 @@ class Window(QMainWindow):
                                 T("Installez subfinder (recommandé) ou amass pour énumérer les sous-domaines."))
             return
         self._enum_target_id = target["id"]
+        self._enum_host = target["host"]
         self._enum_thread = SubdomainWorker(target["host"], env, self)
+        self._enum_thread.partial.connect(self._enumeration_partial)
         self._enum_thread.done.connect(self._enumeration_done)
         self._enum_thread.start()
         self._refresh_subdomain_ui()
 
-    def _enumeration_done(self, subs, sources, error):
+    def _enumeration_partial(self, subs, counts):
+        # subfinder is in — show its results at once and keep amass running.
+        if not subs:
+            return
+        self.store.set_target_scope(self._enum_target_id, subdomains=subs)
+        self.store.set_target_scope(self._enum_target_id, include=True)
+        self.statusBar().showMessage(
+            T("{summary} amass en cours (complément, meilleur effort)…").format(
+                summary=self._enum_summary(len(subs), counts)))
+
+    def _enumeration_done(self, subs, counts, error, resolves=True, www_alt=""):
         self._enum_thread = None
         if error:
             QMessageBox.warning(self, T("Sous-domaines"), T(error))
@@ -1007,9 +1102,12 @@ class Window(QMainWindow):
             self.store.set_target_scope(self._enum_target_id, subdomains=subs)
             if subs:
                 self.store.set_target_scope(self._enum_target_id, include=True)
-                self.statusBar().showMessage(T("{n} sous-domaines trouvés via {s}.").format(n=len(subs), s=", ".join(sources)))
+                self.statusBar().showMessage(self._enum_summary(len(subs), counts))
             else:
                 self.statusBar().showMessage(T("Aucun sous-domaine trouvé."))
+        warning = self._resolve_warning_text(resolves, www_alt, getattr(self, "_enum_host", ""))
+        if warning:
+            QMessageBox.warning(self, T("Cible non résolue"), warning)
         self.refresh()
 
     def _scope_targets(self, preset, target):
@@ -1024,6 +1122,28 @@ class Window(QMainWindow):
         if len(hosts) <= 1:
             return [target]
         return [retarget(target, host) for host in hosts]
+
+    def _confirm_fanout(self, target, hosts):
+        """Confirm a large scoped fan-out; return the hosts to run, or None to cancel."""
+        full = self.store.fanout_count(target) if target else len(hosts)
+        capped = (T(" (plafonné de {full} à la limite stricte de {cap})").format(full=full, cap=len(hosts))
+                  if full > len(hosts) else "")
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(T("Périmètre étendu"))
+        box.setText(T("Périmètre = hôte de base + {n} sous-domaines → ce profil s’exécutera {m} fois "
+                      "(séquentiel){capped}.").format(n=len(hosts) - 1, m=len(hosts), capped=capped))
+        run_all = box.addButton(T("Tout exécuter ({m})").format(m=len(hosts)), QMessageBox.ButtonRole.AcceptRole)
+        first_k = box.addButton(T("Seulement les {k} premiers").format(k=WARN_FANOUT), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.setDefaultButton(first_k)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is run_all:
+            return hosts
+        if clicked is first_k:
+            return hosts[:WARN_FANOUT]
+        return None
 
     def add_target(self):
         dialog = TargetDialog(self)
@@ -1204,6 +1324,10 @@ class Window(QMainWindow):
                       fields=fields,wordlist=wordlist,metadata=metadata)
             try:
                 hosts=self._scope_targets(preset,target)
+                if show_dialog and len(hosts)>WARN_FANOUT:
+                    hosts=self._confirm_fanout(target,hosts)
+                    if hosts is None:
+                        return False
                 self._fanout_total=len(hosts)
                 self._fanout=[(spec,host) for host in hosts[1:]]
                 self._start_run(spec,hosts[0])

@@ -20,6 +20,7 @@ from rich.table import Table
 from rich.text import Text
 
 from core import executor, tui
+from core import subdomains as sd
 from core import target as tgt
 from core.proxy import PROXY_STATE, route_status, should_proxy_tool, wrap_command
 from core.redaction import SECRET_FIELDS, redact, secrets_for
@@ -514,6 +515,26 @@ def run_preset(tool, preset, pause_after=True, flow_context=None):
     templated = any(("{host}" in part or "{url}" in part) for part in preset["cmd"])
     hosts = tgt.scope_hosts() if templated else [base_fill["host"]]
     hosts = hosts or [base_fill["host"]]
+
+    # Before a large scoped fan-out, show how many runs it means and require an
+    # explicit choice. This gate is independent of whether the tool prompts for
+    # input, so a prompt-less tool (nmap, httpx, nuclei) can never silently start
+    # dozens of sequential runs.
+    if templated and tgt.SCOPE.get("include_subdomains") and len(hosts) > sd.WARN_FANOUT:
+        full = tgt.fanout_count()
+        capped = f" (capped from {full} at the hard limit of {len(hosts)})" if full > len(hosts) else ""
+        console.print(f"[brand.warn][!] Scope = base host + {len(hosts) - 1} subdomains → "
+                      f"{escape(tool['name'])} will run {len(hosts)} times (~sequential){capped}.[/brand.warn]")
+        console.print(f"[brand.warn]Run all {len(hosts)} [y], only the first {sd.WARN_FANOUT} [k], "
+                      f"or cancel [n]? (default: first {sd.WARN_FANOUT})[/brand.warn]")
+        rep = console.input("[brand.white]▸[/brand.white] ").strip().lower()
+        if rep in ("", "k"):
+            hosts = tgt.scope_hosts(limit=sd.WARN_FANOUT)
+            console.print(f"[brand.ok][*] Limiting this run to the first {len(hosts)} hosts.[/brand.ok]")
+        elif rep not in ("y", "yes", "o", "oui"):
+            console.print("[brand.muted]Cancelled.[/brand.muted]")
+            return
+
     multi = len(hosts) > 1
     if multi:
         console.print(f"[brand.ok][*] Subdomain scope: {escape(tool['name'])} will run on {len(hosts)} hosts "

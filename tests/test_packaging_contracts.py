@@ -64,6 +64,108 @@ class PackagingMetadataTests(unittest.TestCase):
             self.assertFalse((ROOT / obsolete).exists(), obsolete)
         self.assertNotIn('chaostictool-desktop.spec', (ROOT / '.copr/Makefile').read_text())
 
+    def test_every_package_ships_the_uninstaller_and_notifies_on_removal(self):
+        cmake = (ROOT / 'CMakeLists.txt').read_text()
+        self.assertIn('RENAME chaostictool-uninstall', cmake,
+                      'CMake must install uninstall.sh on PATH as chaostictool-uninstall')
+
+        prerm = (ROOT / 'packaging/debian/prerm').read_text()
+        postrm = (ROOT / 'packaging/debian/postrm').read_text()
+        preun = (ROOT / 'packaging/fedora/preun.sh').read_text()
+        spec = (ROOT / 'packaging/fedora/chaostictool.spec').read_text()
+        pkgbuild = (ROOT / 'packaging/arch/PKGBUILD').read_text()
+        archinstall = (ROOT / 'packaging/arch/chaostictool.install').read_text()
+
+        # Debian maintainer scripts are picked up by debhelper (source/PPA) and by
+        # CPack via CONTROL_EXTRA; they fire on real removal, not on upgrade.
+        self.assertIn('"$1" = remove', prerm)
+        self.assertIn('"$1" = purge', postrm)
+        # rpm %preun and the CPack preun file both guard on the removal count.
+        self.assertIn('"$1" = 0', preun)
+        self.assertRegex(spec, r'(?s)%preun.*?/var/lib/chaostictool/manifest')
+        self.assertIn('%{_bindir}/chaostictool-uninstall', spec)
+        # Arch wires a pacman scriptlet with pre_remove.
+        self.assertIn("install='chaostictool.install'", pkgbuild)
+        self.assertIn('pre_remove()', archinstall)
+
+        # Every notice points at the manifest and the uninstaller, and NONE of the
+        # scriptlets auto-removes anything (notify-only is the safe behaviour).
+        for text in (prerm, postrm, preun, spec, archinstall):
+            self.assertIn('/var/lib/chaostictool/manifest', text)
+            self.assertIn('chaostictool-uninstall', text)
+        for script in (prerm, postrm, preun, archinstall):
+            for destructive in ('rm -rf', 'rm -f', 'pacman -R', 'apt-get purge',
+                                 'apt remove', 'dnf remove'):
+                self.assertNotIn(destructive, script,
+                                 'maintainer scripts must notify, never auto-delete')
+
+    @unittest.skipIf(shutil.which('sh') is None, 'POSIX sh required')
+    @unittest.skipIf(os.name == 'nt', 'maintainer scriptlets are POSIX shell, not run on Windows')
+    def test_removal_notice_names_the_recorded_tools_and_stays_true_after_removal(self):
+        # The scriptlets print their notice while chaostictool-uninstall is about to
+        # disappear with the package, so they must not tell the user to run it next;
+        # they name what was recorded (8 names at most) and the two real ways out.
+        entries = ['file:/usr/local/bin/responder', 'symlink:/usr/local/bin/subfinder',
+                   'dir:/opt/chaostictool/Responder', 'pipx:impacket', 'pip:xsstrike',
+                   'gem:wpscan', 'repo:pacman:/etc/pacman.conf:chaotic-aur',
+                   'torrc:/etc/tor/torrc', 'pkg:pacman:nmap', 'pkg:apt:masscan',
+                   'go:/home/u/go/bin/httpx']
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / 'manifest'
+            manifest.write_text('# ChaosticTool manifest\n' + '\n'.join(entries) + '\n')
+            prerm = (ROOT / 'packaging/debian/prerm').read_text()
+            preun = (ROOT / 'packaging/fedora/preun.sh').read_text()
+            archinstall = (ROOT / 'packaging/arch/chaostictool.install').read_text()
+            runs = {
+                'prerm': (prerm, ['remove']),
+                'preun': (preun, ['0']),
+                'arch': (archinstall + '\npre_remove "$@"\n', ['chaostictool']),
+            }
+            for name, (text, args) in runs.items():
+                with self.subTest(script=name):
+                    text = text.replace('/var/lib/chaostictool/manifest', str(manifest))
+                    result = subprocess.run(['sh', '-c', text, name, *args],
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    out = result.stdout + result.stderr
+                    self.assertIn(f'recorded {len(entries)} installed item(s)', out)
+                    # The line after the header names only the external tools: the
+                    # last path/field component of the tool-bearing entries, not the
+                    # internal dir:/repo:/torrc: records.
+                    lines = out.splitlines()
+                    header = next(i for i, l in enumerate(lines) if 'installed item(s)' in l)
+                    names_line = lines[header + 1]
+                    for tool in ('httpx', 'impacket', 'masscan', 'nmap',
+                                 'responder', 'subfinder', 'wpscan', 'xsstrike'):
+                        self.assertIn(tool, names_line, name)
+                    for internal in ('Responder', 'chaotic-aur', 'torrc'):
+                        self.assertNotIn(internal, names_line, name)
+                    self.assertIn('removes the chaostictool-uninstall command', out)
+                    self.assertIn('reinstall', out)
+                    self.assertIn('./uninstall.sh', out)
+                    self.assertNotIn('--dry-run   # preview', out,
+                                     'the command no longer exists after the removal')
+            # An untouched or empty manifest prints nothing at all.
+            manifest.write_text('# ChaosticTool manifest\n')
+            text = prerm.replace('/var/lib/chaostictool/manifest', str(manifest))
+            result = subprocess.run(['sh', '-c', text, 'prerm', 'remove'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout + result.stderr, '')
+
+    def test_aur_publish_ships_the_pacman_scriptlet_next_to_the_pkgbuild(self):
+        pkgbuild = (ROOT / 'packaging/arch/PKGBUILD').read_text()
+        aur = (ROOT / 'packaging/arch/aur.sh').read_text()
+        match = re.search(r"^install='([^']+)'$", pkgbuild, re.M)
+        self.assertIsNotNone(match, 'PKGBUILD must wire the pacman scriptlet')
+        scriptlet = match.group(1)
+        self.assertTrue((ROOT / 'packaging/arch' / scriptlet).is_file(), scriptlet)
+        # makepkg --printsrcinfo (and every user's makepkg) fails when install=
+        # names a file that is not next to the PKGBUILD, so the AUR update must
+        # copy the scriptlet into the clone and commit it together with PKGBUILD.
+        self.assertIn(f'packaging/arch/{scriptlet}', aur)
+        self.assertRegex(aur, rf'cp [^\n]*"\$work/aur/{re.escape(scriptlet)}"')
+        self.assertRegex(aur, rf'(?m)^git add [^\n]*\b{re.escape(scriptlet)}\b[^\n]*\.SRCINFO')
+
     @unittest.skipUnless(sys.platform.startswith('linux') and shutil.which('cmake'),
                          'Native package staging requires Linux and CMake')
     def test_staged_install_and_cpack_metadata(self):
@@ -85,6 +187,10 @@ class PackagingMetadataTests(unittest.TestCase):
                     self.assertIn(f'set(CPACK_PACKAGE_VERSION "{VERSION}")', config)
                     self.assertIn('set(CPACK_PACKAGE_NAME "chaostictool")', config)
                     self.assertIn('CPACK_DEBIAN_PACKAGE_REPLACES "chaostictool-desktop (<< 2.0.0)"', config)
+                    # The uninstaller and its removal-time notices travel with the package.
+                    self.assertIn('packaging/debian/prerm', config)
+                    self.assertIn('packaging/debian/postrm', config)
+                    self.assertIn('CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE', config)
                     # Even a frozen GUI still ships a Python CLI requiring both libraries.
                     for dependency in ('python3-rich', 'python3-prompt-toolkit'):
                         self.assertIn(dependency, config)
@@ -92,6 +198,7 @@ class PackagingMetadataTests(unittest.TestCase):
                     subprocess.run(['cmake', '--install', str(build)], check=True,
                                    env=dict(os.environ, DESTDIR=str(stage)), capture_output=True, text=True)
                     for relative in ('bin/chaostictool', 'bin/chaostictool-desktop',
+                                     'bin/chaostictool-uninstall',
                                      'share/chaostictool/chaostictool.py', 'share/chaostictool/core/version.py',
                                      'share/applications/chaostictool-desktop.desktop',
                                      'share/licenses/chaostictool/LICENSE'):

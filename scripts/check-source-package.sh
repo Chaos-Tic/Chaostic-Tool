@@ -6,7 +6,7 @@ export PYTHONDONTWRITEBYTECODE=1
 apt-get update -qq
 apt-get install -y -qq cmake debhelper dpkg-dev >/tmp/build-dependencies.log
 mkdir /tmp/source
-tar -C /src -cf - CMakeLists.txt chaostic_desktop.py chaostictool.py assets core desktop modules packaging LICENSE | tar -C /tmp/source -xf -
+tar -C /src -cf - CMakeLists.txt chaostic_desktop.py chaostictool.py uninstall.sh assets core desktop modules packaging LICENSE | tar -C /tmp/source -xf -
 cp -r /src/packaging/debian /tmp/source/debian
 (cd /tmp/source && dpkg-buildpackage -b -us -uc >/tmp/build-source-package.log)
 apt-get install -y -qq /tmp/chaostictool_*_all.deb >/tmp/runtime-dependencies.log

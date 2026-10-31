@@ -791,8 +791,11 @@ if missing:
 PY
 }
 
-install_python_runtime
+# Initialise the manifest FIRST so the Python runtime packages this installer
+# adds (python3, pip, rich, curl, ca-certificates when they were absent) are
+# recorded like every other install and can be reviewed at uninstall time.
 manifest_init
+install_python_runtime
 setup_kali_repo
 setup_chaotic_aur
 setup_epel

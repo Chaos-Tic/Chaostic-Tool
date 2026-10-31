@@ -10,9 +10,18 @@ disposable-container checks.
 """
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+if not sys.platform.startswith("linux"):
+    # uninstall.sh is the Linux uninstaller: bash 4 associative arrays,
+    # apt/dnf/pacman, root detection via geteuid. macOS and Windows ship their
+    # own uninstall path and never run it. Raising here skips the whole module
+    # at discovery time instead of failing at import on hosts without
+    # os.geteuid (Windows) or running it under bash 3.2 (macOS).
+    raise unittest.SkipTest("uninstall.sh is the Linux uninstaller")
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (ROOT / "uninstall.sh").read_text()

@@ -189,6 +189,7 @@ class PipMethodRecordingTests(unittest.TestCase):
             ok = installer._pip_user_install("xsstrike", "xsstrike", "/usr/bin/python3", self.PW)
         return ok, recorded, commands, link
 
+    @unittest.skipIf(os.name == "nt", "pip --user layout (~/.local/bin) is a POSIX path contract")
     def test_fresh_pip_install_is_recorded_for_the_original_user(self):
         ok, recorded, commands, link = self._install(already_installed=False)
         self.assertTrue(ok)

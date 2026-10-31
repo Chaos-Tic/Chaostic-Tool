@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-Evidence reviewed on **2026-10-25**: [successful CI run for `e0709eb`](https://github.com/Chaos-Tic/Chaostic-Tool/actions/runs/40133873560)
+Evidence reviewed on **2026-10-31**: [successful CI run for `06227b5`](https://github.com/Chaos-Tic/Chaostic-Tool/actions/runs/41218897793)
 and the [workflow](../.github/workflows/ci.yml). The table describes automated checks
 at that revision. It does not establish that every external tool, desktop session,
 or published package repository works on each operating system. Changes after that

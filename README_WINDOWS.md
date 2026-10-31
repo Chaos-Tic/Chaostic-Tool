@@ -395,7 +395,7 @@ This version's sources are identified by the `v2.1.0` tag. Build and test result
 
 | Check | Actual scope |
 |---|---|
-| 66 automated tests | Forms, matching of each CLI profile, flows, filters, small window, Run/Stop click, persistence, secrets, i18n and the POSIX bridge; 6 POSIX/platform tests are skipped on Windows |
+| 320 automated tests | Forms, matching of each CLI profile, flows, filters, small window, Run/Stop click, persistence, secrets, i18n and the POSIX bridge; platform and POSIX-only tests are skipped on Windows (84 in the latest run) |
 | Executables for 6 platforms | Launch of the compiled application with a temporary profile |
 | Windows x64 / ARM64 in CI | Windows Server 2022 and Windows 11 ARM runners; this does not test every Windows 10 version |
 | Local Windows install | Install, reinstall, uninstaller registration and data retention in a separate test environment |

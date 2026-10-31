@@ -17,9 +17,13 @@ import uuid
 import zipfile
 from pathlib import Path, PurePosixPath
 
+from core.tool_manifest import PACKAGE_SPECS
 from desktop.storage import data_root, now, write_json
 
-MANIFEST = json.loads((Path(__file__).parent / "packages.json").read_text(encoding="utf-8"))
+# Portable artifact specs: read from the shared manifest, which is the single
+# parser of packages.json, instead of re-reading the file independently here.
+# Same content, so URL/sha256/per-OS binary resolution is unchanged.
+MANIFEST = PACKAGE_SPECS
 PORTABLE_PACK = ["rustscan", "subfinder", "httpx", "ffuf", "gobuster", "nuclei", "katana", "gau", "waybackurls", "dalfox", "naabu"]
 PYTHON_PACK = ["wafw00f", "dnsrecon", "theharvester", "shodan", "xsstrike", "bloodhound-python", "impacket", "sqlmap"]
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0

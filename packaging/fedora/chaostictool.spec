@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.0.1
+Version:        2.0.6
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -55,6 +55,21 @@ tar -xzf %{SOURCE1} -C frozen
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.6-1
+- Single-source the desktop catalog from the tool definitions with declarative GUI argument transforms.
+
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.5-1
+- Share the run-session plumbing (secret redaction, decoding, flushing) across the CLI, TUI and desktop.
+
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.4-1
+- Single-source the native packaging artifacts from the shared tool manifest.
+
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.3-1
+- Review wave 2: pytest/ruff/mypy tooling baseline, CI gates, documentation coherence, username-free diagnostic logging.
+
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.2-1
+- Review wave 1: secret redaction, privilege drop, installer containment, honest 46-tool catalog, packaging and CI fixes.
+
 * Wed Oct 28 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.1-1
 - OS-secret-store API keys, nmap Shodan profile, opt-in subdomain targeting.
 

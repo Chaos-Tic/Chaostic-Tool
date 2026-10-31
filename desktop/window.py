@@ -670,7 +670,7 @@ class Window(QMainWindow):
         layout.addWidget(splitter, 1)
         actions = QHBoxLayout()
         actions.addWidget(button("Ouvrir le dossier", self.open_history_folder))
-        actions.addWidget(button("Exporter le journal…", self.export_history))
+        actions.addWidget(button("Exporter un rapport…", self.export_history))
         actions.addWidget(button('Réinitialiser filtres',self.reset_history_filters))
         self.delete_history_button=button('Supprimer ce résultat…',self.delete_history_result,'danger')
         self.delete_history_button.setEnabled(False)
@@ -1458,20 +1458,51 @@ class Window(QMainWindow):
         if run := self.selected_history():
             QDesktopServices.openUrl(QUrl.fromLocalFile(run["directory"]))
 
-    def export_history(self):
+    # Save-dialog filters: the mission report formats of core.report (format key
+    # = extension), plus the raw per-run log copy, only offered for a selected run.
+    REPORT_FILTERS = (("Rapport de mission Markdown (*.md)", "md"), ("Rapport de mission texte (*.txt)", "txt"),
+                      ("Rapport de mission PDF (*.pdf)", "pdf"), ("Rapport de mission JSON (*.json)", "json"),
+                      ("Journal brut de cette opération (*.txt)", "log"))
+
+    def report_target(self, run=None):
+        """Target a mission report covers: the selected run's, else the active one (live scope)."""
+        target = (run.get("flow_target") or run.get("target")) if run else self.store.active_target
+        if target and target.get("id"):
+            target = next((t for t in self.store.targets if t["id"] == target["id"]), target)
+        return target or None
+
+    def export_history(self, destination=None, chosen=None):
+        """Export the full mission report (md/txt/pdf/json) or one run's raw log.
+
+        Same content as the CLI: both front-ends go through ``core.report``.
+        ``destination``/``chosen`` bypass the file dialog (tests, scripting).
+        """
+        from core import report
         run = self.selected_history()
-        if not run:
-            return
-        destination, _ = QFileDialog.getSaveFileName(self, T("Exporter le journal"), f"chaostic-{run['id']}.txt", T("Texte (*.txt)"))
-        if destination:
-            import shutil
-            try:
+        filters = [(T(text), key) for text, key in self.REPORT_FILTERS if key != "log" or run]
+        mission = report.from_gui_history(self.report_target(run), self.store.history(), source=str(self.store.root))
+        if destination is None:
+            destination, chosen = QFileDialog.getSaveFileName(self, T("Exporter un rapport"), report.default_filename(mission, "md"), ";;".join(f for f, _ in filters))
+        if not destination:
+            return None
+        key = next((k for f, k in filters if f == chosen), None)
+        suffix = Path(destination).suffix.lstrip(".").lower()
+        if key != "log":
+            key = suffix if suffix in report.FORMATS else (key or "md")
+        try:
+            if key == "log":
+                import shutil
                 source = Path(run["directory"]) / "output.txt"
                 if source.resolve() != Path(destination).resolve():
                     shutil.copyfile(source, destination)
                 self.statusBar().showMessage(T("Journal exporté."))
-            except OSError as exc:
-                QMessageBox.warning(self, T("Export impossible"), str(exc))
+                return Path(destination)
+            written = report.write_report(mission, destination, key)
+            self.statusBar().showMessage(T("Rapport de mission exporté : {path}").format(path=written))
+            return written
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, T("Export impossible"), str(exc))
+            return None
 
     def closeEvent(self, event):
         if self.runner.active:

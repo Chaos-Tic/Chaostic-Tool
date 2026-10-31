@@ -1,18 +1,17 @@
 """Qt adapter for shared execution, bounded UI output and persistent full logs."""
 from __future__ import annotations
 
-import codecs
 import json
 import os
 import sys
-import threading
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 
+from core.run_session import RunSession
 from core.runner import Runner as ProcessRunner
 from core.runner import RunRequest, RunResult
-from desktop.profiles import StreamRedactor, redact
+from desktop.profiles import redact
 from desktop.storage import now, write_json
 
 
@@ -39,8 +38,9 @@ class Runner(QObject):
         self.failure = ""
         self.builtin = False
         self.offset = 0
-        self._log_lock = threading.Lock()
-        self.decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        # The redaction/decoding pipeline is shared with the CLI and rebuilt per
+        # run in start(); None until then (the tail poll is not running yet).
+        self.session: RunSession | None = None
         self.poll = QTimer(self)
         self.poll.setInterval(100)
         self.poll.timeout.connect(self._tail)
@@ -65,11 +65,12 @@ class Runner(QObject):
             write_json(directory / 'run.json', record)
         self.directory, self.record = directory, record
         self.cancelled, self.failure, self.builtin, self.offset = False, "", worker is not None, 0
-        self.decoder.reset()
-        self.redactor = StreamRedactor(redactions)
         self.bridge = bridge
         self.log = directory / "output.txt"
         self.log.touch()
+        # Fresh redactor, decoder and lock for this run; the sink appends the
+        # masked bytes to output.txt, which the display tail re-reads.
+        self.session = RunSession(redactions, self._persist)
         initial_input = None
         try:
             if worker:
@@ -112,8 +113,7 @@ class Runner(QObject):
         if secret:
             # The backend can emit concurrently with user input. Register the
             # secret before queuing input so even an immediate echo is masked.
-            with self._log_lock:
-                self.redactor.add(text.rstrip('\r\n'))
+            self.session.add_secret(text.rstrip('\r\n'))
         data = json.dumps({'op': 'input', 'text': text}) + '\n' if self.bridge else text
         self.proc.send_input(data)
 
@@ -121,23 +121,29 @@ class Runner(QObject):
         if self.active:
             self.proc.send_input(json.dumps({'op': 'interrupt'}) + '\n' if self.bridge else '\x03')
 
+    def _persist(self, redacted: bytes, final: bool):
+        # The sink for this run's session, invoked under session.lock with
+        # already-masked bytes. A builtin worker owns output.txt itself, so the
+        # adapter never routes through the session for it (see _read/_finished).
+        with self.log.open("ab") as stream:
+            stream.write(redacted)
+
     def _read(self, data: bytes):
         # This callback runs on the core worker thread. Persist here instead of
         # enqueuing unbounded output events; only the Qt timer renders the tail.
         if data and not self.builtin:
-            with self._log_lock, self.log.open("ab") as stream:
-                stream.write(self.redactor.feed(data))
+            self.session.feed(data)
 
     def _tail(self):
         if self.directory is None:
             return
         try:
-            with self._log_lock, self.log.open("rb") as stream:
+            with self.session.lock, self.log.open("rb") as stream:
                 stream.seek(self.offset)
                 data = stream.read(256 * 1024)
                 self.offset = stream.tell()
             if data:
-                self.output.emit(self.decoder.decode(data))
+                self.output.emit(self.session.decode(data))
         except OSError:
             pass
 
@@ -163,21 +169,20 @@ class Runner(QObject):
         if self.proc is not current:
             return
         if not self.builtin:
-            with self._log_lock, self.log.open('ab') as stream:
-                stream.write(self.redactor.feed(b'', final=True))
+            self.session.flush()
         self.poll.stop()
         self.deadline.stop()
         # Keep final rendering bounded even when an external tool floods stdout.
         if self.log.stat().st_size - self.offset > 1_000_000:
             self.offset = max(0, self.log.stat().st_size - 500_000)
-            self.decoder.reset()
+            self.session.reset_decoder()
             self.output.emit("\n[Affichage abrégé : le journal complet reste enregistré.]\n")
         while self.log.stat().st_size > self.offset:
             previous = self.offset
             self._tail()
             if self.offset == previous:
                 break
-        remaining = self.decoder.decode(b"", final=True)
+        remaining = self.session.decode(b"", final=True)
         if remaining:
             self.output.emit(remaining)
         if result.timed_out:

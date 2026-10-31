@@ -43,6 +43,16 @@ jobs:
       PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # A tracked file with CRLF endings once broke the COPR checkout; .gitattributes
+      # forces LF, and this fails as soon as a tracked file stops matching it.
+      - name: Check line endings against .gitattributes
+        run: |
+          git add --renormalize .
+          if ! git diff --cached --quiet; then
+            echo "::error::Tracked files whose line endings do not match .gitattributes:"
+            git diff --cached --name-only
+            exit 1
+          fi
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
@@ -63,6 +73,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt -r requirements-desktop.txt
+      - name: Install lint and type-check tools
+        run: python -m pip install ruff==0.17.3 mypy==2.4.0
+      # Rule set and waivers live in pyproject.toml ([tool.ruff]).
+      - name: Lint with ruff
+        run: ruff check --output-format github .
+      # Strict mypy on the annotated modules only ([tool.mypy] files). Advisory
+      # until those modules are clean; the findings stay visible in the log.
+      - name: Type-check the annotated modules with mypy (advisory)
+        continue-on-error: true
+        run: mypy
       - name: Run all unit and integration tests
         run: python -m unittest discover -s tests -v
       - name: Native X11 visual contracts
@@ -77,6 +97,14 @@ jobs:
         run: python scripts/check-packaging-deps.py
       - name: Check shell scripts syntax
         run: bash -n install.sh uninstall.sh packaging/linux/*.sh packaging/debian/*.sh packaging/arch/*.sh scripts/*.sh
+      # Advisory while the existing scripts still carry a few findings; make it
+      # blocking once they are clean.
+      - name: Lint shell scripts with shellcheck (advisory)
+        continue-on-error: true
+        run: |
+          shopt -s globstar nullglob
+          shellcheck --version
+          shellcheck install.sh uninstall.sh packaging/**/*.sh scripts/*.sh
 
   native-source:
     name: Debian source package check

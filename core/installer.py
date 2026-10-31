@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import logging
 import os
 import platform
 try:
@@ -21,6 +22,8 @@ from rich.table import Table
 
 from core.terminal import console
 
+LOG = logging.getLogger(__name__)
+
 
 def _manifest_record(entry: str) -> None:
     path = os.environ.get("CHAOSTICTOOL_MANIFEST", "")
@@ -30,7 +33,8 @@ def _manifest_record(entry: str) -> None:
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(entry + "\n")
     except OSError:
-        pass
+        LOG.warning("Could not record install manifest entry %r to %s",
+                    entry, path, exc_info=True)
 
 
 # Maps pipx install target → canonical package name used by `pipx uninstall`
@@ -48,7 +52,8 @@ def _get_original_user():
         try:
             return user, pwd.getpwnam(user)
         except KeyError:
-            pass
+            LOG.warning("SUDO_USER not found in the password database; "
+                        "privilege drop will be skipped")
     return None, None
 
 
@@ -392,7 +397,8 @@ def _parse_srcinfo_deps(srcinfo_path):
                         if _DEP_RE.match(name):
                             bucket.append(name)
     except (OSError, ValueError):
-        pass
+        LOG.warning("Could not parse AUR .SRCINFO at %s; continuing with no "
+                    "declared dependencies", srcinfo_path, exc_info=True)
     return deps, makedeps
 
 
@@ -549,7 +555,8 @@ def _tool_available(key, binary):
         if tool:
             return tool_available(tool)
     except Exception:
-        pass
+        LOG.exception("Tool-availability lookup failed for %r; falling back to "
+                      "a plain binary check", key)
     return _binary_exists(binary)
 
 

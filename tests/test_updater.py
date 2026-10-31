@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from PySide6.QtWidgets import QMessageBox
-from test_desktop import APP
+from desktop_harness import APP
 from desktop.storage import Store
 from desktop.window import Window
 

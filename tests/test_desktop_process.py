@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from test_desktop import APP, wait_run
+from desktop_harness import APP, wait_run
 
 from core.runner import Runner as ProcessRunner
 from core.runner import RunResult

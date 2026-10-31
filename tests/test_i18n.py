@@ -74,7 +74,7 @@ class DesktopTranslationTests(unittest.TestCase):
                 self.assertEqual(str(error.exception), french if lang == 'fr' else english)
 
     def test_launch_preview_field_labels_and_cancel_are_translated(self):
-        from test_desktop import APP
+        from desktop_harness import APP
         from PySide6.QtWidgets import QDialogButtonBox
         from desktop.launch_dialog import LaunchDialog
         tool = dict(key='fixture', name='DNS avancé', desc='', mode='builtin', category='osint',
@@ -102,7 +102,7 @@ class DesktopTranslationTests(unittest.TestCase):
                     APP.processEvents()
 
     def test_real_catalog_profile_and_optional_field_are_translated(self):
-        from test_desktop import APP
+        from desktop_harness import APP
         from desktop.catalog import catalog
         from desktop.launch_dialog import LaunchDialog
         tool = next(item for item in catalog() if item['key'] == 'dig')
@@ -125,7 +125,7 @@ class DesktopTranslationTests(unittest.TestCase):
                     APP.processEvents()
 
     def test_window_file_dialogs_and_installation_errors_are_translated(self):
-        from test_desktop import APP
+        from desktop_harness import APP
         from desktop.packages import MANIFEST
         from desktop.window import Window
         package = next(key for key, spec in MANIFEST.items() if spec['kind'] != 'installer')

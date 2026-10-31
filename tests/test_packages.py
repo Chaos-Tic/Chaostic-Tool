@@ -1,5 +1,4 @@
 import io
-import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -46,7 +45,7 @@ class PackageTests(unittest.TestCase):
             with zipfile.ZipFile(path,'w') as z: z.writestr('nested/'+package_spec('ffuf')['binary'], b'fixture')
             return 'a'*64
         with patch('desktop.packages.download',side_effect=fake_download), patch('desktop.packages.probe',return_value='ffuf test'):
-            record = install_package('ffuf',self.root,log=lambda *_:None)
+            install_package('ffuf',self.root,log=lambda *_:None)
         command = managed_command('ffuf',root=self.root)
         self.assertTrue(Path(command[0]).is_file())
         Path(command[0]).unlink()
@@ -77,7 +76,7 @@ class PackageTests(unittest.TestCase):
         with self.assertRaises(ValueError): build_arguments(tools['katana'],2,target,fields={'depth':'11'})
 
     def test_install_worker_reports_failure_without_blocking_gui(self):
-        from test_desktop import APP, wait_run
+        from desktop_harness import APP, wait_run  # noqa: F401  # a QApplication must exist before widgets are built
         from desktop.process import Runner
         from desktop.storage import Store
         store = Store(self.root / 'worker')

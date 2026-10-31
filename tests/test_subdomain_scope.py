@@ -57,7 +57,7 @@ class RunPresetFanoutTests(unittest.TestCase):
         self.temp.cleanup()
 
     def _run(self, preset, tool=None):
-        ui, tgt = self.ui, self.tgt
+        ui = self.ui
         tool = tool or {"name": "X", "binary": "ZZ", "category": "recon",
                         "output_dir": "recon", "interactive": False}
         calls = []

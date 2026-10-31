@@ -1,10 +1,13 @@
 """Writable CLI state, separate from system-managed application files."""
+import logging
 import os
 try:
     import pwd
 except ImportError:
     pwd = None
 from pathlib import Path
+
+LOG = logging.getLogger(__name__)
 
 
 def data_home() -> Path:
@@ -15,7 +18,8 @@ def data_home() -> Path:
             home = Path(pwd.getpwnam(sudo_user).pw_dir)
             return home / ".local/share/chaostictool"
         except KeyError:
-            pass
+            LOG.warning("SUDO_USER not found in the password database; "
+                        "falling back to the default data home")
     override = os.environ.get("CHAOSTIC_CLI_HOME")
     if override:
         path = Path(override)
@@ -42,4 +46,5 @@ def ensure_directory(path: Path) -> None:
             for directory in missing:
                 os.chown(directory, account.pw_uid, account.pw_gid)
         except (KeyError, OSError):
-            pass
+            LOG.warning("Could not restore ownership of %s to the sudo user",
+                        path, exc_info=True)

@@ -1,6 +1,6 @@
 import tempfile,unittest
 from pathlib import Path
-from test_desktop import APP
+from desktop_harness import APP
 from PySide6.QtCore import Qt,QPropertyAnimation,QCoreApplication,QEvent
 from PySide6.QtTest import QTest,QSignalSpy
 from PySide6.QtWidgets import QPushButton

@@ -1,5 +1,4 @@
 """Linux desktop execution without privileged commands or external targets."""
-import os
 import sys
 import tempfile
 import unittest
@@ -29,7 +28,7 @@ class LinuxDesktopTests(unittest.TestCase):
         self.assertTrue(request['elevate'])
 
     def test_native_interactive_process_receives_a_real_terminal(self):
-        from test_desktop import wait_run
+        from desktop_harness import wait_run
         from desktop.process import Runner
         save_config({'backend': 'ssh', 'host': 'remote.test', 'user': 'alice'}, self.store.root)
         runner = Runner(self.store)
@@ -42,7 +41,7 @@ class LinuxDesktopTests(unittest.TestCase):
         self.assertIn('TTY=True', output)
 
     def test_native_profiles_route_privileges_and_interaction_locally(self):
-        from test_desktop import APP
+        from desktop_harness import APP
         from desktop.window import Window
         window = Window(self.store)
         try:

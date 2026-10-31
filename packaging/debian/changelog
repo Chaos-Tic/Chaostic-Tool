@@ -1,3 +1,9 @@
+chaostictool (2.0.3-1) unstable; urgency=medium
+
+  * Review wave 2: pytest/ruff/mypy tooling baseline, CI gates, documentation coherence, username-free diagnostic logging.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 12:30:00 +0100
+
 chaostictool (2.0.2-1) unstable; urgency=medium
 
   * Review wave 1: secret redaction, privilege drop, installer containment, honest 46-tool catalog, packaging and CI fixes.

@@ -1,4 +1,3 @@
-import codecs
 import logging
 import os
 import shutil
@@ -25,7 +24,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from core.redaction import StreamRedactor, redact
+from core.redaction import redact
+from core.run_session import RunSession
 from core.runner import Runner, RunRequest
 from core.theme import COLORS, THEME
 
@@ -162,21 +162,23 @@ class _Capture:
 
 
 def _capture_worker(state, cmd, output_path, textual, timeout, redactions):
-    redactor = StreamRedactor(redactions)
-    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    session = RunSession(redactions)
 
-    def receive(data):
-        text = decoder.decode(redactor.feed(data))
+    def present(redacted, final):
+        # The shared session has already masked these bytes; decode them (the
+        # CLI journals decoded text) and, outside fullscreen, echo them live.
+        text = session.decode(redacted, final=final)
         if not text:
             return
         state.append(text)
         if textual:
             console.print(Text.from_ansi(text), end="", soft_wrap=True)
 
+    session.sink = present
     try:
         runner = Runner()
         runner.start(RunRequest(cmd, env=_build_env(), timeout=timeout, stop_grace=2,
-                               inherit_stdin=True, raw_output=True), receive)
+                               inherit_stdin=True, raw_output=True), session.feed)
         state.proc = runner
         _register_process(state.proc)
         if state.aborted.is_set():
@@ -195,11 +197,10 @@ def _capture_worker(state, cmd, output_path, textual, timeout, redactions):
         state.rc = 1
         _stop_process(state.proc)
     finally:
-        final_text = decoder.decode(redactor.feed(b"", final=True), final=True)
-        if final_text:
-            state.append(final_text)
-            if textual:
-                console.print(Text.from_ansi(final_text), end="", soft_wrap=True)
+        # One final flush releases the redactor's held-back tail (and the
+        # decoder's pending bytes) through the same sink, so a secret spanning
+        # the last chunk is masked and journaled rather than dropped.
+        session.flush()
         if state.aborted.is_set():
             state.rc = 130
         try:

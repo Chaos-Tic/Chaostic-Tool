@@ -20,7 +20,6 @@ from core.runner import CompletionCallback, OutputCallback, RunRequest, RunResul
 LOG = logging.getLogger(__name__)
 _POLL = 0.02
 _INPUT_LIMIT = 1024 * 1024
-_REAP_TIMEOUT = 1.0
 
 
 class PosixBackend:
@@ -137,7 +136,10 @@ class PosixBackend:
             eof = False
             while True:
                 now = time.monotonic()
-                exited = proc.poll() is not None
+                code = proc.poll()
+                exited = code is not None
+                if code is not None:
+                    returncode = code
                 if (stopping is None and request.timeout is not None
                         and now - started >= request.timeout and not exited):
                     timed_out = True
@@ -184,12 +186,20 @@ class PosixBackend:
         finally:
             if proc is not None:
                 try:
-                    self._signal_group(proc, signal.SIGKILL)
-                    # stop_grace controls signal escalation, not scheduler latency.
-                    # Busy macOS runners can need more than a 100 ms test grace to
-                    # report an already-killed child as reaped.
-                    returncode = proc.wait(timeout=max(request.stop_grace, _REAP_TIMEOUT))
-                except (OSError, subprocess.TimeoutExpired) as exc:
+                    if proc.poll() is None:
+                        # SIGKILL cannot be caught or ignored, so once signalled
+                        # the group leader is guaranteed to terminate. Block until
+                        # it is reaped to read its real status instead of leaving
+                        # the fabricated default: a bounded wait could expire on a
+                        # starved runner and report that default (e.g. 1) as if the
+                        # child had exited cleanly. Only the leader is awaited, so a
+                        # descendant that escaped the group (and may still hold the
+                        # stdout pipe) cannot delay this.
+                        self._signal_group(proc, signal.SIGKILL)
+                        returncode = proc.wait()
+                    else:
+                        returncode = proc.returncode
+                except OSError as exc:
                     error = error or f"Process cleanup failed: {exc}"
                 finally:
                     for stream in (proc.stdin, proc.stdout):

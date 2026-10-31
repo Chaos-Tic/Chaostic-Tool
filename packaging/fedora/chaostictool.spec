@@ -84,6 +84,9 @@ fi
 * Sat Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.8-1
 - Overhaul install/uninstall so removing ChaosticTool cleanly reverses the tools it installed while sparing pre-existing ones.
 
+* Sat Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.7-1
+- Route interactive execution through a PTY-backed runner with a unified process stop and reap.
+
 * Sat Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.6-1
 - Single-source the desktop catalog from the tool definitions with declarative GUI argument transforms.
 

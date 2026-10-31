@@ -246,6 +246,69 @@ class FileStoreTests(_Reset):
             self.assertFalse(api_keys.set_key("shodan", "s"))
         self.assertEqual(api_keys.get("shodan"), "s")
 
+    def _victim(self):
+        victim = Path(self._tmp.name) / "victim"
+        victim.write_text("root-owned content", encoding="utf-8")
+        return victim
+
+    @unittest.skipUnless(hasattr(os, "symlink") and os.name != "nt", "POSIX symlinks")
+    def test_symlink_planted_at_store_path_is_never_followed(self):
+        victim = self._victim()
+        self.home.mkdir(mode=0o700)
+        os.symlink(victim, self.home / api_keys.STORE_FILE)
+        self.assertTrue(api_keys.file_store_offerable())  # a symlink is not an existing store
+        api_keys.enable_file_store(None)
+        self.assertEqual(api_keys.load(), {})  # the symlink target is not read
+        self.assertTrue(api_keys.set_key("shodan", "s3cret"))
+        self.assertEqual(victim.read_text(encoding="utf-8"), "root-owned content")
+        self.assertTrue(stat.S_ISREG(os.lstat(self.home / api_keys.STORE_FILE).st_mode))
+        self.assertNotIn("s3cret", victim.read_text(encoding="utf-8"))
+
+    @unittest.skipUnless(hasattr(os, "symlink") and os.name != "nt", "POSIX symlinks")
+    def test_symlink_planted_at_predictable_temp_name_is_never_followed(self):
+        victim = self._victim()
+        self.home.mkdir(mode=0o700)
+        os.symlink(victim, self.home / (api_keys.STORE_FILE + ".tmp"))
+        before = victim.stat()
+        api_keys.enable_file_store(None)
+        self.assertTrue(api_keys.set_key("github", "gh-s3cret"))
+        self.assertEqual(victim.read_text(encoding="utf-8"), "root-owned content")
+        after = victim.stat()
+        self.assertEqual((before.st_mode, before.st_uid, before.st_gid), (after.st_mode, after.st_uid, after.st_gid))
+        self.assertEqual(api_keys.load(), {"github": "gh-s3cret"})
+        self.assertEqual([p.name for p in self.home.iterdir() if p.name.endswith(".tmp")], [api_keys.STORE_FILE + ".tmp"])
+
+    @unittest.skipUnless(hasattr(os, "symlink") and os.name != "nt", "POSIX symlinks")
+    def test_store_directory_symlink_is_refused(self):
+        elsewhere = Path(self._tmp.name) / "elsewhere"
+        elsewhere.mkdir()
+        os.symlink(elsewhere, self.home)
+        with self.assertRaises(RuntimeError):
+            api_keys._FileBackend().enable(None)
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        api_keys._backend = None
+        self.assertFalse(api_keys.set_key("shodan", "s"))  # session fallback, no crash
+        self.assertEqual(list(elsewhere.iterdir()), [])
+
+    def test_temp_file_is_random_exclusive_and_0600(self):
+        api_keys.enable_file_store(None)
+        seen = []
+        real_open = os.open
+
+        def spy(path, flags, *args, **kwargs):
+            if str(path).endswith(".tmp"):
+                seen.append((str(path), flags))
+            return real_open(path, flags, *args, **kwargs)
+        with patch.object(os, "open", spy):
+            api_keys.set_key("wpscan", "w")
+        self.assertEqual(len(seen), 1)
+        name, flags = seen[0]
+        self.assertNotEqual(name, api_keys.STORE_FILE + ".tmp")
+        self.assertTrue(flags & os.O_EXCL)
+        if hasattr(os, "O_NOFOLLOW"):
+            self.assertTrue(flags & os.O_NOFOLLOW)
+        self.assertEqual(stat.S_IMODE(api_keys.store_path().stat().st_mode), 0o600)
+
     def test_encrypt_requires_cryptography(self):
         with patch.object(api_keys, "encryption_available", return_value=False):
             with self.assertRaises(RuntimeError):

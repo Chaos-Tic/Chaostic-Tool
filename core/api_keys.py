@@ -171,17 +171,69 @@ def _derive_fernet(passphrase, salt):
     return Fernet(base64.urlsafe_b64encode(kdf.derive(passphrase.encode("utf-8"))))
 
 
-def _chown_to_sudo_user(path):
-    """Under sudo the file lives in the invoking user's home: hand it back."""
+_O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_O_DIRECTORY = getattr(os, "O_DIRECTORY", 0)
+_O_CLOEXEC = getattr(os, "O_CLOEXEC", 0)
+
+
+def _owner_ids():
+    """(uid, gid) the store must belong to: the sudo user under sudo, else us.
+
+    Returns None on platforms without POSIX ownership (Windows)."""
+    if not hasattr(os, "geteuid"):
+        return None
     sudo_user = os.environ.get("SUDO_USER")
-    if not (hasattr(os, "geteuid") and os.geteuid() == 0 and sudo_user and sudo_user != "root"):
-        return
+    if os.geteuid() == 0 and sudo_user and sudo_user != "root":
+        try:
+            import pwd
+            account = pwd.getpwnam(sudo_user)
+            return account.pw_uid, account.pw_gid
+        except Exception:
+            pass
+    return os.geteuid(), os.getegid()
+
+
+def _open_store_dir(directory):
+    """Open the data directory without following symlinks and prove it is a real
+    directory owned by the expected user, mode 0700. Returns the dir fd.
+
+    The CLI runs as root, so every path-based step here is a symlink or TOCTOU
+    opportunity for another local user who can write in the data directory;
+    all later operations go through this descriptor."""
+    from core import paths
+    if not os.path.lexists(directory):
+        paths.ensure_directory(directory)
+    if stat.S_ISLNK(os.lstat(directory).st_mode):
+        raise RuntimeError("key store directory is a symlink")
+    fd = os.open(directory, os.O_RDONLY | _O_DIRECTORY | _O_NOFOLLOW | _O_CLOEXEC)
     try:
-        import pwd
-        account = pwd.getpwnam(sudo_user)
-        os.chown(path, account.pw_uid, account.pw_gid)
-    except Exception:
-        pass
+        info = os.fstat(fd)
+        if not stat.S_ISDIR(info.st_mode):
+            raise RuntimeError("key store directory is not a directory")
+        owner = _owner_ids()
+        if owner is not None:
+            if info.st_uid not in (owner[0], os.geteuid()):
+                raise RuntimeError("key store directory is owned by another user")
+            if stat.S_IMODE(info.st_mode) != stat.S_IRWXU:
+                os.fchmod(fd, stat.S_IRWXU)
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _read_regular_file(path):
+    """Read a file only if the final component is a regular file, never a symlink."""
+    fd = os.open(path, os.O_RDONLY | _O_NOFOLLOW | _O_CLOEXEC)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError("not a regular file")
+        with os.fdopen(fd, "r", encoding="utf-8") as handle:
+            fd = None
+            return handle.read()
+    finally:
+        if fd is not None:
+            os.close(fd)
 
 
 class _FileBackend:
@@ -194,7 +246,7 @@ class _FileBackend:
 
     def __init__(self, path=None):
         self.path = Path(path) if path else store_path()
-        self._enabled = self.path.exists()
+        self._enabled = self._exists()
         self._passphrase = None      # cached for this process only
         self._declined = False       # user cancelled the unlock prompt this session
         self._cache = None           # decrypted {id: value} once read
@@ -203,9 +255,16 @@ class _FileBackend:
     def available(self):
         return self._enabled
 
+    def _exists(self):
+        """True only for a regular file at the store path (a symlink does not count)."""
+        try:
+            return stat.S_ISREG(os.lstat(self.path).st_mode)
+        except OSError:
+            return False
+
     def enable(self, passphrase=None):
         """Create the store: encrypted when a passphrase is given, plain otherwise."""
-        if self.path.exists():
+        if self._exists():
             self._enabled = True
             return self.mode
         if passphrase and not encryption_available():
@@ -218,14 +277,14 @@ class _FileBackend:
 
     def _header(self):
         try:
-            return json.loads(self.path.read_text(encoding="utf-8"))
+            return json.loads(_read_regular_file(self.path))
         except (OSError, ValueError):
             return {}
 
     @property
     def mode(self):
         """"fernet" or "plain" for an existing or freshly enabled store."""
-        if self.path.exists():
+        if self._exists():
             return self._header().get("mode", "plain")
         return "fernet" if self._passphrase else "plain"
 
@@ -274,7 +333,7 @@ class _FileBackend:
     def _read(self):
         if self._cache is not None:
             return self._cache
-        if not self.path.exists():
+        if not self._exists():
             return {}
         if not self._unlock():
             return {}
@@ -295,29 +354,44 @@ class _FileBackend:
             document = {"version": 1, "mode": "plain",
                         "keys": {key: base64.b64encode(value.encode("utf-8")).decode("ascii")
                                  for key, value in values.items()}}
-        from core import paths
-        directory = self.path.parent
-        paths.ensure_directory(directory)
+        # Everything below is relative to a verified directory descriptor: a
+        # random O_EXCL|O_NOFOLLOW temp name (a planted symlink cannot be
+        # followed or truncated), permissions and ownership set on the open
+        # descriptor, then an atomic rename over the final name.
+        dir_fd = _open_store_dir(self.path.parent)
+        temp_name = f"{self.path.name}.{secrets.token_hex(8)}.tmp"
+        use_dir_fd = os.open in os.supports_dir_fd
+        kwargs = {"dir_fd": dir_fd} if use_dir_fd else {}
+        temp_path = temp_name if use_dir_fd else str(self.path.parent / temp_name)
+        final = self.path.name if use_dir_fd else str(self.path)
         try:
-            os.chmod(directory, stat.S_IRWXU)
-        except OSError:
-            pass
-        temp = self.path.with_name(self.path.name + ".tmp")
-        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                json.dump(document, handle)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.chmod(temp, stat.S_IRUSR | stat.S_IWUSR)
-            _chown_to_sudo_user(temp)
-            os.replace(temp, self.path)
-        except BaseException:
+            fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_NOFOLLOW | _O_CLOEXEC,
+                         stat.S_IRUSR | stat.S_IWUSR, **kwargs)
             try:
-                os.unlink(temp)
-            except OSError:
-                pass
-            raise
+                if hasattr(os, "fchmod"):
+                    os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
+                owner = _owner_ids()
+                if owner is not None and hasattr(os, "fchown") and os.geteuid() == 0:
+                    os.fchown(fd, *owner)
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    fd = None
+                    json.dump(document, handle)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                if use_dir_fd:
+                    os.replace(temp_path, final, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+                else:
+                    os.replace(temp_path, final)
+            except BaseException:
+                if fd is not None:
+                    os.close(fd)
+                try:
+                    os.unlink(temp_path, **kwargs)
+                except OSError:
+                    pass
+                raise
+        finally:
+            os.close(dir_fd)
         self._cache = dict(values)
 
     def get(self, key_id):

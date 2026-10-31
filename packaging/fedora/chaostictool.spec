@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.0.6
+Version:        2.0.8
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -76,6 +76,9 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.8-1
+- Overhaul install/uninstall so removing ChaosticTool cleanly reverses the tools it installed while sparing pre-existing ones.
+
 * Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.6-1
 - Single-source the desktop catalog from the tool definitions with declarative GUI argument transforms.
 

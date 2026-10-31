@@ -197,8 +197,9 @@ class FileStoreTests(_Reset):
         self.assertEqual(api_keys.get("shodan"), "pending")  # session key moved into the file
         self.assertTrue(api_keys.set_key("github", "gh-token"))
         path = api_keys.store_path()
-        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
-        self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
         self.assertFalse(list(path.parent.glob("*.tmp")))
         self.relaunch()
         self.assertFalse(api_keys.file_store_offerable())
@@ -231,6 +232,7 @@ class FileStoreTests(_Reset):
             api_keys.apply_to_env(env)
             self.assertEqual(env["SHODAN_API_KEY"], "shell")
 
+    @unittest.skipUnless(os.name == "posix", "POSIX permission bits")
     def test_no_secret_in_world_readable_path(self):
         api_keys.enable_file_store(None)
         api_keys.set_key("github", "gh-world")
@@ -307,7 +309,8 @@ class FileStoreTests(_Reset):
         self.assertTrue(flags & os.O_EXCL)
         if hasattr(os, "O_NOFOLLOW"):
             self.assertTrue(flags & os.O_NOFOLLOW)
-        self.assertEqual(stat.S_IMODE(api_keys.store_path().stat().st_mode), 0o600)
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(api_keys.store_path().stat().st_mode), 0o600)
 
     def test_encrypt_requires_cryptography(self):
         with patch.object(api_keys, "encryption_available", return_value=False):

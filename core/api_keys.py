@@ -205,6 +205,13 @@ def _open_store_dir(directory):
         paths.ensure_directory(directory)
     if stat.S_ISLNK(os.lstat(directory).st_mode):
         raise RuntimeError("key store directory is a symlink")
+    if os.name != "posix" or os.open not in os.supports_dir_fd:
+        # No directory descriptors here (Windows): the local-root symlink/TOCTOU
+        # threat the fd dance defends against does not apply, so verify the path
+        # and let the caller write via a path-based atomic replace (dir_fd=None).
+        if not os.path.isdir(directory):
+            raise RuntimeError("key store directory is not a directory")
+        return None
     fd = os.open(directory, os.O_RDONLY | _O_DIRECTORY | _O_NOFOLLOW | _O_CLOEXEC)
     try:
         info = os.fstat(fd)
@@ -360,7 +367,7 @@ class _FileBackend:
         # descriptor, then an atomic rename over the final name.
         dir_fd = _open_store_dir(self.path.parent)
         temp_name = f"{self.path.name}.{secrets.token_hex(8)}.tmp"
-        use_dir_fd = os.open in os.supports_dir_fd
+        use_dir_fd = dir_fd is not None and os.open in os.supports_dir_fd
         kwargs = {"dir_fd": dir_fd} if use_dir_fd else {}
         temp_path = temp_name if use_dir_fd else str(self.path.parent / temp_name)
         final = self.path.name if use_dir_fd else str(self.path)
@@ -391,7 +398,8 @@ class _FileBackend:
                     pass
                 raise
         finally:
-            os.close(dir_fd)
+            if dir_fd is not None:
+                os.close(dir_fd)
         self._cache = dict(values)
 
     def get(self, key_id):

@@ -1,3 +1,9 @@
+chaostictool (2.0.5-1) unstable; urgency=medium
+
+  * Share the run-session plumbing (secret redaction, decoding, flushing) across the CLI, TUI and desktop.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 13:30:00 +0100
+
 chaostictool (2.0.4-1) unstable; urgency=medium
 
   * Single-source the native packaging artifacts from the shared tool manifest.

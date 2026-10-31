@@ -1,3 +1,12 @@
+chaostictool (2.2.0-1) unstable; urgency=medium
+
+  * Mission report export in Markdown, text, PDF and JSON from the CLI and the desktop history.
+  * Subdomain scope controls: fan-out cap with confirmation, exclusions, clearer enumerate output, target-liveness warning and the amass v5 enumeration fix.
+  * Arsenal and flows UX: unified tool availability states (incl. needs-key), honest amass profiles emitting names, flow host counter, TUI Liquid Glass polish and the i18n pill-key fix.
+  * Persistent opt-in API-key file store (0600) with optional encryption when python3-cryptography is installed (recommended, not required).
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sun, 01 Nov 2026 12:00:00 +0100
+
 chaostictool (2.1.1-1) unstable; urgency=medium
 
   * Flows UX: deduplicated built-in attack flows and a chained execution model (preview, run-all/step modes, progress) across the CLI and desktop; editable targets in the desktop.

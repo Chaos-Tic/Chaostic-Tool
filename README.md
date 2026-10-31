@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml"><img src="https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build and test status"></a>
-  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.0.1-38bdf8.svg" alt="Version 2.0.1"></a>
+  <a href="https://github.com/Chaos-Tic/Chaostic-Tool/releases"><img src="https://img.shields.io/badge/version-2.1.0-38bdf8.svg" alt="Version 2.1.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="GPL-3.0-or-later license"></a>
 </p>
 
@@ -40,7 +40,7 @@ check for a newer GitHub release; switch it off in Desktop **Settings → About*
 touches the network — tool downloads, package installs, the tools themselves — runs only when
 you ask for it. See [update behavior and privacy](docs/UPDATES.md).
 
-**Version 2.0.1 is published.** Each tagged release builds the unified `.deb`, `.rpm`
+**Version 2.1.0 is published.** Each tagged release builds the unified `.deb`, `.rpm`
 and AppImage packages for Linux x64 and ARM64, the Windows installers (x64 and ARM64) and
 the macOS disk images (Intel and Apple Silicon), attaches them with SHA-256 checksums to the
 GitHub Release, and refreshes the AUR, Fedora COPR, the signed Chaos-Tic apt repository and
@@ -184,7 +184,7 @@ sudo dnf install chaostictool
 ### Debian / Ubuntu
 Download the native `.deb` from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases):
 ```bash
-sudo apt install ./chaostictool_2.0.1_amd64.deb
+sudo apt install ./chaostictool_2.1.0_amd64.deb
 ```
 Or, recommended, via the Chaos-Tic signed APT repository (auto-updating):
 ```bash
@@ -201,14 +201,14 @@ sudo apt update && sudo apt install chaostictool
 
 ### Universal Linux (AppImage)
 ```bash
-chmod +x ChaosticTool-2.0.1-linux-x64.AppImage
-./ChaosticTool-2.0.1-linux-x64.AppImage
+chmod +x ChaosticTool-2.1.0-linux-x64.AppImage
+./ChaosticTool-2.1.0-linux-x64.AppImage
 ```
 An `-linux-arm64` AppImage is published for 64-bit ARM. Without FUSE, run it with
 `APPIMAGE_EXTRACT_AND_RUN=1`.
 
 ### Windows 10 & 11
-Download `ChaosticTool-Setup-2.0.1-windows-x64.exe`
+Download `ChaosticTool-Setup-2.1.0-windows-x64.exe`
 from [Releases](https://github.com/Chaos-Tic/Chaostic-Tool/releases) (a `-windows-arm64`
 installer is published for Windows 11 on ARM). The installer sets up the desktop launcher
 and offers an automated Kali Linux WSL2 integration for running Linux-native security

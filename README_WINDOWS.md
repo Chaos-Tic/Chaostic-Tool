@@ -4,14 +4,14 @@
 
 ### Your tools. Your targets. Your results, in a graphical interface.
 
-**Windows 10 / 11 · x64 and ARM64 · Latest release: 2.0.1**
+**Windows 10 / 11 · x64 and ARM64 · Latest release: 2.1.0**
 
 > ChaosticTool 2.x ships the CLI and Desktop interfaces as one unified package and
-> release line. The links below are the 2.0.1 downloads.
+> release line. The links below are the 2.1.0 downloads.
 
-**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.0.1/ChaosticTool-Setup-2.0.1-windows-x64.exe)**
+**[Download for Intel / AMD (x64)](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.1.0/ChaosticTool-Setup-2.1.0-windows-x64.exe)**
 
-[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v2.0.1) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
+[All downloads and checksums](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v2.1.0) · [Linux CLI](README_LINUX.md) · [Linux / macOS Desktop](docs/DESKTOP.md)
 
 </div>
 
@@ -70,10 +70,10 @@ Settings. The application remains still when idle.
 
 ### Which file to download?
 
-| Your computer | Version 2.0.1 file | Windows scope |
+| Your computer | Version 2.1.0 file | Windows scope |
 |---|---|---|
-| Intel or AMD 64-bit | `ChaosticTool-Setup-2.0.1-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
-| ARM64, e.g. a Snapdragon PC | `ChaosticTool-Setup-2.0.1-windows-arm64.exe` | Windows 11 ARM64 |
+| Intel or AMD 64-bit | `ChaosticTool-Setup-2.1.0-windows-x64.exe` | Windows 10 version 1809+ or Windows 11 |
+| ARM64, e.g. a Snapdragon PC | `ChaosticTool-Setup-2.1.0-windows-arm64.exe` | Windows 11 ARM64 |
 | 32-bit Windows, Windows 7 or Windows 8/8.1 | No compatible package | Not supported |
 
 In **Windows Settings → System → About**, check **System type**. To find your Windows 10 version, open `winver` from the Start menu. An ARM64 archive being available for the application does not guarantee that every third-party tool also has an ARM64 binary.
@@ -95,7 +95,7 @@ The exact size of each installer is shown on the Release. Plan for more space fo
 
 ### Step-by-step installation
 
-1. On the [ChaosticTool 2.0.1 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v2.0.1), download the installer for your architecture. The “Source code” files are for development and are not the installer.
+1. On the [ChaosticTool 2.1.0 Release](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v2.1.0), download the installer for your architecture. The “Source code” files are for development and are not the installer.
 2. Open the `.exe` file, choose the wizard language and follow its steps.
 3. Keep the suggested folder unless you have a specific need: `%LOCALAPPDATA%\Programs\ChaosticTool`.
 4. Tick the desktop shortcut if you want one. The Start menu also offers **ChaosticTool Desktop**.
@@ -122,7 +122,7 @@ the winget manifests automatically after the first submission.
 Download the matching `.sha256` file from the same Release. In PowerShell, adapt the path of your download:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-2.0.1-windows-x64.exe"
+Get-FileHash -Algorithm SHA256 -LiteralPath "$env:USERPROFILE\Downloads\ChaosticTool-Setup-2.1.0-windows-x64.exe"
 ```
 
 Compare the 64 hexadecimal characters you get with the contents of the `.sha256` file. The comparison verifies that the download matches the published file; it does not replace a publisher signature. You do not need this command to use the interface.
@@ -201,7 +201,7 @@ Desktop runs one operation at a time. For interactive sessions, use the input fi
 | **Stopped** | Stop requested from the application |
 | **Interrupted** | A saved operation was still running during a previous close |
 
-Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 2.0.1.
+Visible output may be limited to keep the interface responsive. The full log is available in the folder or by export. Operations have maximum durations: about 30 seconds for the bundled diagnostics, 20 minutes for a standard tool, 30 minutes for native/WSL installs and one hour for the Linux pack. These limits are those of version 2.1.0.
 
 <a id="tools"></a>
 ## 4. Install and configure the tools
@@ -356,7 +356,7 @@ The name contains the local time, the host, the tool, the profile and a unique s
 
 The history combines a text search with Target, Status, Tool and Period lists (24 h, 7 days, 30 days or all dates). The counter shows the number displayed and the total. Resetting the filters brings back all operations. Targets removed from the address book stay filterable as long as their results exist. Selecting a row then **Delete this result…** removes only that operation and its local files. **Clear the history…** also deletes past flow sessions while keeping the custom flow definitions; it is disabled during an operation and refuses symbolic links / junctions in results.
 
-**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 2.0.1 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and verifies the installer SHA-256 before opening it after you confirm.
+**Update:** close Desktop, download the new version's installer for your architecture and run it. You do not need to uninstall the previous version. The data stays in its separate folder. Desktop 2.1.0 also checks for a newer release from **Settings → Check for updates**; it never installs anything by itself and verifies the installer SHA-256 before opening it after you confirm.
 
 **Uninstall:** open **Windows Settings → Apps**, select **ChaosticTool Desktop**, then **Uninstall**. The application and its shortcuts are removed. Targets, logs and downloaded tools in the data folder are kept.
 
@@ -391,7 +391,7 @@ In a [GitHub issue](https://github.com/Chaos-Tic/Chaostic-Tool/issues), state: D
 <a id="validation"></a>
 ## 9. Compatibility, tests and limits
 
-This version's sources are identified by the `v2.0.1` tag. Build and test results are available in the [CI/CD workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml).
+This version's sources are identified by the `v2.1.0` tag. Build and test results are available in the [CI/CD workflow](https://github.com/Chaos-Tic/Chaostic-Tool/actions/workflows/ci.yml).
 
 | Check | Actual scope |
 |---|---|
@@ -437,11 +437,11 @@ Replace the compiler path with its real location. The build script runs the test
 | [Kali: WSL preparation](https://www.kali.org/docs/wsl/wsl-preparations/) | Distribution install and first launch |
 | [Repository rules](docs/REPOSITORY_RULES.md) | Contributions and protection of release and integration branches |
 
-**Installation links reviewed on 30 October 2026 for 2.0.1.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.
+**Installation links reviewed on 30 October 2026 for 2.1.0.** Captures should be refreshed when the interface changes; the sizes, limits and steps above describe this version.
 
 ## GitHub updates
 
-Desktop 2.0.1 checks daily and anonymously for public releases (can be disabled in
+Desktop 2.1.0 checks daily and anonymously for public releases (can be disabled in
 Settings). **Update…** uses the installed package channel on Linux; downloaded
 installers are verified against the release SHA-256 before opening. AppImages can
 replace themselves after confirmation and retain the previous file. Source

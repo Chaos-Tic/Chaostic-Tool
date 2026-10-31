@@ -5,7 +5,7 @@ if [ "$1" = 0 ] && [ -f "$MANIFEST" ]; then
     [ -n "$count" ] || count=0
     if [ "$count" -gt 0 ]; then
         # Short names of the recorded items (last path or field component), 8 at most.
-        names=$(grep -vE '^[[:space:]]*(#|$)' "$MANIFEST" 2>/dev/null | sed 's/.*[:/]//' | grep -v '^$' | LC_ALL=C sort -u || true)
+        names=$(grep -E '^(pkg|go|cargo|pipx|pip|gem|file|symlink):' "$MANIFEST" 2>/dev/null | sed 's/.*[:/]//' | grep -v '^$' | LC_ALL=C sort -u || true)
         shown=$(printf '%s\n' "$names" | head -n 8 | tr '\n' ' ')
         [ "$(printf '%s\n' "$names" | grep -c .)" -gt 8 ] && shown="$shown..."
         echo "ChaosticTool recorded $count installed item(s) in $MANIFEST:" >&2

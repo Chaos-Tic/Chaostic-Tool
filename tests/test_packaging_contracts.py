@@ -129,10 +129,17 @@ class PackagingMetadataTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
                     out = result.stdout + result.stderr
                     self.assertIn(f'recorded {len(entries)} installed item(s)', out)
-                    # Names are the last path/field component, sorted, 8 at most.
-                    self.assertIn('    Responder chaotic-aur httpx impacket masscan nmap '
-                                  'responder subfinder ...', out)
-                    self.assertNotIn('xsstrike', out, 'the ninth name and beyond are elided')
+                    # The line after the header names only the external tools: the
+                    # last path/field component of the tool-bearing entries, not the
+                    # internal dir:/repo:/torrc: records.
+                    lines = out.splitlines()
+                    header = next(i for i, l in enumerate(lines) if 'installed item(s)' in l)
+                    names_line = lines[header + 1]
+                    for tool in ('httpx', 'impacket', 'masscan', 'nmap',
+                                 'responder', 'subfinder', 'wpscan', 'xsstrike'):
+                        self.assertIn(tool, names_line, name)
+                    for internal in ('Responder', 'chaotic-aur', 'torrc'):
+                        self.assertNotIn(internal, names_line, name)
                     self.assertIn('removes the chaostictool-uninstall command', out)
                     self.assertIn('reinstall', out)
                     self.assertIn('./uninstall.sh', out)

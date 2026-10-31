@@ -3,3 +3,6 @@ psutil==7.2.2
 dnspython==2.9.0
 py7zr==1.1.4
 pyte==0.8.2
+# Optional (not installed by default): encrypts the API-key file store
+# (core/api_keys.py) with PBKDF2-HMAC-SHA256 -> Fernet when importable.
+# cryptography>=42.0

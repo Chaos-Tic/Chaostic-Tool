@@ -52,8 +52,6 @@ def button(text, callback=None, kind=""):
         result.clicked.connect(callback)
     if kind:
         result.setObjectName(kind)
-    if kind == "primary":
-        effects.glow(result, "#9b75ff", blur=20, alpha=120)
     return result
 
 
@@ -67,7 +65,6 @@ def status_badge(text, color):
     dot = QLabel()
     dot.setFixedSize(8, 8)
     dot.setObjectName("statusDot")
-    effects.glow(dot, color, blur=10, alpha=210)
     caption = QLabel(text)
     caption.setObjectName("statusCaption")
     box.addWidget(dot)
@@ -424,7 +421,6 @@ class Window(QMainWindow):
         layout = self.page()
         self.hero = Hero(on_tools=lambda:self.navigate(2),on_flows=lambda:self.navigate(6))
         hero=self.hero
-        effects.glow(hero, "#9b75ff", blur=34, alpha=70)
         layout.addWidget(hero)
         missions=QBoxLayout(QBoxLayout.Direction.LeftToRight);missions.setSpacing(12)
         self.home_missions = missions
@@ -631,7 +627,6 @@ class Window(QMainWindow):
         self.stop_button.clicked.connect(self.stop_current)
         self.stop_button.setEnabled(False)
         self.stop_button.hide()
-        effects.pulse(self.stop_button, "#9b75ff", low=8, high=28, ms=900)
         actions.addWidget(self.stop_button)
         self.run_folder = button("Ouvrir les résultats", self.open_run_folder)
         self.run_folder.setEnabled(False)
@@ -1197,7 +1192,7 @@ class Window(QMainWindow):
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
             self.run_title.setText(T('Installation des paquets Linux'))
-            self.runner.start(T('Dépendances Linux'),T('Paquets Linux'),{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
+            self.runner.start('Dépendances Linux','Paquets Linux',{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
             self.navigate(3)
         except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 
@@ -1283,7 +1278,7 @@ class Window(QMainWindow):
             caption=T('Cet ordinateur / opérations locales') if key=='__local__' else target.get('label') or target.get('host') or key
             if target.get('url'):caption+=' — '+target['url']
             targets[key]=caption
-        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),T('Toutes les cibles')),(self.history_tool,[(s,s) for s in sorted({r['tool'] for r in self.history_rows})],T('Tous les outils'))]:
+        for widget,entries,title in [(self.history_target,sorted(targets.items(),key=lambda x:x[1]),T('Toutes les cibles')),(self.history_tool,[(s,T(s)) for s in sorted({r['tool'] for r in self.history_rows})],T('Tous les outils'))]:
             old=widget.currentData();widget.blockSignals(True);widget.clear();widget.addItem(title,'')
             for key,caption in entries:widget.addItem(caption,key)
             widget.setCurrentIndex(max(0,widget.findData(old)));widget.blockSignals(False)

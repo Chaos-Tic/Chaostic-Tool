@@ -19,6 +19,7 @@ try:
     from prompt_toolkit.key_binding import KeyBindings
     from prompt_toolkit.layout import HSplit, Layout, Window
     from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl, UIContent, UIControl
+    from prompt_toolkit.layout.processors import PasswordProcessor
     from prompt_toolkit.data_structures import Point
     from prompt_toolkit.styles import Style
     from prompt_toolkit.utils import get_cwidth
@@ -518,7 +519,8 @@ class MenuScreen:
 class DialogScreen:
     """Scrollable output and editable prompt on the same full-screen surface."""
     def __init__(self, prompt: str, content: str = "", title: str = "Chaostic Tool",
-                 default: str = "", *, message_only: bool = False, input=None, output=None):
+                 default: str = "", *, message_only: bool = False, password: bool = False,
+                 input=None, output=None):
         if Application is None:
             raise RuntimeError("Full-screen mode requires prompt_toolkit>=3,<4")
         self.buffer = Buffer(document=Document(default, len(default)))
@@ -528,7 +530,12 @@ class DialogScreen:
         control = FormattedTextControl(lambda: self.content)
         self.body = Window(control, wrap_lines=True, always_hide_cursor=True,
                            get_vertical_scroll=lambda window: self.scroll)
-        field = Window(BufferControl(buffer=self.buffer), height=1)
+        # Secret fields ({passwd}, cookies, API keys) are masked on screen so a
+        # shoulder-surfer cannot read them; redaction already hides them in the
+        # captured output, this hides them during entry too.
+        field_control = BufferControl(buffer=self.buffer,
+                                      input_processors=[PasswordProcessor()] if password else None)
+        field = Window(field_control, height=1)
         footer = Window(FormattedTextControl(" Enter close · PgUp/PgDn scroll · Esc cancel"), height=1,
                         style="class:footer")
         root = HSplit([
@@ -570,8 +577,9 @@ def menu(title: str, entries: Sequence[tuple], footer_extra=None, show_back: boo
                       routing_rows, start_search).run()
 
 
-def input_dialog(prompt: str, content: str = "", title: str = "Chaostic Tool", default: str = "") -> str:
-    return DialogScreen(prompt, content, title, default).run()
+def input_dialog(prompt: str, content: str = "", title: str = "Chaostic Tool", default: str = "",
+                 *, password: bool = False) -> str:
+    return DialogScreen(prompt, content, title, default, password=password).run()
 
 
 def message(content: str, title: str = "Chaostic Tool") -> None:

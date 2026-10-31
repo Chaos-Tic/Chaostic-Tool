@@ -24,9 +24,6 @@ def status_pill(text,parent=None):
     pill.setToolTip(str(text));pill.setAccessibleName(str(text));pill.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents,True)
     return pill
 
-def glow(*args,**kwargs):return None
-def pulse(*args,**kwargs):return None
-
 
 class _CardHover(QObject):
     """Ombre douce + légère élévation animée au survol : donne du relief aux cartes

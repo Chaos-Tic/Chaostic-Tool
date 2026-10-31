@@ -59,7 +59,7 @@ class AllProfilesTests(unittest.TestCase):
         for split in range(len(secret)+1):
             r=StreamRedactor([secret])
             output=r.feed(('before '+secret[:split]).encode())+r.feed((secret[split:]+' after').encode())+r.feed(b'',final=True)
-            self.assertEqual(output,b'before [masque] after')
+            self.assertEqual(output,b'before [redacted] after')
 
     def test_changed_linux_config_invalidates_inventory(self):
         with tempfile.TemporaryDirectory() as temp:

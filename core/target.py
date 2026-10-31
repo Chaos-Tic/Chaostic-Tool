@@ -7,7 +7,6 @@ except ImportError:
     pwd = None
 import ipaddress
 from urllib.parse import urlparse
-from pathlib import Path
 
 from core.paths import data_home, ensure_directory
 
@@ -60,8 +59,7 @@ def category_dir(category):
     if d is None:
         return None
     cat = d / category
-    cat.mkdir(parents=True, exist_ok=True)
-    _chown_tree(d)
+    ensure_directory(cat)
     return cat
 
 
@@ -109,7 +107,6 @@ def set_target(host="", url="", port="80", wordlist=None):
     if name:
         for cat in CATEGORIES:
             ensure_directory(TARGETS_ROOT / name / cat)
-        _chown_tree(TARGETS_ROOT / name)
     load_scope()
     return target_dir()
 
@@ -143,7 +140,7 @@ def save_scope():
     ensure_directory(path.parent)
     path.write_text(json.dumps({"include_subdomains": SCOPE["include_subdomains"],
                                 "subdomains": SCOPE["subdomains"]}, indent=2), encoding="utf-8")
-    _chown_tree(target_dir())
+    _chown_path(path)
 
 
 def set_subdomains(subdomains):
@@ -187,16 +184,20 @@ def summary():
     return " | ".join(parts)
 
 
-def _chown_tree(path):
+def _chown_path(path):
+    """Give a single newly created path back to the sudo-invoking user.
+
+    Only the exact path is chowned. The previous implementation walked the whole
+    target tree (``rglob("*")``) on every save, which grew O(files) as scan
+    outputs accumulated. Directory creation goes through ``ensure_directory``,
+    which already chowns just the directories it creates, so no recursive walk
+    is needed any more.
+    """
     sudo_user = os.environ.get("SUDO_USER")
     if not sudo_user or sudo_user == "root" or pwd is None or not hasattr(os, "chown"):
         return
     try:
         pw = pwd.getpwnam(sudo_user)
-        for item in [Path(path)] + list(Path(path).rglob("*")):
-            try:
-                os.chown(item, pw.pw_uid, pw.pw_gid)
-            except OSError:
-                pass
-    except Exception:
+        os.chown(path, pw.pw_uid, pw.pw_gid)
+    except (KeyError, OSError):
         return

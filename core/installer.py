@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import os
@@ -16,23 +17,9 @@ import urllib.request
 import zipfile
 from contextlib import suppress
 
-from rich.console import Console
 from rich.table import Table
-from rich.theme import Theme
 
-THEME = Theme(
-    {
-        "brand.red": "bold #ff3131",
-        "brand.warn": "bold #ffb84d",
-        "brand.ok": "bold #31ff83",
-        "brand.info": "bold #67e8f9",
-        "brand.muted": "#a98c91",
-        "brand.command": "#ffb4b4",
-        "brand.white": "bold #f8fafc",
-    }
-)
-
-console = Console(theme=THEME)
+from core.terminal import console
 
 
 def _manifest_record(entry: str) -> None:
@@ -693,6 +680,33 @@ def _link_user_binary(binary, dirs):
     return False
 
 
+def _verify_download(binary, data, expected, source):
+    """Require a published SHA-256 before a downloaded binary is placed.
+
+    ``expected`` is the digest declared in the tool's spec: a 64-hex string for
+    a single artifact, or a ``{asset_name: digest}`` map keyed by ``source``.
+    Returns True only when a well-formed digest is present *and* matches the
+    bytes; otherwise it prints a clear refusal and returns False so the caller
+    never writes the binary. This gives downloaded third-party binaries the same
+    integrity guarantee ``core.update_service.download_verified`` enforces for
+    the application's own release assets.
+    """
+    digest = expected.get(source) if isinstance(expected, dict) else expected
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", digest.strip()):
+        console.print(f"[brand.red][!] Refusing to install {binary}: no published SHA-256 to "
+                      f"verify the download against. Install it from a distribution package "
+                      f"or another verified channel instead.[/brand.red]")
+        return False
+    expected_hex = digest.strip().lower()
+    actual_hex = hashlib.sha256(data).hexdigest()
+    if actual_hex != expected_hex:
+        console.print(f"[brand.red][!] Refusing to install {binary}: SHA-256 mismatch "
+                      f"(expected {expected_hex}, got {actual_hex}); the download was "
+                      f"discarded.[/brand.red]")
+        return False
+    return True
+
+
 def _install_direct_download(binary, spec):
     url = spec["url"]
     path = spec["path"]
@@ -703,6 +717,10 @@ def _install_direct_download(binary, spec):
         request = urllib.request.Request(url, headers={"User-Agent": "ChaosticTool-installer"})
         with urllib.request.urlopen(request, timeout=60) as response:
             data = response.read()
+        # The downloaded bytes are exactly what lands in /usr/local/bin, so
+        # verify them before touching the filesystem.
+        if not _verify_download(binary, data, spec.get("sha256"), url):
+            return False
         os.makedirs(os.path.dirname(path), exist_ok=True)
         tmp_path = f"{path}.tmp"
         with open(tmp_path, "wb") as fh:
@@ -813,6 +831,11 @@ def _install_release_asset(binary, spec):
         console.print(f"[brand.command]  $ download {url}[/brand.command]")
         with urllib.request.urlopen(request, timeout=90) as response:
             data = response.read()
+
+        # Verify the published checksum of the downloaded asset before extracting
+        # and placing its binary; extraction is deterministic local code.
+        if not _verify_download(binary, data, spec.get("sha256"), selected["name"]):
+            return False
 
         payload = _extract_binary_from_release_asset(data, selected["name"], spec.get("binary", binary))
         if not payload:

@@ -165,7 +165,7 @@ class ExecutionParityTests(unittest.TestCase):
         cli = self.canonical(self.run_cli(command, redactions=(secret,)))
         desktop = self.canonical(self.run_desktop(command, redactions=(secret,)))
         self.assertEqual(cli, desktop)
-        self.assertEqual(cli["output"], "[masque]\n")
+        self.assertEqual(cli["output"], "[redacted]\n")
         self.assertNotIn(secret, cli["output"])
 
     def test_timeout_preserves_matching_partial_output_and_failure(self):

@@ -9,6 +9,10 @@ updates:
     ignore:
       - dependency-name: "PySide6"
         versions: ["6.12.0"]
+      # Native packages ship rich 13.7 (Ubuntu 24.04 / Debian Trixie); keep the
+      # floor aligned and let security patches through, but not major/minor bumps.
+      - dependency-name: "rich"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

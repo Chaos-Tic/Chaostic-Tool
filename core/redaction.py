@@ -23,7 +23,7 @@ def redact(text: str, secrets: Iterable[str], replacement: str = "[redacted]") -
 class StreamRedactor:
     """Mask byte sequences even when a secret is split across output chunks."""
 
-    def __init__(self, secrets: Iterable[str] = (), replacement: bytes = b"[masque]") -> None:
+    def __init__(self, secrets: Iterable[str] = (), replacement: bytes = b"[redacted]") -> None:
         self.secrets = sorted({secret.encode("utf-8") for secret in secrets if secret},
                               key=len, reverse=True)
         self.replacement = replacement

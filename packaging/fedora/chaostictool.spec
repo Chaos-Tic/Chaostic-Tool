@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.0.1
+Version:        2.0.2
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -16,7 +16,7 @@ AutoReqProv:    no
 BuildRequires:  cmake
 Requires:       python3 >= 3.11
 Requires:       python3-rich >= 13.7
-Requires:       python3-prompt-toolkit >= 3
+Requires:       python3-prompt-toolkit >= 3.0
 Requires:       python3-keyring
 Requires:       glibc >= 2.35
 Requires:       ca-certificates, dejavu-sans-fonts
@@ -55,6 +55,9 @@ tar -xzf %{SOURCE1} -C frozen
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Fri Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.2-1
+- Review wave 1: secret redaction, privilege drop, installer containment, honest 46-tool catalog, packaging and CI fixes.
+
 * Wed Oct 28 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.0.1-1
 - OS-secret-store API keys, nmap Shodan profile, opt-in subdomain targeting.
 

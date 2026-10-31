@@ -29,7 +29,16 @@ from core.runner import Runner, RunRequest
 from core.theme import COLORS, THEME
 
 console = Console(theme=THEME, style=f"{COLORS['text']} on {COLORS['bg']}")
+# ACTIVE_PROCS tracks every live child so Ctrl+C / shutdown can reap them. It is
+# touched from the UI thread and from capture worker threads, so a lock guards
+# all of its mutations and iterations.
 ACTIVE_PROCS = []
+_ACTIVE_PROCS_LOCK = threading.Lock()
+
+
+def _register_process(proc):
+    with _ACTIVE_PROCS_LOCK:
+        ACTIVE_PROCS.append(proc)
 
 
 def _build_env():
@@ -166,7 +175,7 @@ def _capture_worker(state, cmd, output_path, textual, timeout, redactions):
         runner.start(RunRequest(cmd, env=_build_env(), timeout=timeout, stop_grace=2,
                                inherit_stdin=True, raw_output=True), receive)
         state.proc = runner
-        ACTIVE_PROCS.append(state.proc)
+        _register_process(state.proc)
         if state.aborted.is_set():
             state.proc.stop()
         result = state.proc.wait()
@@ -217,17 +226,29 @@ def run_tool(cmd, output_path=None, interactive=False, context=None, *, timeout=
     context = dict(context or {})
     display_cmd = [redact(argument, redactions) for argument in cmd]
     if interactive:
-        # The menu application has already exited. Child input remains untouched.
+        # The menu application has already exited; the child inherits the real
+        # terminal so curses/REPL tools (msfconsole, sqlmap prompts) keep their
+        # TTY. That rules out the capture Runner, whose pipe would break them.
+        #
+        # Windows limitation: there is no POSIX session/termios here, so the
+        # process-group isolation and terminal save/restore below are guarded by
+        # os.name == "posix". On Windows the child is launched directly without a
+        # dedicated job object; the interactive AD/console tools run through the
+        # WSL2 (POSIX) backend anyway.
         _print_command_panel(display_cmd, output_path, True)
+        posix = os.name == "posix"
         proc = None
         terminal = None
         try:
             import sys
-            if sys.stdin.isatty():
+            if posix and sys.stdin.isatty():
                 import termios
                 terminal = (sys.stdin.fileno(), termios.tcgetattr(sys.stdin.fileno()))
-            proc = subprocess.Popen(cmd, start_new_session=True, env=_build_env())
-            ACTIVE_PROCS.append(proc)
+            # start_new_session puts the child in its own process group so a
+            # Ctrl+C reaches the whole tree; it is a POSIX-only Popen option.
+            popen_kwargs = {"start_new_session": True} if posix else {}
+            proc = subprocess.Popen(cmd, env=_build_env(), **popen_kwargs)
+            _register_process(proc)
             rc = proc.wait()
         except FileNotFoundError:
             console.print(f"[bright_red]Binary not found: {escape(cmd[0])}[/bright_red]")
@@ -284,17 +305,22 @@ def run_tool(cmd, output_path=None, interactive=False, context=None, *, timeout=
 
 
 def cleanup_processes():
-    for proc in list(ACTIVE_PROCS):
+    # Snapshot under the lock, then stop/forget outside it: _stop_process can
+    # block for seconds and _forget_process takes the same (non-reentrant) lock.
+    with _ACTIVE_PROCS_LOCK:
+        procs = list(ACTIVE_PROCS)
+    for proc in procs:
         if isinstance(proc, Runner) or proc.poll() is None:
             _stop_process(proc)
         _forget_process(proc)
 
 
 def _forget_process(proc):
-    try:
-        ACTIVE_PROCS.remove(proc)
-    except ValueError:
-        pass
+    with _ACTIVE_PROCS_LOCK:
+        try:
+            ACTIVE_PROCS.remove(proc)
+        except ValueError:
+            pass
 
 
 def _stop_process(proc):
@@ -304,6 +330,21 @@ def _stop_process(proc):
     if isinstance(proc, Runner):
         proc.stop()
         proc.wait(timeout=8)
+        return
+    # A raw Popen from the interactive path. Process-group signalling with
+    # os.killpg (and SIGKILL) is POSIX-only; on Windows fall back to the
+    # cross-platform terminate()/kill() escalation.
+    if os.name != "posix":
+        for action, timeout in ((proc.terminate, 2), (proc.kill, 2)):
+            try:
+                action()
+            except (ProcessLookupError, OSError) as exc:
+                console.print(f"[dim]Process already stopped: {exc}[/dim]")
+            try:
+                proc.wait(timeout=timeout)
+                return
+            except subprocess.TimeoutExpired:
+                continue
         return
     for sig, timeout in ((signal.SIGINT, 2), (signal.SIGTERM, 2), (signal.SIGKILL, 2)):
         try:

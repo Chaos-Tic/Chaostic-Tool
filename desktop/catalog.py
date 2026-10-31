@@ -89,7 +89,7 @@ for _key in ['dnsrecon','theharvester','shodan','xsstrike','secretsdump.py','pse
     elif _key in ('secretsdump.py','psexec.py','GetUserSPNs.py'): ADAPTERS[_key]['package']='impacket'
 ADAPTERS['shodan']['presets'].append(dict(label='Configurer la clé API Shodan',args=['init','{api_key}'],fields={'api_key':('Clé API','')}))
 ADAPTERS['theharvester']['presets']=[dict(label='Sources publiques crtsh',args=['-d','{host}','-b','crtsh']),dict(label='Sources personnalisées',args=['-d','{host}','-b','{sources}'],fields={'sources':('Sources séparées par des virgules','crtsh')})]
-ADAPTERS['amass']['presets']=[dict(label='Énumération avec moteur Amass',args=['enum','-d','{host}','-engine','{engine}'],fields={'engine':('URL du moteur de collecte','http://127.0.0.1:4000')},domain_only=True)]
+ADAPTERS['amass']['presets']=[]  # Amass v5 variants are built per CLI index (passive default / -active) in amass_profile
 for _key in ['subfinder','httpx','gobuster','ffuf','sqlmap','nuclei']:
     for _p in TOOLS[_key]['presets']:
         _p=dict(_p)
@@ -121,6 +121,21 @@ ADAPTERS['hashcat']['note']+=' Un pilote GPU/OpenCL compatible est requis.'
 BUILTINS['whois']=dict(name='Whois',category='osint',desc='Consultez les informations d’enregistrement auprès du serveur Whois.',presets=[dict(label='Requête Whois',worker='whois',needs_target=True)])
 BUILTINS['dig']=dict(name='DNS avancé',category='osint',desc='Interrogez les enregistrements DNS ; le moteur dnspython est intégré.',presets=[dict(label='Enregistrements '+r,worker='dig',rrtype=r,needs_target=True,fields={'nameserver':('Serveur DNS (facultatif)','')}) for r in ['A','AAAA','MX','TXT','NS','SOA','CAA','ANY','AXFR']])
 
+
+def amass_profile(index):
+    """One honest Amass v5 desktop profile for CLI preset *index*.
+
+    Amass v5 always enumerates through a collection engine (``-engine``,
+    default http://127.0.0.1:4000). Passive is the default; CLI preset 1 is the
+    active mode (``-active``), which adds zone transfers and certificate name
+    grabs. ``-passive`` is deprecated in v5 and a no-op, so it is not emitted.
+    """
+    active = index == 1
+    args = ['enum', '-active', '-d', '{host}', '-engine', '{engine}'] if active else ['enum', '-d', '{host}', '-engine', '{engine}']
+    label = 'Énumération active (transferts de zone et certificats)' if active else 'Énumération passive (moteur Amass)'
+    return dict(label=label, args=args, fields={'engine': ('Moteur de collecte Amass 5', 'http://127.0.0.1:4000')}, domain_only=True)
+
+
 def linux_presets(key):
     result=[]
     for original in TOOLS[key]['presets']:
@@ -130,7 +145,8 @@ def linux_presets(key):
         if key=='rustscan': p['args']=rustscan_arguments(p['args'])
         if key=='hashcat' and '-m' in p['args'] and '22000' in p['args']: p['fields']['hashfile']=('Capture de hachages au format 22000','')
         if key=='amass':
-            p['args']=['enum','-d','{host}','-engine','{engine}']; p['fields']['engine']=('Moteur de collecte Amass 5','http://127.0.0.1:4000')
+            spec=amass_profile(len(result))
+            p.update(label=spec['label'],args=spec['args'],domain_only=True); p['fields']['engine']=spec['fields']['engine']
         p['cli_index']=len(result)
         result.append(p)
     return result
@@ -150,16 +166,13 @@ def cli_native_profile(key,index):
     p['cli_index']=index
     p['interactive']=bool(TOOLS[key].get('interactive'))
     p['requires_root']=bool(original.get('requires_root',TOOLS[key].get('requires_root')))
-    if key=='amass': p=dict(ADAPTERS[key]['presets'][0],cli_index=index)
+    if key=='amass': p=dict(normalized(amass_profile(index)),cli_index=index,interactive=p['interactive'],requires_root=p['requires_root'])
     if key=='theharvester':
         p['args']=['-d','{host}','-b','{sources}']
         p['fields']['sources']=('Sources OSINT disponibles','crtsh')
         p['label']=original['label']+' · sources configurables'
     if key=='rustscan': p['args']=rustscan_arguments(p['args'])
     if key=='dalfox': p['args']=['scan' if a=='url' else a for a in p['args']]
-    if key=='nuclei' and '-t' in p['args']:
-        at=p['args'].index('-t'); p['args'][at]='-tags'
-        p['args'][at+1]={'exposures':'exposure'}.get(p['args'][at+1],p['args'][at+1])
     return p
 
 

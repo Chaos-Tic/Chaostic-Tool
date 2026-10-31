@@ -51,8 +51,7 @@ class DesktopTranslationTests(unittest.TestCase):
                 prefix = 'Fichier introuvable : ' if lang == 'fr' else 'File not found: '
                 self.assertEqual(str(error.exception), prefix + missing)
             self.assertEqual(validate_field('passwd', ' secret '), ' secret ')
-            self.assertEqual(redact('token=secret', ['secret']),
-                             'token=[masqué]' if lang == 'fr' else 'token=[redacted]')
+            self.assertEqual(redact('token=secret', ['secret']), 'token=[redacted]')
 
     def test_catalog_validation_uses_active_language(self):
         tool = {'key': 'fixture'}

@@ -468,7 +468,16 @@ def _launch_panel(tool, preset, cmd, route, output_path):
     )
 
 
-def run_preset(tool, preset, pause_after=True):
+def run_preset(tool, preset, pause_after=True, flow_context=None):
+    """Run one tool preset.
+
+    ``flow_context`` (``{"name", "index", "total"}``) is forwarded untouched to
+    the scan view so a flow run shows its position in the chain. The return value
+    is the run's exit code (the first abort/not-found code when fanning out over
+    subdomains, else the last code), or ``None`` when the preset never launched
+    (missing key, cancelled confirmation); flows read it to stop a "run all"
+    chain only on a real failure.
+    """
     base_fill = {
         "host": tgt.TARGET["host"],
         "url":  tgt.TARGET["url"],
@@ -513,6 +522,7 @@ def run_preset(tool, preset, pause_after=True):
     fullscreen = tui.available()
     route = "LOCAL / direct" if tool.get("category") == "passwords" else route_status(tool)
     confirmed = not has_prompts  # a single confirmation covers the whole batch
+    result_rc = None
 
     for host in hosts:
         fill = dict(base_fill, **shared)
@@ -572,15 +582,26 @@ def run_preset(tool, preset, pause_after=True):
         if not fullscreen:
             console.print(_launch_panel(tool, preset, display_cmd, route, output_path))
         label = preset["label"] + (f" · {host}" if multi else "")
-        executor.run_tool(
+        context = {"tool": tool["name"], "preset": label,
+                   "category": tool["category"], "route": route, "wait": pause_after}
+        if flow_context:
+            context["flow"] = flow_context
+        rc = executor.run_tool(
             run_cmd, output_path=output_path, interactive=tool.get("interactive", False),
-            context={"tool": tool["name"], "preset": label,
-                     "category": tool["category"], "route": route, "wait": pause_after},
-            timeout=preset.get("timeout"), redactions=redactions,
+            context=context, timeout=preset.get("timeout"), redactions=redactions,
         )
+        # Remember a stop-worthy code (not found / aborted) so a "run all" flow can
+        # halt; a plain non-zero exit (a tool that found nothing) is not a failure.
+        if rc in (127, 130):
+            result_rc = rc
+            if rc == 130:  # user aborted — do not keep fanning out over subdomains
+                break
+        elif result_rc is None:
+            result_rc = rc
 
     if pause_after and not fullscreen:
         pause()
+    return result_rc
 
 
 def run_tool_menu(tool, _key=None, *, choose_preset=False):

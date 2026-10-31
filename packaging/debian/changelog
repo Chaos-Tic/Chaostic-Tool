@@ -2,37 +2,37 @@ chaostictool (2.0.7-1) unstable; urgency=medium
 
   * Route interactive execution through a PTY-backed runner with a unified process stop and reap.
 
- -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 14:30:00 +0100
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 31 Oct 2026 14:30:00 +0100
 
 chaostictool (2.0.6-1) unstable; urgency=medium
 
   * Single-source the desktop catalog from the tool definitions with declarative GUI argument transforms.
 
- -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 14:00:00 +0100
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 31 Oct 2026 14:00:00 +0100
 
 chaostictool (2.0.5-1) unstable; urgency=medium
 
   * Share the run-session plumbing (secret redaction, decoding, flushing) across the CLI, TUI and desktop.
 
- -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 13:30:00 +0100
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 31 Oct 2026 13:30:00 +0100
 
 chaostictool (2.0.4-1) unstable; urgency=medium
 
   * Single-source the native packaging artifacts from the shared tool manifest.
 
- -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 13:00:00 +0100
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 31 Oct 2026 13:00:00 +0100
 
 chaostictool (2.0.3-1) unstable; urgency=medium
 
   * Review wave 2: pytest/ruff/mypy tooling baseline, CI gates, documentation coherence, username-free diagnostic logging.
 
- -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 12:30:00 +0100
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 31 Oct 2026 12:30:00 +0100
 
 chaostictool (2.0.2-1) unstable; urgency=medium
 
   * Review wave 1: secret redaction, privilege drop, installer containment, honest 46-tool catalog, packaging and CI fixes.
 
- -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Fri, 31 Oct 2026 12:00:00 +0100
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 31 Oct 2026 12:00:00 +0100
 
 chaostictool (2.0.1-1) unstable; urgency=medium
 

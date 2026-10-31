@@ -63,9 +63,13 @@ flowchart TD
 | [`core/executor.py`](../core/executor.py) | Subprocess control, real-time output streaming, secret redaction |
 | [`core/runner.py`](../core/runner.py) | UI-neutral process contract used during CLI/Desktop convergence |
 | [`core/backends/posix.py`](../core/backends/posix.py) | POSIX process-group lifecycle, bounded input and incremental output |
+| [`core/backends/pty.py`](../core/backends/pty.py) | Real controlling pseudo-terminal for interactive tools (isatty, Ctrl-C delivered to the child, window size), same lifecycle as the POSIX backend |
+| [`core/manifest.py`](../core/manifest.py) | Single definition of the runtime install manifest (`/var/lib/chaostictool/manifest`) shared by `core.installer` and `install.sh` |
+| [`core/installer.py`](../core/installer.py) | Tool installation methods (packages, go, cargo, pipx, pip, gem, source, AUR); records what it adds, refuses pre-existing files |
+| [`uninstall.sh`](../uninstall.sh) | Manifest-driven uninstaller shipped as `chaostictool-uninstall`; `--dry-run`, `--yes`, `--remove-packages`, `--force-detect` |
 | [`core/terminal.py`](../core/terminal.py) | POSIX pseudo-terminal allocation and ANSI color terminal streaming |
 | [`desktop/storage.py`](../desktop/storage.py) | Target persistence, deduplication, run history metadata, JSON Lines export |
-| [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.0.1`) |
+| [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.1.0`) |
 | [`core/update_service.py`](../core/update_service.py) | GitHub release verification, cache throttling (once-a-day), package-manager detection |
 | [`desktop/window.py`](../desktop/window.py) | Main Liquid Glass window, navigation stack, arsenal selector, run monitor |
 | [`desktop/theme.py`](../desktop/theme.py) | Frosted-glass stylesheets, translucent palettes (light pastel & neon dark), typography |

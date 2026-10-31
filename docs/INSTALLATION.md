@@ -12,15 +12,20 @@ runtime libraries with the system package manager. No system-wide pip installati
 used. AppImages are also built for x86-64 and ARM64.
 
 ```sh
-sudo apt install ./chaostictool_2.0.1_amd64.deb
+sudo apt install ./chaostictool_2.1.0_amd64.deb
 # Fedora (use the exact downloaded RPM filename):
-sudo dnf install ./chaostictool-2.0.1-1.x86_64.rpm
+sudo dnf install ./chaostictool-2.1.0-1.x86_64.rpm
 chaostictool-desktop
 ```
 
 Run the GUI as a regular user. The application menu entry uses the same launcher.
 Use `apt remove chaostictool` or `dnf remove chaostictool` to remove
-it. User settings and results remain in the user data folder.
+it. User settings and results remain in the user data folder. Package removal never
+removes the external security tools ChaosticTool installed at runtime: run
+`sudo chaostictool-uninstall --dry-run`, then `sudo chaostictool-uninstall`, **before**
+removing the package to reverse exactly what `/var/lib/chaostictool/manifest` records
+(pre-existing tools are never listed); the maintainer scriptlet only prints a notice.
+See the [Uninstall section of the README](../README.md#uninstall).
 
 ## Source installation with CMake
 
@@ -87,5 +92,5 @@ winget upgrade ChaosTic.ChaosticTool
 ```
 
 Each tagged release refreshes the winget manifests automatically after the first
-submission. The signed installer is also attached to every GitHub Release; see
+submission. The installer (unsigned, with its SHA-256) is also attached to every GitHub Release; see
 [the Windows guide](../README_WINDOWS.md) for the manual download and checksum steps.

@@ -35,6 +35,27 @@ class DrainTests(unittest.TestCase):
         self.assertEqual(console._drain(), "")
 
 
+class SgrOnlyTests(unittest.TestCase):
+    """Untrusted captured output must not inject terminal control sequences."""
+
+    def test_keeps_sgr_colours_and_tabs_and_newlines(self):
+        text = "\x1b[1;38;2;255;0;0mRED\x1b[0m\tcol\nnext"
+        self.assertEqual(tui._sgr_only(text), text)
+
+    def test_strips_cursor_erase_osc_and_control_bytes(self):
+        hostile = (
+            "\x1b[38;5;196mok\x1b[0m"   # legitimate colour, kept
+            "\x1b[2J\x1b[H"               # clear + cursor home, dropped
+            "\x1b]0;pwned\x07"            # OSC window title, dropped
+            "\x07\x08\x1bXraw"            # BEL, BS, lone ESC, dropped
+        )
+        cleaned = tui._sgr_only(hostile)
+        self.assertEqual(cleaned, "\x1b[38;5;196mok\x1b[0mraw")
+        self.assertNotIn("\x1b[2J", cleaned)
+        self.assertNotIn("\x07", cleaned)
+        self.assertEqual(cleaned.count("\x1b"), 2)  # only the two SGR escapes
+
+
 @unittest.skipUnless(DummyOutput, "prompt_toolkit required")
 class DialogTests(unittest.TestCase):
     def test_dialog_scrolls_on_plain_lines_and_renders_colours(self):

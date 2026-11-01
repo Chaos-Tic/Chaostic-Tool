@@ -32,9 +32,30 @@ except ImportError:
     Application = None
     UIControl = object
 
-# OSC sequences (hyperlinks, titles): prompt_toolkit's ANSI parser only reads
-# CSI colour codes, so these would leak as text into the dialog body.
-_OSC_RE = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
+# Captured output can carry untrusted remote data (banners, HTTP headers, scan
+# results). Only our own SGR colour escapes may reach prompt_toolkit's ANSI
+# parser; every other escape sequence (OSC, cursor/erase CSI, C1...) and stray
+# control byte is removed so captured content cannot drive the terminal.
+_SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
+_NON_SGR_ESC_RE = re.compile(
+    r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)"   # OSC ... BEL / ST
+    r"|\x1b\[[0-?]*[ -/]*[@-~]"              # other CSI (SGR already pulled out)
+    r"|\x1b[ -/]*[0-~]"                       # other 2-byte escapes
+)
+_CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")  # keep \t and \n
+
+
+def _sgr_only(text: str) -> str:
+    """Keep SGR colour escapes, drop every other escape and control byte."""
+    out, pos = [], 0
+    for match in _SGR_RE.finditer(text):
+        gap = _NON_SGR_ESC_RE.sub("", text[pos:match.start()])
+        out.append(_CONTROL_RE.sub("", gap))
+        out.append(match.group())
+        pos = match.end()
+    tail = _NON_SGR_ESC_RE.sub("", text[pos:])
+    out.append(_CONTROL_RE.sub("", tail))
+    return "".join(out)
 
 
 # EYEBROW (the constant "RED OPS CONTROL SURFACE / ..." chrome line) is shared
@@ -540,7 +561,7 @@ class DialogScreen:
         self.content = plain(content)
         self.lines = self.content.splitlines() or [""]
         self.scroll = max(0, len(self.lines) - 12)
-        body_text = (ANSI(_OSC_RE.sub("", content))
+        body_text = (ANSI(_sgr_only(content))
                      if isinstance(content, str) and "\x1b[" in content else self.content)
         control = FormattedTextControl(lambda: body_text)
         self.body = Window(control, wrap_lines=True, always_hide_cursor=True,

@@ -330,6 +330,14 @@ def main():
         cli_updates.start_background()
     flows.load_custom_flows()
     ui.startup_check()
+    from core import tui
+    with tui.session_screen():
+        _interactive_loop()
+
+
+def _interactive_loop():
+    # Runs inside one held alternate screen (tui.session_screen); every
+    # return/exception path below leaves it through that context manager.
     while True:
         choice = main_menu()
         try:

@@ -5,6 +5,7 @@ import os
 import re
 import sys
 from collections.abc import Sequence
+from contextlib import contextmanager
 from typing import Any
 
 from rich.errors import MarkupError
@@ -14,18 +15,26 @@ from core.theme import COLORS, EYEBROW
 
 try:
     from prompt_toolkit.application import Application
+    from prompt_toolkit.application.current import create_app_session
     from prompt_toolkit.buffer import Buffer
     from prompt_toolkit.document import Document
+    from prompt_toolkit.formatted_text import ANSI
+    from prompt_toolkit.input import create_input
     from prompt_toolkit.key_binding import KeyBindings
     from prompt_toolkit.layout import HSplit, Layout, Window
     from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl, UIContent, UIControl
     from prompt_toolkit.layout.processors import PasswordProcessor
     from prompt_toolkit.data_structures import Point
+    from prompt_toolkit.output import create_output
     from prompt_toolkit.styles import Style
     from prompt_toolkit.utils import get_cwidth
 except ImportError:
     Application = None
     UIControl = object
+
+# OSC sequences (hyperlinks, titles): prompt_toolkit's ANSI parser only reads
+# CSI colour codes, so these would leak as text into the dialog body.
+_OSC_RE = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
 
 
 # EYEBROW (the constant "RED OPS CONTROL SURFACE / ..." chrome line) is shared
@@ -526,10 +535,14 @@ class DialogScreen:
         if Application is None:
             raise RuntimeError("Full-screen mode requires prompt_toolkit>=3,<4")
         self.buffer = Buffer(document=Document(default, len(default)))
+        # Scrolling and widths come from the plain text; the body itself keeps
+        # the ANSI colours of the captured Rich output (see ScreenConsole._drain).
         self.content = plain(content)
         self.lines = self.content.splitlines() or [""]
         self.scroll = max(0, len(self.lines) - 12)
-        control = FormattedTextControl(lambda: self.content)
+        body_text = (ANSI(_OSC_RE.sub("", content))
+                     if isinstance(content, str) and "\x1b[" in content else self.content)
+        control = FormattedTextControl(lambda: body_text)
         self.body = Window(control, wrap_lines=True, always_hide_cursor=True,
                            get_vertical_scroll=lambda window: self.scroll)
         # Secret fields ({passwd}, cookies, API keys) are masked on screen so a
@@ -586,3 +599,66 @@ def input_dialog(prompt: str, content: str = "", title: str = "Chaostic Tool", d
 
 def message(content: str, title: str = "Chaostic Tool") -> None:
     DialogScreen("Press Enter to continue", content, title, message_only=True).run()
+
+
+# --- one alternate screen for the whole interactive session -------------------
+# Every screen above (and core.scan_view) is its own ``full_screen`` Application:
+# each ``run()`` entered the alternate screen (``?1049h``) and left it again
+# (``?1049l``), so chaining menu → dialog → tool → menu flashed the normal
+# terminal between two screens. ``session_screen`` enters once, shares one
+# Input/Output with every Application created inside it (``create_app_session``)
+# and neutralises the per-renderer enter/quit on that output in the meantime.
+_SESSION_OUTPUT = None
+
+
+def _held_enter(output):
+    # Already inside the alternate screen: only home the cursor, which is the
+    # part of Vt100_Output.enter_alternate_screen the next renderer relies on.
+    return lambda: output.write_raw("\x1b[H")
+
+
+@contextmanager
+def session_screen():
+    """Hold the alternate screen open across every screen run inside the block.
+
+    Plain path (no tty / no prompt_toolkit) or a nested call: no-op. The
+    ``finally`` always restores the normal screen, whatever leaves the block
+    (return, Ctrl+C, SystemExit, an uncaught exception).
+    """
+    global _SESSION_OUTPUT
+    if not available() or _SESSION_OUTPUT is not None:
+        yield
+        return
+    output = create_output()
+    type(output).enter_alternate_screen(output)
+    output.flush()
+    # Instance attributes shadow the class methods for this one output: each
+    # Application's Renderer keeps calling them, they just stop toggling.
+    output.enter_alternate_screen = _held_enter(output)
+    output.quit_alternate_screen = lambda: None
+    _SESSION_OUTPUT = output
+    try:
+        with create_app_session(input=create_input(), output=output):
+            yield
+    finally:
+        _SESSION_OUTPUT = None
+        del output.enter_alternate_screen, output.quit_alternate_screen
+        output.quit_alternate_screen()
+        output.flush()
+
+
+@contextmanager
+def suspend_screen():
+    """Give the normal screen back while a child owns the terminal (interactive
+    tools, package managers), then return to the held alternate screen."""
+    output = _SESSION_OUTPUT
+    if output is None:
+        yield
+        return
+    type(output).quit_alternate_screen(output)
+    output.flush()
+    try:
+        yield
+    finally:
+        type(output).enter_alternate_screen(output)
+        output.flush()

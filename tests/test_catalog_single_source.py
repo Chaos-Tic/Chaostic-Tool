@@ -9,7 +9,7 @@ the pre-refactor catalogue.
 import unittest
 
 from core.phases import PHASES, PHASE_DEFS
-from core.tools import TOOLS
+from core.tools import TOOLS, AMASS_STDOUT
 from desktop.catalog import catalog, build_arguments
 
 EXPECTED_PHASES = [
@@ -45,12 +45,12 @@ CATALOG_ORDER = [
     'tcpdump', 'responder', 'desktop-diagnostic', 'desktop-dns', 'desktop-http', 'desktop-tls',
 ]
 
+# amass v5 only writes names to its -o file, so both presets route it to stdout
+# (POSIX; AMASS_STDOUT is empty on Windows, where /dev/stdout does not exist).
 AMASS = [
-    ('Énumération passive (moteur Amass)', ['enum', '-d', '{host}', '-engine', '{engine}'],
-     {'engine': ('Moteur de collecte Amass 5', 'http://127.0.0.1:4000')}),
+    ('Énumération passive (sources par défaut)', ['enum', '-d', '{host}', *AMASS_STDOUT], {}),
     ('Énumération active (transferts de zone et certificats)',
-     ['enum', '-active', '-d', '{host}', '-engine', '{engine}'],
-     {'engine': ('Moteur de collecte Amass 5', 'http://127.0.0.1:4000')}),
+     ['enum', '-active', '-d', '{host}', *AMASS_STDOUT], {}),
 ]
 
 # label, native-args, native-fields, linux-args, linux-fields for the five tools.

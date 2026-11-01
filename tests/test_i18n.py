@@ -124,6 +124,45 @@ class DesktopTranslationTests(unittest.TestCase):
                     dialog.deleteLater()
                     APP.processEvents()
 
+    def test_status_pills_classify_by_key_in_both_languages(self):
+        """The EN-grey regression: a pill must pick its colour from a stable key,
+        never by substring-matching a translated label, so FR and EN agree and no
+        pill silently falls through to the muted colour."""
+        from desktop_harness import APP
+        from desktop import effects, theme
+        from core.availability import Availability, NEEDS_KEY, NOT_INSTALLED, READY
+        cases = [
+            (Availability(READY, label='Prêt', tone='ok'), 'GOOD'),
+            (Availability(NOT_INSTALLED, label='À installer', tone='bad'), 'DANGER'),
+            (Availability(NEEDS_KEY, label='Clé requise', tone='warn'), 'WARNING'),
+            ('success', 'GOOD'), ('failed', 'DANGER'), ('running', 'ACCENT'),
+            ('run:failed', 'DANGER'), ('active', 'GOOD'),
+        ]
+        for lang in ('fr', 'en'):
+            set_language(lang)
+            for status, role in cases:
+                with self.subTest(language=lang, status=status):
+                    self.assertEqual(effects.status_color(status), theme.COLORS[role])
+                    self.assertNotEqual(effects.status_color(status), theme.COLORS['MUTED'])
+                    pill = effects.status_pill(status)
+                    try:
+                        self.assertTrue(pill.text(), 'pill label must not be empty')
+                    finally:
+                        pill.deleteLater()
+            APP.processEvents()
+
+    def test_every_status_key_label_is_translated(self):
+        """Completeness: every French status label carried by the key registry (and
+        every availability label) has an i18n entry, so none leaks untranslated."""
+        from desktop.effects import STATUS_KEYS
+        from desktop.i18n import FR_EN
+        labels = {label for label, _ in STATUS_KEYS.values()}
+        labels |= {'Inclus', 'Prêt', 'Prêt · Linux', 'Clé requise', 'Échec installation',
+                   'À installer', 'À installer · Linux', 'Linux à configurer',
+                   'Dépendances natives', 'Dépendances Linux'}
+        missing = sorted(label for label in labels if label not in FR_EN)
+        self.assertEqual(missing, [], f'untranslated status labels: {missing}')
+
     def test_window_file_dialogs_and_installation_errors_are_translated(self):
         from desktop_harness import APP
         from desktop.packages import MANIFEST

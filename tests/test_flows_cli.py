@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from core import flows, ui
 from core.flow_definitions import FLOWS
-from core.tools import TOOLS, get_tool
+from core.tools import TOOLS, AMASS_STDOUT, get_tool
 
 
 class FakeConsole:
@@ -210,6 +210,106 @@ class RunPresetContextTests(unittest.TestCase):
                 patch.object(ui.executor, "run_tool", return_value=0) as run_tool:
             ui.run_preset(tool, preset, pause_after=False)
         self.assertNotIn("flow", run_tool.call_args.kwargs["context"])
+
+
+class HonestAmassTests(unittest.TestCase):
+    def test_cli_amass_drops_deprecated_passive_and_bogus_engine(self):
+        presets = TOOLS["amass"]["presets"]
+        self.assertEqual(len(presets), 2)
+        for p in presets:
+            self.assertNotIn("-passive", p["cmd"])
+            self.assertNotIn("-engine", p["cmd"])
+        self.assertNotIn("-active", presets[0]["cmd"])
+        self.assertIn("-active", presets[1]["cmd"])
+
+    def test_cli_amass_routes_names_to_stdout_on_posix(self):
+        # amass v5 writes discovered names only to its -o file; without it a
+        # standalone run shows progress only. /dev/stdout has no Windows
+        # counterpart, so the suffix is empty there.
+        import os
+        expected = ["-o", "/dev/stdout"] if os.name == "posix" else []
+        self.assertEqual(AMASS_STDOUT, expected)
+        for p in TOOLS["amass"]["presets"]:
+            self.assertEqual(p["cmd"][-len(expected):] if expected else [], expected)
+            self.assertEqual(p["cmd"].count("-o"), 1 if expected else 0)
+
+    def test_cli_and_gui_amass_describe_the_same_thing(self):
+        from desktop.catalog import catalog
+        cli = TOOLS["amass"]["presets"]
+        gui = next(e for e in catalog() if e["key"] == "amass")["presets"]
+        self.assertEqual(len(cli), len(gui), 2)
+        for p in gui:  # the engine URL was removed from the GUI too
+            self.assertNotIn("-engine", p["args"])
+            self.assertNotIn("-passive", p["args"])
+        self.assertNotIn("-active", gui[0]["args"])
+        self.assertIn("-active", gui[1]["args"])
+        for c, g in zip(cli, gui):  # the GUI emits the same -o routing as the CLI
+            self.assertEqual(g["args"][-len(AMASS_STDOUT):] if AMASS_STDOUT else [], AMASS_STDOUT)
+            self.assertEqual(c["cmd"][1:], g["args"])
+
+
+class FlowPreviewKeyTests(unittest.TestCase):
+    def test_preview_marks_a_preset_that_needs_a_missing_api_key(self):
+        # nmap's shodan-api preset is the one preset that is key-gated.
+        idx = next(i for i, p in enumerate(TOOLS["nmap"]["presets"])
+                   if p.get("needs_key") == "shodan")
+        flow = {"name": "Key", "desc": "", "steps": [("nmap", idx)]}
+        console = FakeConsole()
+        with patch.object(ui, "tool_available", return_value=True), \
+                patch("core.availability.key_present", return_value=False), \
+                patch.dict(flows.tgt.TARGET,
+                           {"host": "example.test", "url": "http://example.test", "port": "80"},
+                           clear=False), \
+                patch.object(flows.ui, "console", console):
+            records = flows._resolve_steps(flow)
+            flows._render_preview(records)
+        self.assertIn("needs the shodan API key", console.text)
+
+    def test_preview_omits_key_note_once_the_key_is_present(self):
+        idx = next(i for i, p in enumerate(TOOLS["nmap"]["presets"])
+                   if p.get("needs_key") == "shodan")
+        flow = {"name": "Key", "desc": "", "steps": [("nmap", idx)]}
+        console = FakeConsole()
+        with patch.object(ui, "tool_available", return_value=True), \
+                patch("core.availability.key_present", return_value=True), \
+                patch.dict(flows.tgt.TARGET,
+                           {"host": "example.test", "url": "http://example.test", "port": "80"},
+                           clear=False), \
+                patch.object(flows.ui, "console", console):
+            records = flows._resolve_steps(flow)
+            flows._render_preview(records)
+        self.assertNotIn("(needs the shodan API key)", console.text)
+
+
+class CliAvailabilityStateTests(unittest.TestCase):
+    def test_states_cover_ready_not_installed_and_needs_key(self):
+        from core import availability as av
+        shodan = get_tool("shodan")
+        nmap = get_tool("nmap")
+        self.assertEqual(av.for_cli("nmap", nmap, installed=False).state, av.NOT_INSTALLED)
+        self.assertEqual(av.for_cli("nmap", nmap, installed=True).state, av.READY)
+        with patch("core.availability.key_present", return_value=False):
+            self.assertEqual(av.for_cli("shodan", shodan, installed=True).state, av.NEEDS_KEY)
+        with patch("core.availability.key_present", return_value=True):
+            self.assertEqual(av.for_cli("shodan", shodan, installed=True).state, av.READY)
+
+    def test_fanout_threads_host_counter_into_the_scan_context(self):
+        tool = {"name": "Nmap", "binary": "nmap", "category": "recon", "output_dir": "recon"}
+        preset = {"label": "Quick", "cmd": ["nmap", "{host}"], "output": None}
+        with patch.object(ui, "console", FakeConsole(["y"])), \
+                patch.object(ui.tui, "available", return_value=False), \
+                patch.object(ui, "resolve_tool_binary", return_value="nmap"), \
+                patch.object(ui.tgt, "scope_hosts", return_value=["example.test", "a.example.test"]), \
+                patch.object(ui.tgt, "scope_url", side_effect=lambda h: f"http://{h}"), \
+                patch.dict(ui.tgt.TARGET,
+                           {"host": "example.test", "url": "http://example.test", "port": "80"},
+                           clear=False), \
+                patch.object(ui.executor, "run_tool", return_value=0) as run_tool:
+            ui.run_preset(tool, preset, pause_after=False)
+        totals = {c.kwargs["context"].get("host_total") for c in run_tool.call_args_list}
+        indices = [c.kwargs["context"].get("host_index") for c in run_tool.call_args_list]
+        self.assertEqual(totals, {2})
+        self.assertEqual(indices, [1, 2])
 
 
 if __name__ == "__main__":

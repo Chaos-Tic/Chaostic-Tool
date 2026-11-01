@@ -74,8 +74,9 @@ def _fit(text: str, width: int) -> str:
 # Words that live-state helpers emit as a status; mapped to a pill colour so the
 # routing/stat strips read the same way as the menu badges (data, not decoration).
 _STATUS_OK = {"ACTIVE", "AVAILABLE", "MATCH", "ON", "READY", "ENABLED"}
-_STATUS_BAD = {"UNAVAILABLE", "MISSING", "MISMATCH", "FAILED", "ERROR", "NOT VERIFIED"}
-_STATUS_WARN = {"OFF", "DISABLED", "NOT CHECKED", "PENDING", "SKIPPED"}
+_STATUS_BAD = {"UNAVAILABLE", "MISSING", "MISMATCH", "FAILED", "ERROR",
+               "NOT VERIFIED", "NOT INSTALLED", "BLOCKED"}
+_STATUS_WARN = {"OFF", "DISABLED", "NOT CHECKED", "PENDING", "SKIPPED", "NEEDS KEY"}
 
 # Display keys for the home "direct actions" deck. These mirror the home key
 # aliases in MenuScreen._bindings (11→r Results, 12→g Attack flows, p/x→Proxy):
@@ -149,6 +150,7 @@ def _style():
         "muted": COLORS["muted"], "line": COLORS["line"],
         "faint": COLORS["faint"],
         "selected": f"bold {COLORS['accent']}",
+        "violet": f"bold {COLORS['violet']}",
         "status": COLORS["good"], "footer": COLORS["muted"],
         # brand masthead (the chamfered HUD frame + wordmark + kill-chain tagline)
         "frame": COLORS["accent_line"],
@@ -159,7 +161,7 @@ def _style():
         "tagverb": f"bold {COLORS['accent']}",
         "tagsep": COLORS["accent_line"],
         "ok": f"bold {COLORS['good']}",
-        "band": f"bold {COLORS['accent']}",
+        "band": f"bold {COLORS['violet']}",
         "keybadge": f"bold {COLORS['accent']}",
         "tool": COLORS["muted"],
         "tag": COLORS["faint"],

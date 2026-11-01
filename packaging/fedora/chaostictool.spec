@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.1.1
+Version:        2.2.0
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -18,6 +18,7 @@ Requires:       python3 >= 3.11
 Requires:       python3-rich >= 13.7
 Requires:       python3-prompt-toolkit >= 3.0
 Requires:       python3-keyring
+Recommends:     python3-cryptography
 Requires:       glibc >= 2.35
 Requires:       ca-certificates, dejavu-sans-fonts
 Requires:       mesa-libEGL, libglvnd-opengl, libglvnd-glx, libxkbcommon, libxkbcommon-x11
@@ -81,6 +82,9 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Sun Nov 01 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.0-1
+- Mission report export (Markdown, text, PDF, JSON); subdomain scope controls (fan-out cap with confirmation, exclusions, clearer enumerate, target-liveness warning, amass v5 enum fix); arsenal/flows UX (tool availability states incl. needs-key, honest amass emitting names, flow host counter, TUI Liquid Glass polish, i18n pill-key fix); persistent opt-in API-key file store with optional encryption (python3-cryptography recommended).
+
 * Sat Oct 31 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.1.1-1
 - Flows UX: deduplicated built-in attack flows and a chained execution model (preview, run-all/step modes, progress) across the CLI and desktop; editable targets in the desktop.
 

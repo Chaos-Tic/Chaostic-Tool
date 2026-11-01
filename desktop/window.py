@@ -12,17 +12,19 @@ from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradien
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QBoxLayout, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QListWidget, QListWidgetItem,
     QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
     QInputDialog, QScrollArea, QMenu, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.phases import PHASES
+from core.subdomains import WARN_FANOUT
 from desktop.flow_panel import FlowPanel
 from desktop import VERSION
 from desktop import effects
 from desktop import theme
 from desktop.identity import BrandPanel, RailButton
-from desktop.catalog import availability, build_arguments, catalog, find_executable, native_command, preset_key_value
+from desktop.catalog import availability, availability_state, build_arguments, catalog, find_executable, native_command, preset_key_value
 from desktop.process import Runner
 from desktop.backends import get_config,save_config,linux_status,install_plan
 from desktop.profiles import secrets_for,INPUT_FILES,placeholders
@@ -31,6 +33,13 @@ from desktop.backend_dialog import BackendDialog
 from desktop.packages import PORTABLE_PACK, PYTHON_PACK, MANIFEST, find_python, installed, installation_error, can_install
 
 STATUS = {"running": "En cours", "success": "Terminé", "failed": "Échec", "cancelled": "Arrêté", "interrupted": "Interrompu"}
+
+# Stable, never-translated identities for the two internal "install" runs. They
+# are STORED as the run's tool name and COMPARED on completion; using the same
+# constant on both sides keeps check_backend() firing after a Linux install even
+# when the UI language differs (a translated literal would silently stop matching).
+INSTALL_NATIVE = "Dépendances natives"
+INSTALL_LINUX = "Dépendances Linux"
 
 
 from desktop.i18n import T, set_language, language
@@ -100,7 +109,7 @@ def _pill_cell(text):
     box = QHBoxLayout(holder)
     box.setContentsMargins(10, 2, 10, 2)
     box.setSpacing(0)
-    box.addWidget(effects.status_pill(str(text)),0,Qt.AlignmentFlag.AlignVCenter)
+    box.addWidget(effects.status_pill(text),0,Qt.AlignmentFlag.AlignVCenter)
     box.addStretch()
     holder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
     return holder
@@ -111,12 +120,10 @@ def fill_table(widget, rows, pill_cols=()):
     for r, values in enumerate(rows):
         for c, value in enumerate(values):
             if c in pill_cols:
-                accessible_item=QTableWidgetItem('');accessible_item.setData(Qt.ItemDataRole.AccessibleTextRole,str(value));accessible_item.setToolTip(str(value))
+                label=effects.status_label(value)
+                accessible_item=QTableWidgetItem('');accessible_item.setData(Qt.ItemDataRole.AccessibleTextRole,label);accessible_item.setToolTip(label)
                 widget.setItem(r,c,accessible_item)
-                if str(value) not in ("", "—"):
-                    widget.setCellWidget(r, c, _pill_cell(value))
-                else:
-                    widget.setCellWidget(r, c, None)
+                widget.setCellWidget(r, c, _pill_cell(value) if label else None)
                 continue
             widget.setCellWidget(r, c, None)
             item = QTableWidgetItem(str(value))
@@ -164,8 +171,15 @@ from desktop.launch_dialog import LaunchDialog
 
 
 class SubdomainWorker(QThread):
-    """Enumerate a domain's subdomains off the UI thread."""
-    done = Signal(list, list, str)
+    """Enumerate a domain's subdomains off the UI thread.
+
+    subfinder (fast) runs first and its results are emitted immediately via
+    ``partial`` so the UI never looks frozen while amass — slow and best-effort —
+    finishes in the background. ``done`` carries the merged result plus the
+    target's DNS-resolution status so a non-resolving target can be flagged.
+    """
+    partial = Signal(list, dict)            # subs, counts — subfinder is in
+    done = Signal(list, dict, str, bool, str)  # subs, counts, error, resolves, www_alt
 
     def __init__(self, domain, env, parent=None):
         super().__init__(parent)
@@ -173,8 +187,28 @@ class SubdomainWorker(QThread):
 
     def run(self):
         from core import subdomains as sd
-        subs, sources, error = sd.enumerate_subdomains(self.domain, env=self.env)
-        self.done.emit(subs, sources, error)
+        tools = sd.available_enumerators(self.env.get("PATH"))
+        merged: dict[str, None] = {}
+        counts: dict[str, int] = {}
+        last_error = ""
+        for index, name in enumerate(tools):
+            # subfinder returns in seconds; give amass a longer best-effort slot.
+            budget = 60 if name == "subfinder" else 180
+            hosts, code, err = sd.run_enumerator(name, self.domain, env=self.env, timeout=budget)
+            if hosts:
+                counts[name] = len(hosts)
+                merged.update(dict.fromkeys(hosts))
+            elif code not in (0, None):
+                last_error = (err or "").strip() or last_error
+            if index < len(tools) - 1:
+                self.partial.emit(sorted(merged), dict(counts))
+        resolves, www_alt = sd.resolution_status(self.domain)
+        if not tools:
+            self.done.emit([], {}, "No subdomain enumerator found. Install subfinder (recommended) or amass.",
+                           resolves, www_alt)
+        else:
+            error = "" if (merged or not last_error) else last_error
+            self.done.emit(sorted(merged), counts, error, resolves, www_alt)
 
 
 class Window(QMainWindow):
@@ -494,6 +528,14 @@ class Window(QMainWindow):
         scope_box.addLayout(row)
         self.subdomain_status = label("", "muted", True)
         scope_box.addWidget(self.subdomain_status)
+        self.subdomain_hint = label("Décochez un sous-domaine pour l’exclure du périmètre.", "muted", True)
+        scope_box.addWidget(self.subdomain_hint)
+        self.subdomain_list = QListWidget()
+        self.subdomain_list.setObjectName("subdomainList")
+        self.subdomain_list.setMaximumHeight(170)
+        self.subdomain_list.setAccessibleName(T("Sous-domaines découverts"))
+        self.subdomain_list.itemChanged.connect(self._subdomain_exclusion_changed)
+        scope_box.addWidget(self.subdomain_list)
         layout.addWidget(scope)
         layout.addWidget(label("Les résultats restent dans l’historique.", "muted", True))
 
@@ -670,7 +712,7 @@ class Window(QMainWindow):
         layout.addWidget(splitter, 1)
         actions = QHBoxLayout()
         actions.addWidget(button("Ouvrir le dossier", self.open_history_folder))
-        actions.addWidget(button("Exporter le journal…", self.export_history))
+        actions.addWidget(button("Exporter un rapport…", self.export_history))
         actions.addWidget(button('Réinitialiser filtres',self.reset_history_filters))
         self.delete_history_button=button('Supprimer ce résultat…',self.delete_history_result,'danger')
         self.delete_history_button.setEnabled(False)
@@ -764,16 +806,17 @@ class Window(QMainWindow):
 
     def build_api_keys_card(self, layout):
         from core import api_keys
+        api_keys.set_passphrase_prompt(self._ask_api_passphrase)
         frame, content = card()
         content.addWidget(label("Clés API", "sectionTitle"))
         content.addWidget(label("Certains outils embarqués utilisent une clé API. Enregistrez-la ici une fois : "
-                                "elle est conservée dans le coffre de clés sécurisé du système d’exploitation "
-                                "(chiffrée au repos), jamais en clair sur le disque.",
+                                "elle est réutilisée à chaque lancement et transmise à l’outil par sa variable "
+                                "d’environnement (une variable déjà exportée dans le shell a priorité).",
                                 "muted", True))
-        if not api_keys.secure_storage_available():
-            content.addWidget(label("Aucun coffre de clés sécurisé n’est disponible sur ce système : les clés "
-                                    "ne seront gardées que pour cette session.", "muted", True))
-        stored = api_keys.load()
+        self.api_storage_label = label(self._api_storage_text(), "muted", True)
+        content.addWidget(self.api_storage_label)
+        status = api_keys.storage_status()
+        stored = {} if status.locked else api_keys.load()
         self.api_key_fields = {}
         for spec in api_keys.KEY_SPECS:
             content.addWidget(label(f"{spec['label']} · {spec['env']}", "muted"))
@@ -789,17 +832,95 @@ class Window(QMainWindow):
             f.setEchoMode(QLineEdit.EchoMode.Normal if shown else QLineEdit.EchoMode.Password)
             for f in self.api_key_fields.values()])
         content.addWidget(reveal)
+        self.api_unlock_button = button("Déverrouiller le fichier de clés", self._unlock_api_store)
+        self.api_unlock_button.setVisible(status.locked)
+        content.addWidget(self.api_unlock_button)
         content.addWidget(button("Enregistrer les clés", self.save_api_keys))
         layout.addWidget(frame)
 
+    def _api_storage_text(self):
+        from core import api_keys
+        status = api_keys.storage_status()
+        if status.kind == "keyring":
+            return T("Stockage : coffre de clés sécurisé du système d’exploitation (chiffré au repos par le système).")
+        if status.kind == "file-encrypted":
+            text = T("Stockage : fichier chiffré (PBKDF2-HMAC-SHA256 + Fernet, phrase secrète demandée une fois par "
+                     "session) : {path}").format(path=status.path)
+            return text + (T(" — verrouillé : déverrouillez-le pour utiliser les clés.") if status.locked else "")
+        if status.kind == "file-plain":
+            return T("Stockage : fichier lisible par votre compte seulement (mode 0600) : {path}. Les valeurs sont "
+                     "encodées en base64 mais NON chiffrées ; seules les permissions du fichier les protègent.").format(path=status.path)
+        return T("Aucun coffre de clés sécurisé sur ce système : les clés ne sont gardées que pour cette session. "
+                 "À l’enregistrement, un fichier persistant vous sera proposé.")
+
+    def _ask_api_passphrase(self, reason):
+        if QThread.currentThread() is not QApplication.instance().thread():
+            return None  # never raise a dialog from a worker thread
+        title = T("Phrase secrète du fichier de clés")
+        prompt = {"new": T("Choisissez une phrase secrète (vide = fichier 0600 non chiffré) :"),
+                  "confirm": T("Confirmez la phrase secrète :")}.get(reason, T("Phrase secrète du fichier de clés chiffré :"))
+        value, ok = QInputDialog.getText(self, title, prompt, QLineEdit.EchoMode.Password)
+        return value if ok and value else None
+
+    def _refresh_api_storage(self):
+        from core import api_keys
+        self.api_storage_label.setText(self._api_storage_text())
+        self.api_unlock_button.setVisible(api_keys.storage_status().locked)
+
+    def _unlock_api_store(self):
+        from core import api_keys
+        passphrase = self._ask_api_passphrase("unlock")
+        if not passphrase:
+            return False
+        if not api_keys.unlock_file_store(passphrase):
+            QMessageBox.warning(self, T("Clés API"), T("Phrase secrète incorrecte."))
+            return False
+        for key_id, value in api_keys.load().items():
+            self.api_key_fields[key_id].setText(value)
+        self._refresh_api_storage()
+        return True
+
+    def _offer_api_file_store(self):
+        from core import api_keys
+        status = api_keys.storage_status()
+        detail = (T("Le fichier sera chiffré avec une phrase secrète (PBKDF2-HMAC-SHA256 → Fernet) demandée une fois par session.")
+                  if status.can_encrypt else
+                  T("La bibliothèque « cryptography » n’est pas installée : le fichier serait encodé en base64 mais NON chiffré ; seules ses permissions 0600 le protègent."))
+        question = T("Aucun coffre de clés sécurisé. Enregistrer les clés dans un fichier persistant ?\n{path}\n"
+                     "(dossier 0700, fichier 0600, écriture atomique)\n\n{detail}").format(path=status.path, detail=detail)
+        answer = QMessageBox.question(self, T("Clés API"), question,
+                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                      QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        passphrase = self._ask_api_passphrase("new") if status.can_encrypt else None
+        if passphrase and self._ask_api_passphrase("confirm") != passphrase:
+            QMessageBox.warning(self, T("Clés API"), T("Les phrases secrètes diffèrent : clés gardées pour cette session seulement."))
+            return
+        api_keys.enable_file_store(passphrase)
+
     def save_api_keys(self):
         from core import api_keys
+        fields = getattr(self, "api_key_fields", {})
+        if api_keys.storage_status().locked and not self._unlock_api_store():
+            self.statusBar().showMessage(T("Fichier de clés verrouillé : rien n’a été enregistré."), 4000)
+            return
+        if api_keys.file_store_offerable() and any(f.text().strip() for f in fields.values()):
+            self._offer_api_file_store()
         persisted = True
-        for key_id, field in getattr(self, "api_key_fields", {}).items():
+        for key_id, field in fields.items():
             persisted = api_keys.set_key(key_id, field.text()) and persisted
-        self.statusBar().showMessage(
-            T("Clés API enregistrées.") if persisted
-            else T("Clés gardées pour cette session (aucun coffre sécurisé)."), 4000)
+        self._refresh_api_storage()
+        kind = api_keys.storage_status().kind
+        if not persisted:
+            message = T("Clés gardées pour cette session (aucun stockage persistant).")
+        elif kind == "keyring":
+            message = T("Clés API enregistrées dans le coffre du système.")
+        elif kind == "file-encrypted":
+            message = T("Clés API enregistrées dans le fichier chiffré.")
+        else:
+            message = T("Clés API enregistrées dans le fichier 0600 (non chiffré).")
+        self.statusBar().showMessage(message, 4000)
 
     def _sync_theme_button(self):
         self.theme_button.setText(T("  Mode sombre") if theme.MODE == "light" else T("  Mode clair"))
@@ -864,9 +985,9 @@ class Window(QMainWindow):
         target = self.store.active_target
         self.active_name.setText(target["label"] if target else T("Aucune cible"))
         self.active_host.setText(target["url"] if target else T("Ajoutez votre premier environnement."))
-        fill_table(self.target_table, [(t["label"], t["url"], t["port"], "Active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
+        fill_table(self.target_table, [(t["label"], t["url"], t["port"], "active" if target and t["id"] == target["id"] else "—") for t in self.store.targets], pill_cols=(3,))
         self._refresh_subdomain_ui()
-        rows = [(T(r["tool"]), (r.get("target") or {}).get("label", T("Cet ordinateur")), T(STATUS.get(r["status"], r["status"])), r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
+        rows = [(T(r["tool"]), (r.get("target") or {}).get("label", T("Cet ordinateur")), "run:" + r["status"], r["started"].replace("T", " ")[:16] + " UTC") for r in self.history_rows]
         fill_table(self.recent, rows[:3], pill_cols=(2,))
         self.recent_empty.setVisible(not rows)
         self.filter_history()
@@ -879,12 +1000,26 @@ class Window(QMainWindow):
         target = self.store.active_target
         is_domain = bool(target and sd.is_domain(target.get("host", "")))
         cached = list(target.get("subdomains") or []) if target else []
+        excluded = set(target.get("excluded") or []) if target else set()
         busy = self._enum_thread is not None
         self.subdomain_toggle.setEnabled(is_domain and bool(cached))
         self.enumerate_button.setEnabled(is_domain and not busy and not self.runner.active)
         self.subdomain_toggle.blockSignals(True)
         self.subdomain_toggle.setChecked(bool(target and target.get("include_subdomains")))
         self.subdomain_toggle.blockSignals(False)
+        # Rebuild the exclusion checklist (checked = in scope, unchecked = excluded).
+        self.subdomain_list.blockSignals(True)
+        self.subdomain_list.clear()
+        for sub in cached:
+            item = QListWidgetItem(sub)
+            item.setData(Qt.ItemDataRole.UserRole, sub)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked if sub in excluded else Qt.CheckState.Checked)
+            self.subdomain_list.addItem(item)
+        self.subdomain_list.setEnabled(is_domain and bool(cached) and not busy)
+        self.subdomain_list.blockSignals(False)
+        self.subdomain_list.setVisible(bool(cached))
+        self.subdomain_hint.setVisible(bool(cached))
         if not target:
             text = T("Définissez une cible active.")
         elif not is_domain:
@@ -892,10 +1027,42 @@ class Window(QMainWindow):
         elif busy:
             text = T("Énumération en cours…")
         elif cached:
-            text = T("{n} sous-domaines en cache.").format(n=len(cached))
+            active = len([s for s in cached if s not in excluded])
+            if excluded:
+                text = T("{n} sous-domaines en cache, {x} exclus ({a} dans le périmètre).").format(
+                    n=len(cached), x=len(excluded), a=active)
+            else:
+                text = T("{n} sous-domaines en cache.").format(n=len(cached))
         else:
             text = T("Aucun sous-domaine en cache — lancez l’énumération.")
         self.subdomain_status.setText(text)
+
+    def _subdomain_exclusion_changed(self, _item):
+        target = self.store.active_target
+        if not target:
+            return
+        excluded = [self.subdomain_list.item(i).data(Qt.ItemDataRole.UserRole)
+                    for i in range(self.subdomain_list.count())
+                    if self.subdomain_list.item(i).checkState() != Qt.CheckState.Checked]
+        self.store.set_target_scope(target["id"], excluded=excluded)
+        self._refresh_subdomain_ui()
+
+    def _enum_summary(self, count, counts):
+        """Explicit, bilingual result line with per-source counts."""
+        if not count:
+            return T("Aucun sous-domaine trouvé.")
+        detail = ", ".join("{s} : {n}".format(s=s, n=n) for s, n in counts.items())
+        return T("{n} sous-domaines trouvés ({d}).").format(n=count, d=detail)
+
+    def _resolve_warning_text(self, resolves, www_alt, host):
+        if resolves:
+            return ""
+        if www_alt:
+            return T("{host} n’a aucun enregistrement A/AAAA (ne résout pas) ; seul {www} résout. "
+                     "Les outils visant {host} ne renverront rien — c’est le DNS de la cible, pas un bug.").format(
+                         host=host, www=www_alt)
+        return T("{host} n’a aucun enregistrement A/AAAA (ne résout pas). Les outils visant un hôte "
+                 "ne renverront rien tant qu’il ne résout pas — c’est le DNS de la cible, pas un bug.").format(host=host)
 
     def toggle_subdomain_scope(self, checked):
         target = self.store.active_target
@@ -915,12 +1082,24 @@ class Window(QMainWindow):
                                 T("Installez subfinder (recommandé) ou amass pour énumérer les sous-domaines."))
             return
         self._enum_target_id = target["id"]
+        self._enum_host = target["host"]
         self._enum_thread = SubdomainWorker(target["host"], env, self)
+        self._enum_thread.partial.connect(self._enumeration_partial)
         self._enum_thread.done.connect(self._enumeration_done)
         self._enum_thread.start()
         self._refresh_subdomain_ui()
 
-    def _enumeration_done(self, subs, sources, error):
+    def _enumeration_partial(self, subs, counts):
+        # subfinder is in — show its results at once and keep amass running.
+        if not subs:
+            return
+        self.store.set_target_scope(self._enum_target_id, subdomains=subs)
+        self.store.set_target_scope(self._enum_target_id, include=True)
+        self.statusBar().showMessage(
+            T("{summary} amass en cours (complément, meilleur effort)…").format(
+                summary=self._enum_summary(len(subs), counts)))
+
+    def _enumeration_done(self, subs, counts, error, resolves=True, www_alt=""):
         self._enum_thread = None
         if error:
             QMessageBox.warning(self, T("Sous-domaines"), T(error))
@@ -928,9 +1107,12 @@ class Window(QMainWindow):
             self.store.set_target_scope(self._enum_target_id, subdomains=subs)
             if subs:
                 self.store.set_target_scope(self._enum_target_id, include=True)
-                self.statusBar().showMessage(T("{n} sous-domaines trouvés via {s}.").format(n=len(subs), s=", ".join(sources)))
+                self.statusBar().showMessage(self._enum_summary(len(subs), counts))
             else:
                 self.statusBar().showMessage(T("Aucun sous-domaine trouvé."))
+        warning = self._resolve_warning_text(resolves, www_alt, getattr(self, "_enum_host", ""))
+        if warning:
+            QMessageBox.warning(self, T("Cible non résolue"), warning)
         self.refresh()
 
     def _scope_targets(self, preset, target):
@@ -945,6 +1127,28 @@ class Window(QMainWindow):
         if len(hosts) <= 1:
             return [target]
         return [retarget(target, host) for host in hosts]
+
+    def _confirm_fanout(self, target, hosts):
+        """Confirm a large scoped fan-out; return the hosts to run, or None to cancel."""
+        full = self.store.fanout_count(target) if target else len(hosts)
+        capped = (T(" (plafonné de {full} à la limite stricte de {cap})").format(full=full, cap=len(hosts))
+                  if full > len(hosts) else "")
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(T("Périmètre étendu"))
+        box.setText(T("Périmètre = hôte de base + {n} sous-domaines → ce profil s’exécutera {m} fois "
+                      "(séquentiel){capped}.").format(n=len(hosts) - 1, m=len(hosts), capped=capped))
+        run_all = box.addButton(T("Tout exécuter ({m})").format(m=len(hosts)), QMessageBox.ButtonRole.AcceptRole)
+        first_k = box.addButton(T("Seulement les {k} premiers").format(k=WARN_FANOUT), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.setDefaultButton(first_k)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is run_all:
+            return hosts
+        if clicked is first_k:
+            return hosts[:WARN_FANOUT]
+        return None
 
     def add_target(self):
         dialog = TargetDialog(self)
@@ -999,7 +1203,7 @@ class Window(QMainWindow):
                                and (category is None or t["key"] in members or (category=="builtin" and t["key"].startswith("desktop-")))
                                and (not self.only_ready.isChecked() or availability(t, self.store.settings["executables"], self.store.root)[1])]
         self.tool_table.blockSignals(True)
-        fill_table(self.tool_table, [(T(t["name"]), T(t["group"]), availability(t, self.store.settings["executables"], self.store.root)[0]) for t in self.filtered_tools], pill_cols=(2,))
+        fill_table(self.tool_table, [(T(t["name"]), T(t["group"]), availability_state(t, self.store.settings["executables"], self.store.root)) for t in self.filtered_tools], pill_cols=(2,))
         self.tool_table.blockSignals(False)
         self.tool_count.setText(f"{len(self.filtered_tools)} " + T("outil(s) affiché(s) · états issus des exécutables natifs et de l’inventaire Linux"))
         if self.filtered_tools:
@@ -1091,7 +1295,7 @@ class Window(QMainWindow):
         self.run_title.setText(T("Installation des outils"))
         self.run_info.setText(T("Téléchargement, vérification et installation · En cours"))
         try:
-            self.runner.start("Dépendances natives", ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
+            self.runner.start(INSTALL_NATIVE, ", ".join(packages), request, worker="install", timeout_ms=1_800_000)
             self.run_folder.setEnabled(True)
             self.navigate(3)
         except (OSError, RuntimeError, ValueError) as exc:
@@ -1125,6 +1329,10 @@ class Window(QMainWindow):
                       fields=fields,wordlist=wordlist,metadata=metadata)
             try:
                 hosts=self._scope_targets(preset,target)
+                if show_dialog and len(hosts)>WARN_FANOUT:
+                    hosts=self._confirm_fanout(target,hosts)
+                    if hosts is None:
+                        return False
                 self._fanout_total=len(hosts)
                 self._fanout=[(spec,host) for host in hosts[1:]]
                 self._start_run(spec,hosts[0])
@@ -1237,7 +1445,7 @@ class Window(QMainWindow):
         try:
             self.console.clear(); self.terminal_screen=None; self.input_row.show()
             self.run_title.setText(T('Installation des paquets Linux'))
-            self.runner.start('Dépendances Linux','Paquets Linux',{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
+            self.runner.start(INSTALL_LINUX,'Paquets Linux',{'label':T('Environnement Linux')},command=install_plan(keys),bridge=True,elevate=True,linux_install_keys=keys,timeout_ms=3_600_000)
             self.navigate(3)
         except (ValueError,RuntimeError,OSError) as exc: QMessageBox.warning(self,T('Installation Linux'),str(exc))
 
@@ -1307,7 +1515,7 @@ class Window(QMainWindow):
             return not query or query in (r['tool']+' '+r.get('preset','')+' '+r.get('flow_name','')+' '+str(r.get('flow_target') or r.get('target') or {})).casefold()
         self.visible_history=[r for r in self.history_rows if matches(r)]
         fill_table(self.history_table,[(T(r['tool'])+(' / '+r['flow_name'] if r.get('flow_name') else ''),r.get('preset',''),
-            (r.get('flow_target') or r.get('target') or {}).get('label',T('Cet ordinateur')),T(STATUS.get(r['status'],r['status'])),r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
+            (r.get('flow_target') or r.get('target') or {}).get('label',T('Cet ordinateur')),'run:'+r['status'],r['started'].replace('T',' ')[:16]+' UTC') for r in self.visible_history],pill_cols=(3,))
         self.history_count.setText(T('{shown} résultat(s) affiché(s) sur {total}').format(shown=len(self.visible_history),total=len(self.history_rows)))
         self.show_history()
 
@@ -1378,7 +1586,7 @@ class Window(QMainWindow):
                     self.statusBar().showMessage(text)
             except (OSError,ValueError):pass
         self.refresh()
-        if result['tool']=='Dépendances natives':
+        if result['tool']==INSTALL_NATIVE:
             pending=getattr(self,'pending_installers',[]); self.pending_installers=[]
             if result['status']=='success' and os.name=='nt':
                 for package in pending:
@@ -1390,7 +1598,7 @@ class Window(QMainWindow):
                         os.startfile(str(path))
                         self.run_info.setText(T('Assistant officiel ouvert. Terminez l’installation puis cliquez sur Actualiser dans la boîte à outils.'))
                     except (OSError,ValueError) as exc: QMessageBox.warning(self,T('Installateur'),str(exc))
-        if result['tool']=='Dépendances Linux':
+        if result['tool']==INSTALL_LINUX:
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0,self.check_backend)
         if self._fanout:
@@ -1458,20 +1666,51 @@ class Window(QMainWindow):
         if run := self.selected_history():
             QDesktopServices.openUrl(QUrl.fromLocalFile(run["directory"]))
 
-    def export_history(self):
+    # Save-dialog filters: the mission report formats of core.report (format key
+    # = extension), plus the raw per-run log copy, only offered for a selected run.
+    REPORT_FILTERS = (("Rapport de mission Markdown (*.md)", "md"), ("Rapport de mission texte (*.txt)", "txt"),
+                      ("Rapport de mission PDF (*.pdf)", "pdf"), ("Rapport de mission JSON (*.json)", "json"),
+                      ("Journal brut de cette opération (*.txt)", "log"))
+
+    def report_target(self, run=None):
+        """Target a mission report covers: the selected run's, else the active one (live scope)."""
+        target = (run.get("flow_target") or run.get("target")) if run else self.store.active_target
+        if target and target.get("id"):
+            target = next((t for t in self.store.targets if t["id"] == target["id"]), target)
+        return target or None
+
+    def export_history(self, destination=None, chosen=None):
+        """Export the full mission report (md/txt/pdf/json) or one run's raw log.
+
+        Same content as the CLI: both front-ends go through ``core.report``.
+        ``destination``/``chosen`` bypass the file dialog (tests, scripting).
+        """
+        from core import report
         run = self.selected_history()
-        if not run:
-            return
-        destination, _ = QFileDialog.getSaveFileName(self, T("Exporter le journal"), f"chaostic-{run['id']}.txt", T("Texte (*.txt)"))
-        if destination:
-            import shutil
-            try:
+        filters = [(T(text), key) for text, key in self.REPORT_FILTERS if key != "log" or run]
+        mission = report.from_gui_history(self.report_target(run), self.store.history(), source=str(self.store.root))
+        if destination is None:
+            destination, chosen = QFileDialog.getSaveFileName(self, T("Exporter un rapport"), report.default_filename(mission, "md"), ";;".join(f for f, _ in filters))
+        if not destination:
+            return None
+        key = next((k for f, k in filters if f == chosen), None)
+        suffix = Path(destination).suffix.lstrip(".").lower()
+        if key != "log":
+            key = suffix if suffix in report.FORMATS else (key or "md")
+        try:
+            if key == "log":
+                import shutil
                 source = Path(run["directory"]) / "output.txt"
                 if source.resolve() != Path(destination).resolve():
                     shutil.copyfile(source, destination)
                 self.statusBar().showMessage(T("Journal exporté."))
-            except OSError as exc:
-                QMessageBox.warning(self, T("Export impossible"), str(exc))
+                return Path(destination)
+            written = report.write_report(mission, destination, key)
+            self.statusBar().showMessage(T("Rapport de mission exporté : {path}").format(path=written))
+            return written
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, T("Export impossible"), str(exc))
+            return None
 
     def closeEvent(self, event):
         if self.runner.active:

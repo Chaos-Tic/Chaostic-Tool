@@ -1,4 +1,5 @@
 import shutil
+from pathlib import Path
 
 from rich import box
 from rich.markup import escape
@@ -60,6 +61,7 @@ def view_results():
             Panel(
                 "[brand.red]N[/brand.red] display    "
                 "[brand.red]pN[/brand.red] print path    "
+                "[brand.red]x[/brand.red] export mission report    "
                 "[bright_red]c[/bright_red] clean    "
                 "[brand.red]r / 0[/brand.red] back",
                 border_style="brand.dim",
@@ -71,6 +73,9 @@ def view_results():
             return
         if choice == "c":
             _clean_target_results(d)
+            continue
+        if choice == "x":
+            export_mission_report(d)
             continue
         if not files:
             console.print("\n[brand.muted]No results saved yet.[/brand.muted]")
@@ -99,6 +104,44 @@ def view_results():
             except Exception as e:
                 console.print(f"[bright_red]Read error: {e}[/bright_red]")
             ui.pause()
+
+
+def export_mission_report(target_dir, fmt=None, destination=None):
+    """Write the aggregate mission report for the active target (md/txt/pdf/json).
+
+    Prompts for the format and the output path when they are not given; the
+    report content comes from the shared ``core.report`` engine, so the CLI and
+    the desktop application produce the same document for the same results.
+    """
+    from core import report
+    mission = report.from_cli_results(target_dir, tgt.TARGET, tgt.SCOPE)
+    console.print(
+        Panel(
+            f"[brand.muted]TARGET[/brand.muted] [brand.ok]{escape(mission.target)}[/brand.ok]    "
+            f"[brand.muted]SCOPE[/brand.muted] [brand.white]{escape(mission.scope_text())}[/brand.white]    "
+            f"[brand.muted]FILES[/brand.muted] [brand.white]{len(mission.runs)}[/brand.white]\n"
+            f"[brand.muted]Formats:[/brand.muted] [brand.red]{'[/brand.red] / [brand.red]'.join(report.FORMATS)}[/brand.red]",
+            title="[brand.red] MISSION REPORT [/brand.red]",
+            border_style="brand.red",
+            box=box.HEAVY,
+        )
+    )
+    fmt = (fmt or ui.ask("Format", default="md")).lower().lstrip(".")
+    if fmt not in report.FORMATS:
+        console.print(f"[bright_red][!] Unknown format '{escape(fmt)}'. Use one of: {', '.join(report.FORMATS)}.[/bright_red]")
+        ui.pause()
+        return None
+    default = Path(target_dir) / report.default_filename(mission, fmt)
+    destination = Path(destination or ui.ask("Output path", default=str(default))).expanduser()
+    try:
+        written = report.write_report(mission, destination, fmt)
+    except OSError as e:
+        console.print(f"[bright_red][!] Could not write the report: {e}[/bright_red]")
+        ui.pause()
+        return None
+    console.print(f"[brand.ok][+] Mission report written:[/brand.ok] [brand.command]{escape(str(written))}[/brand.command]")
+    ui.pause()
+    return written
 
 
 def _looks_binary(path):

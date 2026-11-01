@@ -140,7 +140,7 @@ class Store:
         updated["created"] = target.get("created", updated["created"])
         if updated["host"] == target.get("host"):
             # Same host: keep the cached subdomain scope; a host change drops it.
-            for key in ("subdomains", "include_subdomains"):
+            for key in ("subdomains", "include_subdomains", "excluded"):
                 if key in target:
                     updated[key] = target[key]
         target.clear()
@@ -148,8 +148,8 @@ class Store:
         self.save()
         return target
 
-    def set_target_scope(self, identifier, include=None, subdomains=None):
-        """Store subdomain scope on a target: cached list and/or the on/off flag."""
+    def set_target_scope(self, identifier, include=None, subdomains=None, excluded=None):
+        """Store subdomain scope on a target: cached list, on/off flag, exclusions."""
         from core import subdomains as sd
         target = next((t for t in self.targets if t["id"] == identifier), None)
         if target is None:
@@ -160,6 +160,13 @@ class Store:
                 s.strip().lower().rstrip(".") for s in subdomains
                 if isinstance(s, str) and s.strip()
                 and sd.within_domain(s, host) and s.strip().lower().rstrip(".") != host.lower()})
+            # Drop exclusions that no longer refer to a discovered subdomain.
+            allowed = set(target["subdomains"])
+            target["excluded"] = [s for s in target.get("excluded", []) if s in allowed]
+        if excluded is not None:
+            allowed = set(target.get("subdomains", []))
+            target["excluded"] = sorted({s.strip().lower().rstrip(".") for s in excluded
+                                         if isinstance(s, str) and s.strip().lower().rstrip(".") in allowed})
         if not target.get("subdomains"):
             target["include_subdomains"] = False
         elif include is not None:
@@ -167,13 +174,30 @@ class Store:
         self.save()
         return target
 
-    def scope_hosts(self, target):
-        """Hosts a target expands to: base first, then subdomains when enabled."""
+    def scope_hosts(self, target, limit="default"):
+        """Hosts a target expands to: base first, then subdomains when enabled.
+
+        Exclusions are always applied; ``limit`` caps the count (base first), the
+        default being the shared hard cap so a run never fans out silently to an
+        unbounded number of hosts. Pass an integer to run only the first K, or
+        ``None`` to disable the cap.
+        """
         from core import subdomains as sd
         if not target:
             return []
+        cap = sd.MAX_FANOUT if limit == "default" else limit
         return sd.scope_hosts(target.get("host", ""), target.get("subdomains", []),
-                              target.get("include_subdomains", False))
+                              target.get("include_subdomains", False),
+                              limit=cap, excluded=target.get("excluded", []))
+
+    def fanout_count(self, target):
+        """How many hosts a target would expand to, uncapped (base plus subs)."""
+        from core import subdomains as sd
+        if not target:
+            return 0
+        return sd.fanout_count(target.get("host", ""), target.get("subdomains", []),
+                               target.get("include_subdomains", False),
+                               excluded=target.get("excluded", []))
 
     def remove_target(self, identifier):
         self.settings["targets"] = [t for t in self.targets if t["id"] != identifier]

@@ -15,12 +15,16 @@ from rich.theme import Theme
 EYEBROW = "CHAOSTICTOOL / LINUX CLI"
 EYEBROW_COMPACT = "CHAOSTICTOOL / CLI"
 
+# House Liquid Glass accents (Chaostic-Skins tokens.css): blue #40baf0, amber
+# #ffa840, violet #ce6cf0; ink #f3f4f8 / muted #bcc2d0 on the dark surface. The
+# dark palette is primary for ChaosticTool (a cybersecurity tool); the light
+# palette keeps darker, print-safe equivalents so terminal contrast holds.
 LIGHT = {
     "bg": "default", "surface": "default", "surface2": "default",
     "line": "#a3aec7", "line_soft": "#d4d5e5",
     "text": "#151820", "muted": "#4a5060", "faint": "#62697b",
-    "accent": "#385cad", "accent_strong": "#364d87", "accent_soft": "#e2eafa",
-    "accent_line": "#728dbb", "on_accent": "#ffffff",
+    "accent": "#1f72a8", "accent_strong": "#364d87", "accent_soft": "#e2eafa",
+    "accent_line": "#728dbb", "on_accent": "#ffffff", "violet": "#7d3cab",
     "good": "#1f7657", "good_soft": "#e4f3eb", "info": "#246387",
     "warning": "#895400", "danger": "#b3261e", "danger_soft": "#fbe9e8",
     "danger_line": "#b26666", "term_bg": "default", "term_text": "#24293a",
@@ -28,11 +32,11 @@ LIGHT = {
 DARK = {
     "bg": "default", "surface": "default", "surface2": "default",
     "line": "#7787a5", "line_soft": "#4d5671",
-    "text": "#f3f4f8", "muted": "#c0c7d9", "faint": "#a4aec5",
-    "accent": "#a8dafa", "accent_strong": "#425c9c", "accent_soft": "#334766",
-    "accent_line": "#91a9d0", "on_accent": "#ffffff",
+    "text": "#f3f4f8", "muted": "#bcc2d0", "faint": "#a4aec5",
+    "accent": "#40baf0", "accent_strong": "#425c9c", "accent_soft": "#334766",
+    "accent_line": "#91a9d0", "on_accent": "#ffffff", "violet": "#ce6cf0",
     "good": "#8fe0bf", "good_soft": "#263f3c", "info": "#9fdcf8",
-    "warning": "#ffcf7a", "danger": "#ffaaa8", "danger_soft": "#4b303c",
+    "warning": "#ffa840", "danger": "#ffaaa8", "danger_soft": "#4b303c",
     "danger_line": "#99606d", "term_bg": "default", "term_text": "#e3e8f4",
 }
 
@@ -56,7 +60,7 @@ COLORS = dict(LIGHT if MODE == "light" else DARK)
 if MODE == "auto":
     # The default foreground is chosen by the terminal for its actual background.
     for role in ("text", "muted", "faint", "line", "line_soft", "accent",
-                 "accent_line", "good", "info", "warning", "danger",
+                 "accent_line", "violet", "good", "info", "warning", "danger",
                  "danger_line", "term_text"):
         COLORS[role] = "default"
 
@@ -64,6 +68,7 @@ THEME = Theme(
     {
         # --- semantic roles -------------------------------------------------
         "brand.accent": f"bold {COLORS['accent']}",
+        "brand.violet": f"bold {COLORS['violet']}",
         "brand.title": f"bold {COLORS['text']}",
         "brand.white": f"bold {COLORS['text']}",
         "brand.muted": COLORS["muted"],

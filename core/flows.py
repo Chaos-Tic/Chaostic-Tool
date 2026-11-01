@@ -2,6 +2,8 @@ import json
 import shlex
 from pathlib import Path
 
+from rich.padding import Padding
+
 from core import availability as av
 from core import target as tgt
 from core import ui
@@ -153,15 +155,10 @@ def custom_flow_builder(existing_key: str | None = None) -> None:
     while True:
         ui.header(f"Flow: {name}")
         _render_steps(steps)
-        ui.console.print(
-            "\n[brand.muted]Commands:[/brand.muted]  "
-            "[brand.red]a[/brand.red] add  "
-            "[brand.red]d <n>[/brand.red] delete  "
-            "[brand.red]u <n>[/brand.red] move up  "
-            "[brand.red]dn <n>[/brand.red] move down  "
-            "[brand.red]ok[/brand.red] finish  "
-            "[brand.red]r[/brand.red] cancel\n"
-        )
+        ui.console.print(Padding(ui.key_hints([
+            ("a", "add"), ("d <n>", "delete"), ("u <n>", "move up"),
+            ("dn <n>", "move down"), ("ok", "finish"), ("r", "cancel"),
+        ]), (1, 0)))
         raw = ui.console.input("[brand.red]>[/brand.red] ").strip().lower()
 
         if raw in ui.BACK_KEYS:
@@ -194,7 +191,9 @@ def custom_flow_builder(existing_key: str | None = None) -> None:
         ui.pause()
         return
 
-    ui.console.print("\n[brand.warn]Save as:[/brand.warn]  [S]ession only  /  [P]ersistent (saved to disk)")
+    ui.console.print()
+    ui.console.print("[brand.warn]Save as:[/brand.warn]")
+    ui.console.print(ui.key_hints([("s", "session only"), ("p", "persistent (saved to disk)")]))
     choice = ui.console.input("[brand.red]>[/brand.red] ").strip().lower()
     persistent = choice.startswith("p")
 
@@ -249,11 +248,10 @@ def flow_menu() -> None:
 
         if choice in CUSTOM_FLOWS:
             flow = CUSTOM_FLOWS[choice]
-            ui.console.print(
-                f"\n[brand.muted]Flow:[/brand.muted] [brand.white]{flow['name']}[/brand.white]   "
-                "[brand.red]e[/brand.red] edit  [brand.red]del[/brand.red] delete  "
-                "[brand.red]r[/brand.red] run  [brand.red]b[/brand.red] back"
-            )
+            ui.console.print()
+            ui.console.print(f"[brand.muted]Flow:[/brand.muted] [brand.white]{flow['name']}[/brand.white]")
+            ui.console.print(ui.key_hints([("e", "edit"), ("del", "delete", "brand.key.danger"),
+                                           ("r", "run"), ("b", "back")]))
             action = ui.console.input("[brand.red]>[/brand.red] ").strip().lower()
             if action == "r":
                 run_flow(flow)
@@ -348,14 +346,10 @@ def _preview_flow(flow, records):
             f"[brand.red]Target[/brand.red] [brand.ok]{tgt.summary()}[/brand.ok]\n"
         )
         _render_preview(records)
-        ui.console.print(
-            "\n[brand.muted]Commands:[/brand.muted]  "
-            "[brand.red]<n>[/brand.red] toggle step  "
-            "[brand.red]a[/brand.red] all on  "
-            "[brand.red]none[/brand.red] all off  "
-            "[brand.red]go[/brand.red] launch  "
-            "[brand.red]r[/brand.red] cancel\n"
-        )
+        ui.console.print(Padding(ui.key_hints([
+            ("<n>", "toggle step"), ("a", "all on"), ("none", "all off"),
+            ("go", "launch"), ("r", "cancel"),
+        ]), (1, 0)))
         raw = ui.console.input("[brand.red]>[/brand.red] ").strip().lower()
 
         if raw == "go":

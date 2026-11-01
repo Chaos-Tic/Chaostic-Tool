@@ -80,12 +80,12 @@ def _configure_subdomain_scope():
                 status += f", {len(excluded)} excluded ({active} in scope)"
         status += ".[/brand.muted]"
         ui.console.print(status)
-        options = "[brand.accent]e[/brand.accent] enumerate now"
+        options = [("e", "enumerate now")]
         if cached:
-            options += "    [brand.accent]t[/brand.accent] turn " + ("off" if state == "on" else "on")
-            options += "    [brand.accent]x[/brand.accent] exclude / include subdomains"
-        options += "    [brand.accent]Enter[/brand.accent] done"
-        ui.console.print(options)
+            options.append(("t", "turn " + ("off" if state == "on" else "on")))
+            options.append(("x", "exclude / include subdomains"))
+        options.append(("Enter", "done"))
+        ui.console.print(ui.key_hints(options))
         choice = ui.console.input("[brand.white]▸[/brand.white] ").strip().lower()
         if choice == "e":
             _enumerate_subdomains()
@@ -109,8 +109,8 @@ def _manage_subdomain_exclusions():
         for index, sub in enumerate(cached, start=1):
             mark = "[bright_red]✗[/bright_red]" if sub in excluded else "[brand.ok]•[/brand.ok]"
             ui.console.print(f"  {mark} [brand.accent]{index}[/brand.accent] {sub}")
-        ui.console.print("[brand.muted]Number toggles exclusion    [brand.accent]a[/brand.accent] include all"
-                         "    [brand.accent]n[/brand.accent] exclude all    [brand.accent]Enter[/brand.accent] back[/brand.muted]")
+        ui.console.print(ui.key_hints([("<n>", "toggle exclusion"), ("a", "include all"),
+                                       ("n", "exclude all"), ("Enter", "back")]))
         choice = ui.console.input("[brand.white]▸[/brand.white] ").strip().lower()
         if not choice:
             return
@@ -330,6 +330,14 @@ def main():
         cli_updates.start_background()
     flows.load_custom_flows()
     ui.startup_check()
+    from core import tui
+    with tui.session_screen():
+        _interactive_loop()
+
+
+def _interactive_loop():
+    # Runs inside one held alternate screen (tui.session_screen); every
+    # return/exception path below leaves it through that context manager.
     while True:
         choice = main_menu()
         try:

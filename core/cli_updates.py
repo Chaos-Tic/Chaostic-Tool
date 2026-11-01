@@ -69,8 +69,11 @@ def install(result):
         ui.console.print(shlex.join(command), markup=False)
     if ui.console.input("Run these commands? [y/N] ").strip().lower() not in ("y", "yes", "o", "oui"):
         return False
+    from core import tui
     for command in commands:
-        if subprocess.run(command, check=False).returncode:
+        with tui.suspend_screen():  # package manager output stays on the normal screen
+            failed = subprocess.run(command, check=False).returncode
+        if failed:
             ui.console.print("Update did not complete. The package manager output above gives the reason.")
             return False
     installed = update_service.installed_version("chaostictool", manager)

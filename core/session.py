@@ -59,11 +59,8 @@ def view_results():
 
         console.print(
             Panel(
-                "[brand.red]N[/brand.red] display    "
-                "[brand.red]pN[/brand.red] print path    "
-                "[brand.red]x[/brand.red] export mission report    "
-                "[bright_red]c[/bright_red] clean    "
-                "[brand.red]r / 0[/brand.red] back",
+                ui.key_hints([("N", "display"), ("pN", "print path"), ("x", "export mission report"),
+                              ("c", "clean", "brand.key.danger"), ("r/0", "back")]),
                 border_style="brand.dim",
                 box=box.SQUARE,
             )

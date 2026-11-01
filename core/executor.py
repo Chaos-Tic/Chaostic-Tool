@@ -404,7 +404,9 @@ def run_tool(cmd, output_path=None, interactive=False, context=None, *, timeout=
         # controlling TTY, isatty() and job control, while ACTIVE_PROCS cleanup
         # and Ctrl+C reaping flow through the single Runner lifecycle below.
         _print_command_panel(display_cmd, output_path, True)
-        rc = _run_interactive(cmd)
+        from core import tui
+        with tui.suspend_screen():  # the tool draws on the normal screen, as before
+            rc = _run_interactive(cmd)
         console.print(_result_panel(rc, output_path, False))
         return rc
 

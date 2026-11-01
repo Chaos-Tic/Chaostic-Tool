@@ -84,6 +84,13 @@ THEME = Theme(
         "brand.badge.warn": f"bold {COLORS['warning']}",
         "brand.badge.bad": f"bold {COLORS['danger']}",
         "brand.badge.info": f"bold {COLORS['info']}",
+        # Keycaps are the one filled pill: on-accent ink over the accent. When
+        # the accent is the terminal default (auto mode) a reverse-video pill
+        # keeps the key distinct on any background. The separator stays faint.
+        "brand.key": (f"bold {COLORS['on_accent']} on {COLORS['accent']}"
+                      if COLORS["accent"] != "default" else "bold reverse"),
+        "brand.key.danger": f"bold {COLORS['danger']} reverse",
+        "brand.key.sep": COLORS["faint"],
         # --- legacy aliases (existing call sites keep working, re-skinned) --
         "brand.red": f"bold {COLORS['accent']}",
         "brand.red_soft": COLORS["accent_line"],

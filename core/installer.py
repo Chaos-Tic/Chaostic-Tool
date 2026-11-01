@@ -100,7 +100,9 @@ def _run(cmd, as_user_pw=None, env=None):
             kwargs["preexec_fn"] = _drop_privs(as_user_pw)
         if env is not None:
             kwargs["env"] = env
-        result = subprocess.run(cmd, **kwargs)
+        from core import tui
+        with tui.suspend_screen():  # package managers write to the normal screen
+            result = subprocess.run(cmd, **kwargs)
         if result.returncode != 0:
             console.print(f"[bright_red][!] Command finished with code {result.returncode}[/bright_red]")
             return False

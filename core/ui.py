@@ -11,8 +11,10 @@ except ImportError:
     pwd = None
 
 from rich import box
+from rich.cells import cell_len
 from rich.console import Group
 from rich.markup import escape
+from rich.measure import Measurement
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.rule import Rule
@@ -90,6 +92,70 @@ def _metric(label, value, style):
 
 def _badge(text, style="brand.badge.ok"):
     return f"[{style}] {text} [/{style}]"
+
+
+class KeyHints:
+    """A row of ``[key] label`` hints that wraps between hints, never inside one.
+
+    Built by :func:`key_hints`; prints like a Text (``str()`` / ``plain`` give
+    the uncoloured line) and composes into panels, groups and footers.
+    """
+
+    def __init__(self, hints, sep):
+        self.hints = list(hints)
+        self.sep = sep
+
+    @property
+    def plain(self):
+        return self.sep.plain.join(hint.plain for hint in self.hints)
+
+    def __str__(self):
+        return self.plain
+
+    def __rich_measure__(self, console, options):
+        widths = [cell_len(hint.plain) for hint in self.hints] or [0]
+        return Measurement(max(widths), cell_len(self.plain))
+
+    def __rich_console__(self, console, options):
+        row, row_width, sep_width = None, 0, cell_len(self.sep.plain)
+        for hint in self.hints:
+            width = cell_len(hint.plain)
+            if row is not None and row_width + sep_width + width <= options.max_width:
+                row.append_text(self.sep.copy()).append_text(hint)
+                row_width += sep_width + width
+                continue
+            if row is not None:
+                yield row
+            row, row_width = hint.copy(), width
+        if row is not None:
+            yield row
+
+
+def key_hints(items, sep="  ·  "):
+    """Keycap command bar: ``items`` are ``(key, label[, style])`` tuples.
+
+    Each key is a filled pill (``brand.key`` unless ``style`` overrides it, e.g.
+    ``brand.key.danger`` for a destructive action) followed by its label; the
+    brackets keep the key legible when colours are stripped. Returns a Rich
+    renderable: ``console.print(key_hints([("e", "enumerate"), ("Enter", "done")]))``.
+    """
+    hints = []
+    for key, label, *style in items:
+        hints.append(Text.assemble((f"[{key}]", style[0] if style else "brand.key"), " ", str(label)))
+    return KeyHints(hints, Text(sep, style="brand.key.sep"))
+
+
+def command_bar(items, status=()):
+    """Menu footer: a ``READY / context`` status line above the keycap hints.
+
+    ``status`` is the list of markup bits already used by the footers (READY,
+    target, route...). Without ``status`` this is just :func:`key_hints`.
+    """
+    hints = key_hints(items)
+    if not status:
+        return hints
+    status_line = Text.from_markup(" [brand.faint]/[/brand.faint] ".join(status))
+    return Group(status_line, hints)
 
 
 def _title_row():
@@ -370,15 +436,10 @@ def menu(title, entries, footer_extra=None, show_back=True, home=False, routing_
     else:
         body.append(Padding(_entries_list(entries), (1, 0, 0, 0)))
 
-    controls = "[brand.accent]r/0[/brand.accent] back" if show_back else "[brand.accent]99[/brand.accent] quit"
-    status_bits = (
-        ["[brand.ok]READY[/brand.ok]"]
-        + list(footer_extra or [])
-        + [controls, "[brand.faint]ctrl+c interrupt[/brand.faint]"]
-    )
-    footer_line = " [brand.faint]/[/brand.faint] ".join(status_bits)
+    controls = [("r/0", "back") if show_back else ("99", "quit"), ("ctrl+c", "interrupt")]
+    status_bits = ["[brand.ok]READY[/brand.ok]"] + list(footer_extra or [])
     body.append(Rule(style="brand.dim"))
-    body.append(footer_line)
+    body.append(command_bar(controls, status_bits))
 
     _frame(body, breadcrumb=title, home=home)
     return _input_prompt()
@@ -429,10 +490,10 @@ def select_wordlist():
     custom_key = str(idx)
 
     has_missing = any(not os.path.exists(p) for p, _ in WORDLISTS)
-    footer_hints = ["[brand.accent]r / 0[/brand.accent] cancel and keep current"]
+    footer_hints = [("r/0", "cancel and keep current")]
     if has_missing:
-        footer_hints.append("[brand.accent]d[/brand.accent] download missing wordlists")
-    console.print(_footer_panel(footer_hints))
+        footer_hints.append(("d", "download missing wordlists"))
+    console.print(_footer_panel([key_hints(footer_hints)]))
     default = tgt.TARGET["wordlist"]
     choice = console.input(
         f"\n[brand.accent]wordlist[/brand.accent] [brand.muted]default: {escape(default)}[/brand.muted] "

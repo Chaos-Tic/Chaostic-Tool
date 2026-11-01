@@ -26,7 +26,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(sys.platform.startswith('linux') and fcntl is not None and pty is not None and termios is not None, 'Linux terminal test')
 class TerminalTests(unittest.TestCase):
-    def drive(self, source, keys=b'', *, columns=80, rows=24, mode='light', send_after=b''):
+    def drive(self, source, keys=b'', *, columns=80, rows=24, mode='light', send_after=b'', script=()):
+        # `script`: further (marker, keys) pairs, each sent once its marker has
+        # appeared in the output, after the initial `keys`.
+        script = list(script)
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', rows, columns, 0, 0))
         original = termios.tcgetattr(slave)
@@ -51,6 +54,8 @@ class TerminalTests(unittest.TestCase):
                         # Send keys only after the full-screen application owns the terminal.
                         os.write(master, keys)
                         sent = True
+                    if script and (sent or not keys) and script[0][0] in data:
+                        os.write(master, script.pop(0)[1])
                 if process.poll() is not None:
                     break
             self.assertIsNotNone(process.poll(), 'Terminal application did not exit')
@@ -104,6 +109,26 @@ with tempfile.TemporaryDirectory() as directory:
     print('INTERRUPT_CLEANUP_OK')
 """
         self.assertIn('INTERRUPT_CLEANUP_OK', self.drive(source, b'\x03', send_after=b'STREAM_READY'))
+
+    def test_session_screen_enters_the_alternate_screen_once_for_chained_screens(self):
+        source = '''
+from core import tui
+from core.terminal import console
+with tui.session_screen():
+    console.begin_screen('FIRST')
+    console.print('[bold #ff0000]ALERT[/bold #ff0000] body one')
+    console.pause()
+    tui.message('body two', 'SECOND')
+print('SESSION_OK')
+'''
+        text = self.drive(source, b'\r', send_after=b'body one', script=[(b'body two', b'\r')], mode='dark')
+        self.assertIn('SESSION_OK', text)
+        self.assertEqual(text.count('\x1b[?1049h'), 1, 'alternate screen entered more than once')
+        self.assertEqual(text.count('\x1b[?1049l'), 1, 'alternate screen left more than once')
+        self.assertLess(text.rfind('\x1b[?1049h'), text.find('SECOND'), 'second screen reopened the alternate screen')
+        self.assertIn('ALERT', text)
+        # Red reaches the terminal as truecolor or its 256-colour cube match (196).
+        self.assertRegex(text, r'\x1b\[[0-9;]*38;(2;255;0;0|5;196)', 'dialog body lost its colour')
 
     def test_dumb_terminal_uses_the_plain_output_path(self):
         from core import scan_view

@@ -65,7 +65,10 @@ class ScreenConsole(Console):
     def _drain(self) -> str:
         if self._sink is None:
             return ""
-        text = self._sink.export_text(styles=False)
+        # Keep the styles as ANSI escapes: the full-screen dialog renders them
+        # (prompt_toolkit ``ANSI``) and measures scrolling on the plain text.
+        # Rich emits truecolor codes here whatever the sink's own color system.
+        text = self._sink.export_text(styles=True)
         return text.rstrip("\n")
 
     # -- overridden Console surface ----------------------------------------

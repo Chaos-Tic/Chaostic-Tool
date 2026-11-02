@@ -5,24 +5,14 @@ that chains steps automatically, visible step i/N progress, fields collected
 once in the preparation screen, and the subdomain fan-out fix where a step is
 only marked done after its final host.
 
-The aggregated status of a fan-out step (R10, pro plan Lot 0) is covered by a
-plain pytest function marked ``xfail(strict=True)`` at the end of the module:
-``python -m unittest discover`` does not collect it, so CI stays green, and
-pytest turns it red (XPASS) the day the bug is fixed with the marker still on.
+The aggregated status of a fan-out step (R10, pro plan Lot 0) is now fixed and
+asserted directly in ``FlowChainingTests``, so ``python -m unittest discover``
+(the CI runner) exercises it.
 """
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-
-try:
-    import pytest
-    xfail = pytest.mark.xfail
-except ImportError:  # the unittest-only CI runner has no pytest; this xfail function is not collected there
-    def xfail(*_args, **_kwargs):
-        def _decorator(func):
-            return func
-        return _decorator
 
 # Importing the harness builds the one offscreen QApplication the GUI needs.
 from desktop_harness import wait_run
@@ -110,14 +100,31 @@ class FlowChainingTests(unittest.TestCase):
                     panel.completed(_run(sid, 0, "failed", last=False, rid="h2"))
                     self.assertEqual(panel.session.record["steps"][0]["status"], "running")
                     # The final host finalises it. Which status the step then carries
-                    # is a separate contract (R10, below): the whole batch succeeded
-                    # here, so it is a plain success.
+                    # is a separate contract (R10, test_fanout_step_reports_the_failure_of_any_host):
+                    # a host failed above, so it finalises as not-running (and not success).
                     panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
                     self.assertNotEqual(panel.session.record["steps"][0]["status"], "running")
                     # Aborting mid fan-out finalises the running step as cancelled.
                     panel.list.setCurrentRow(1); panel.start_step()
                     panel.completed(_run(sid, 1, "cancelled", last=False, rid="h4"))
                     self.assertEqual(panel.session.record["steps"][1]["status"], "cancelled")
+            finally:
+                window.close()
+
+    def test_fanout_step_reports_the_failure_of_any_host(self):
+        """A step whose hosts did not all succeed is not reported as a success (R10)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(Path(tmp)); store.add_target("localhost"); window = Window(store)
+            panel = window.flow_panel; panel.ensure_session(); sid = panel.session.record["id"]
+            try:
+                with patch.object(window, "launch", return_value=True):
+                    panel.list.setCurrentRow(0); panel.start_step()
+                    panel.completed(_run(sid, 0, "success", last=False, rid="h1"))
+                    panel.completed(_run(sid, 0, "failed", last=False, rid="h2"))
+                    panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
+                    step = panel.session.record["steps"][0]
+                    self.assertNotIn(step["status"], ("running", "success"))
+                    self.assertNotEqual(panel.session.record["status"], "success")
             finally:
                 window.close()
 
@@ -171,28 +178,6 @@ class FlowChainingTests(unittest.TestCase):
                 self.assertNotIn("\n", preview)
             finally:
                 window.close()
-
-
-@xfail(
-    strict=True,
-    reason="R10: only the last host of a fan-out finalises a flow step, so earlier failed hosts count as success — pro plan Lot 0",
-)
-def test_fanout_step_reports_the_failure_of_any_host():
-    """A step whose hosts did not all succeed is not reported as a success."""
-    with tempfile.TemporaryDirectory() as tmp:
-        store = Store(Path(tmp)); store.add_target("localhost"); window = Window(store)
-        panel = window.flow_panel; panel.ensure_session(); sid = panel.session.record["id"]
-        try:
-            with patch.object(window, "launch", return_value=True):
-                panel.list.setCurrentRow(0); panel.start_step()
-                panel.completed(_run(sid, 0, "success", last=False, rid="h1"))
-                panel.completed(_run(sid, 0, "failed", last=False, rid="h2"))
-                panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
-                step = panel.session.record["steps"][0]
-                assert step["status"] not in ("running", "success"), step["status"]
-                assert panel.session.record["status"] != "success"
-        finally:
-            window.close()
 
 
 if __name__ == "__main__":

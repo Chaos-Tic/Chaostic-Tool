@@ -15,26 +15,16 @@ Each regression states the result the operator should get:
 * R11 — changing the flow target after preparation must reset the prepared
   state; ``start_step`` otherwise dereferences ``session.flow`` on ``None``.
 
-The bug-demonstrating tests are plain pytest functions marked
-``xfail(strict=True)``: ``python -m unittest discover`` (the CI runner) does not
-collect them, so CI stays green, and under pytest they turn red (XPASS) the day
-the bug is fixed without the marker being removed. The ``unittest`` class
-anchors the neighbouring behaviour that is already correct.
+All four defects are now fixed, so every case is asserted directly inside a
+``unittest.TestCase`` and ``python -m unittest discover`` (the CI runner)
+exercises them. The anchor cases cover the neighbouring behaviour that must
+keep holding.
 """
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-
-try:
-    import pytest
-    xfail = pytest.mark.xfail
-except ImportError:  # the unittest-only CI runner has no pytest; these xfail functions are not collected there
-    def xfail(*_args, **_kwargs):
-        def _decorator(func):
-            return func
-        return _decorator
 
 # Importing the harness builds the one offscreen QApplication the GUI needs.
 from desktop_harness import APP
@@ -49,23 +39,6 @@ from desktop.window import Window
 FIRST = "https://first.example"
 SECOND = "https://second.example"
 ACCEPTED = QDialog.DialogCode.Accepted
-
-R08 = xfail(
-    strict=True,
-    reason="R08: FlowSession keeps a reference to the store target and Store.update_target mutates it in place — pro plan Lot 0",
-)
-R09 = xfail(
-    strict=True,
-    reason="R09: the fan-out confirmation is skipped when a prepared flow step launches with show_dialog=False — pro plan Lot 0",
-)
-R10 = xfail(
-    strict=True,
-    reason="R10: only the last host of a fan-out finalises a flow step, so earlier failed hosts count as success — pro plan Lot 0",
-)
-R11 = xfail(
-    strict=True,
-    reason="R11: change_target drops the session but keeps auto_run/prepared, so start_step crashes on session=None — pro plan Lot 0",
-)
 
 
 class _Desktop:
@@ -155,70 +128,69 @@ class FlowStateAnchorTests(unittest.TestCase):
             self.assertEqual(d.panel.target_select.currentData(), second["id"])
 
 
-@R08
-def test_editing_the_target_card_does_not_rewrite_the_prepared_session_target():
-    with _Desktop() as d:
-        d.panel.ensure_session()
-        target_id = d.store.targets[0]["id"]
-        d.store.update_target(target_id, SECOND, "Edited")
-        assert d.panel.session.record["target"]["host"] == "first.example"
-        assert d.panel.session.record["target"]["url"].startswith(FIRST)
+class FlowStateRegressionTests(unittest.TestCase):
+    """The four pro plan Lot 0 defects (R08, R09, R10, R11), now fixed."""
 
+    def test_editing_the_target_card_does_not_rewrite_the_prepared_session_target(self):
+        """R08: a prepared session owns its target, so a later card edit cannot rewrite it."""
+        with _Desktop() as d:
+            d.panel.ensure_session()
+            target_id = d.store.targets[0]["id"]
+            d.store.update_target(target_id, SECOND, "Edited")
+            self.assertEqual(d.panel.session.record["target"]["host"], "first.example")
+            self.assertTrue(d.panel.session.record["target"]["url"].startswith(FIRST))
 
-@R09
-def test_prepared_flow_step_asks_before_the_same_large_fanout():
-    with _Desktop() as d:
-        target = _wide_scope(d.store)
-        meta = {"flow_id": "f", "flow_name": "Flow", "flow_step": 0, "flow_total": 1, "flow_target": target}
-        with patch.object(d.window, "_confirm_fanout", side_effect=lambda t, hosts: hosts[:WARN_FANOUT]) as confirm, \
-             patch.object(d.window, "_start_run"):
-            d.window.launch("fanout-helper", show_dialog=False, tool_override=_fanout_tool(),
-                            target_override=target, metadata=meta)
-        confirm.assert_called_once()
-        # The operator's choice ("first K only") must be applied, not the whole scope.
-        assert len(d.window._fanout) == WARN_FANOUT - 1
+    def test_prepared_flow_step_asks_before_the_same_large_fanout(self):
+        """R09: a prepared step (show_dialog=False) still confirms a large fan-out and queues the chosen subset."""
+        with _Desktop() as d:
+            target = _wide_scope(d.store)
+            meta = {"flow_id": "f", "flow_name": "Flow", "flow_step": 0, "flow_total": 1, "flow_target": target}
+            with patch.object(d.window, "_confirm_fanout", side_effect=lambda t, hosts: hosts[:WARN_FANOUT]) as confirm, \
+                 patch.object(d.window, "_start_run"):
+                d.window.launch("fanout-helper", show_dialog=False, tool_override=_fanout_tool(),
+                                target_override=target, metadata=meta)
+            confirm.assert_called_once()
+            # The operator's choice ("first K only") must be applied, not the whole scope.
+            self.assertEqual(len(d.window._fanout), WARN_FANOUT - 1)
 
+    def test_run_all_does_not_chain_past_a_step_whose_host_failed(self):
+        """R10: a fan-out step with a failed host does not count as success nor chain the next step."""
+        with _Desktop() as d:
+            with patch.object(FlowPrepareDialog, "exec", return_value=ACCEPTED), \
+                 patch.object(d.window, "launch", return_value=True) as launch:
+                d.panel.run_all()
+                sid = d.panel.session.record["id"]
+                self.assertEqual(launch.call_count, 1)
+                # Three hosts of step 1 fail, the last one succeeds.
+                for k in range(3):
+                    d.panel.completed(_run(sid, 0, "failed", last=False, rid=f"h{k}"))
+                d.panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
+                self.assertNotEqual(d.panel.session.record["steps"][0]["status"], "success")
+                self.assertEqual(launch.call_count, 1, "step 2 must not start after a partially failed step 1")
 
-@R10
-def test_run_all_does_not_chain_past_a_step_whose_host_failed():
-    with _Desktop() as d:
-        with patch.object(FlowPrepareDialog, "exec", return_value=ACCEPTED), \
-             patch.object(d.window, "launch", return_value=True) as launch:
-            d.panel.run_all()
-            sid = d.panel.session.record["id"]
-            assert launch.call_count == 1
-            # Three hosts of step 1 fail, the last one succeeds.
-            for k in range(3):
-                d.panel.completed(_run(sid, 0, "failed", last=False, rid=f"h{k}"))
-            d.panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
-            assert d.panel.session.record["steps"][0]["status"] != "success"
-            assert launch.call_count == 1, "step 2 must not start after a partially failed step 1"
+    def test_changing_target_after_preparation_resets_the_prepared_state(self):
+        """R11: switching target drops the session and clears auto_run/confirm_each/prepared."""
+        with _Desktop() as d:
+            _prepare_whole_flow(d)
+            self.assertTrue(d.panel.auto_run)
+            second = d.store.add_target(SECOND)
+            _switch_target(d.panel, second["id"])
+            self.assertIsNone(d.panel.session)
+            self.assertFalse(d.panel.auto_run)
+            self.assertFalse(d.panel.confirm_each)
+            self.assertEqual(d.panel.prepared, {})
 
-
-@R11
-def test_changing_target_after_preparation_resets_the_prepared_state():
-    with _Desktop() as d:
-        _prepare_whole_flow(d)
-        assert d.panel.auto_run
-        second = d.store.add_target(SECOND)
-        _switch_target(d.panel, second["id"])
-        assert d.panel.session is None
-        assert not d.panel.auto_run
-        assert not d.panel.confirm_each
-        assert d.panel.prepared == {}
-
-
-@R11
-def test_starting_a_step_after_a_target_change_runs_against_the_new_target():
-    with _Desktop() as d:
-        _prepare_whole_flow(d)
-        second = d.store.add_target(SECOND)
-        _switch_target(d.panel, second["id"])
-        with patch.object(d.window, "launch", return_value=True) as launch:
-            d.panel.list.setCurrentRow(0)
-            d.panel.start_step()  # must not raise
-        assert launch.call_count == 1
-        assert launch.call_args.kwargs["target_override"]["host"] == "second.example"
+    def test_starting_a_step_after_a_target_change_runs_against_the_new_target(self):
+        """R11: start_step rebuilds a session for the new target instead of crashing."""
+        with _Desktop() as d:
+            _prepare_whole_flow(d)
+            second = d.store.add_target(SECOND)
+            _switch_target(d.panel, second["id"])
+            with patch.object(d.window, "launch", return_value=True) as launch:
+                d.panel.list.setCurrentRow(0)
+                d.panel.start_step()  # must not raise
+            self.assertEqual(launch.call_count, 1)
+            self.assertEqual(launch.call_args.kwargs["target_override"]["host"], "second.example")
 
 
 if __name__ == "__main__":

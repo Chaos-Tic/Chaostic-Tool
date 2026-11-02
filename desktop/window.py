@@ -1329,7 +1329,11 @@ class Window(QMainWindow):
                       fields=fields,wordlist=wordlist,metadata=metadata)
             try:
                 hosts=self._scope_targets(preset,target)
-                if show_dialog and len(hosts)>WARN_FANOUT:
+                # Confirm a large fan-out at every entry point, including prepared
+                # flow steps (show_dialog=False): the operator's chosen subset is
+                # what gets queued. The hard cap already applied in _scope_targets
+                # is unaffected.
+                if len(hosts)>WARN_FANOUT:
                     hosts=self._confirm_fanout(target,hosts)
                     if hosts is None:
                         return False

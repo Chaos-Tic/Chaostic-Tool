@@ -119,6 +119,7 @@ class FlowPanel(QWidget):
     def __init__(self,window):
         super().__init__(); self.window=window; self.session=None
         self.auto_run=False; self.confirm_each=False; self.prepared={}
+        self._fanout_outcomes={}  # {step_index: aggregated worst host status seen so far}
         layout=QVBoxLayout(self); layout.setContentsMargins(0,0,0,0)
         head=QHBoxLayout(); self.select=QComboBox(); head.addWidget(self.select,1)
         self.edit_buttons=[]
@@ -156,7 +157,7 @@ class FlowPanel(QWidget):
         for k,flow in self.flows.items(): self.select.addItem(T(flow['name']),k)
         if key: self.select.setCurrentIndex(max(0,self.select.findData(key)))
         self.select.blockSignals(False); self.reset()
-    def reset(self): self.session=None; self.auto_run=False; self.confirm_each=False; self.prepared={}; self.refresh(); self.list.setCurrentRow(0)
+    def reset(self): self.session=None; self.auto_run=False; self.confirm_each=False; self.prepared={}; self._fanout_outcomes={}; self.refresh(); self.list.setCurrentRow(0)
     def refresh_targets(self):
         chosen=(self.session.record.get('target') or {}).get('id') if self.session else self.target_select.currentData()
         if not chosen:chosen=(self.window.store.active_target or {}).get('id')
@@ -173,7 +174,9 @@ class FlowPanel(QWidget):
             if self.target_select.currentData()==previous:return
             if self.window.runner.active or QMessageBox.question(self,T('Changer la cible du flow'),T('Créer une nouvelle session pour cette cible ? Les résultats de la précédente session sont conservés.'),QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.Cancel,QMessageBox.StandardButton.Cancel)!=QMessageBox.StandardButton.Yes:
                 self.target_select.blockSignals(True);self.target_select.setCurrentIndex(self.target_select.findData(previous));self.target_select.blockSignals(False);return
-            self.session=None;self.list.setCurrentRow(0)
+            # Dropping the session must also clear the prepared state, otherwise
+            # auto_run stays armed while session is None and start_step crashes.
+            self.session=None;self.auto_run=False;self.confirm_each=False;self.prepared={};self._fanout_outcomes={};self.list.setCurrentRow(0)
         self.refresh()
     def add_flow_target(self):
         before=(self.window.store.active_target or {}).get('id')
@@ -245,7 +248,7 @@ class FlowPanel(QWidget):
         except (ValueError,OSError,RuntimeError) as exc:
             self.auto_run=False; self.feedback.setText(T('Enchaînement interrompu : ')+str(exc))
             QMessageBox.warning(self,T('Étape non lancée'),str(exc)); return False
-        if started: self.session.update(i,'running'); self.refresh()
+        if started: self._fanout_outcomes.pop(i,None); self.session.update(i,'running'); self.refresh()
         return started
     def run_all(self):
         if self.window.runner.active: self.window.navigate(3); return
@@ -265,14 +268,16 @@ class FlowPanel(QWidget):
         if self.window.runner.active: self.window.navigate(3); return
         i=self.list.currentRow()
         if i<0: return
-        if self.auto_run:
+        if self.auto_run and self.session:
             # Prepared pas-à-pas: run the selected step with the values collected once.
             self._launch_step(i); return
         try:
+            # No prepared session (e.g. the target was just changed): build one for
+            # the currently selected target and run against it, never crash.
             self.ensure_session(); key,index=self.session.flow['steps'][i]
             tool=step_tool(self.window.tool_by_key[key],index)
             started=self.window.launch(key,tool_override=tool,metadata=self._context(i),target_override=self.session.record.get('target'))
-            if started: self.session.update(i,'running'); self.refresh()
+            if started: self._fanout_outcomes.pop(i,None); self.session.update(i,'running'); self.refresh()
         except (ValueError,OSError) as exc: QMessageBox.warning(self,T('Étape non lancée'),str(exc))
     def skip_step(self):
         i=self.list.currentRow()
@@ -285,9 +290,15 @@ class FlowPanel(QWidget):
         i=run['flow_step']; status=run['status']
         # A subdomain fan-out keeps the same step across every host. Only the last
         # host (or an abort) finalises the step, so it is never marked done before
-        # the final host has actually run.
+        # the final host has actually run. The finalised status aggregates every
+        # host: the step is a success only when all hosts succeeded, so a failed
+        # intermediate host is never masked by a later host's success.
+        if status not in ('success','cancelled'):
+            self._fanout_outcomes[i]='failed'  # remember the failure; the last host finalises
         if not run.get('flow_last',True) and status!='cancelled':
             self.refresh(); return
+        status='cancelled' if status=='cancelled' else (self._fanout_outcomes.pop(i,None) or status)
+        self._fanout_outcomes.pop(i,None)
         self.session.update(i,status,run); self.refresh()
         if status=='success':
             self.list.setCurrentRow(min(i+1,self.list.count()-1))

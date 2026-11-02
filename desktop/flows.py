@@ -65,7 +65,10 @@ def step_tool(tool,index):
 class FlowSession:
     def __init__(self,root,flow,target):
         self.root=Path(root); self.flow=validate_flow(flow)
-        self.record=dict(id=uuid.uuid4().hex,name=self.flow['name'],started=now(),target=target,
+        # Own a deep copy of the target: the store mutates its target dicts in
+        # place (update_target clears and refills the same dict), so a later card
+        # edit must not rewrite the target this prepared session already captured.
+        self.record=dict(id=uuid.uuid4().hex,name=self.flow['name'],started=now(),target=copy.deepcopy(target),
                          steps=[dict(tool=k,cli_index=i,status='pending') for k,i in self.flow['steps']],status='active')
         self.path=self.root/'flows/history'/(self.record['id']+'.json')
         self.save()

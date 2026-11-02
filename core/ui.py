@@ -686,7 +686,7 @@ def run_preset(tool, preset, pause_after=True, flow_context=None):
                 name = tgt.target_name()
                 if multi:
                     name = f"{name}__{re.sub(r'[^A-Za-z0-9._-]', '_', host).strip('.') or 'host'}"
-                output_path = str(executor.target_path(cat, out_base, name))
+                output_path = str(executor.unique_target_path(cat, out_base, name))
             else:
                 console.print("[brand.warn][!] No target defined - results will not be saved.[/brand.warn]")
 

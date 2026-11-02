@@ -135,6 +135,19 @@ class ReportEngineTests(unittest.TestCase):
         empty.mkdir()
         self.assertIn("No operation recorded", report.render_text(report.from_cli_results(empty, target)))
 
+    def test_cli_results_group_timestamped_reruns_under_one_tool(self):
+        # R06: unique per-run output files (stamp appended by executor) must still
+        # be recovered as the same tool/host and all preserved in the report.
+        d = self.root / "targets" / "example.com"
+        (d / "recon").mkdir(parents=True)
+        (d / "recon" / "nmap_quick_example.com_20261101-100000-aaaaaa.txt").write_text("run1\n", encoding="utf-8")
+        (d / "recon" / "nmap_quick_example.com_20261102-110000-bbbbbb.txt").write_text("run2\n", encoding="utf-8")
+        (d / "recon" / "nmap_quick_example.com__api.example.com_20261102-120000-cccccc.txt").write_text("run3\n", encoding="utf-8")
+        target = {"host": "example.com", "url": "https://example.com", "port": "443"}
+        mission = report.from_cli_results(d, target)
+        self.assertEqual([(r.tool, r.host) for r in mission.runs],
+                         [("nmap_quick", ""), ("nmap_quick", ""), ("nmap_quick", "api.example.com")])
+
     def test_write_report_infers_format_and_rejects_unknown(self):
         mission = report.MissionReport(target="x.test", host="x.test", generated="2026-10-31T10:00:00+00:00")
         self.assertEqual(report.default_filename(mission, "pdf"), "mission-report_x.test_2026-10-31_10-00.pdf")

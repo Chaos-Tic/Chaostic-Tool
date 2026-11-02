@@ -163,8 +163,17 @@ def _gui_target_key(target) -> str:
     return target.get("id") or target.get("url") or target.get("host") or "__local__"
 
 
+# A per-run stamp ``executor.unique_target_path`` appends: ``YYYYMMDD-HHMMSS-<6 hex>``.
+_RUN_STAMP = re.compile(r"_\d{8}-\d{6}-[0-9a-f]{6}$")
+
+
 def _split_cli_name(stem: str, safe_target: str) -> tuple[str, str]:
-    """``<base>_<target>`` → (base, ""); ``<base>_<target>__<host>`` → (base, host)."""
+    """``<base>_<target>`` → (base, ""); ``<base>_<target>__<host>`` → (base, host).
+
+    A trailing per-run stamp (added so re-runs do not overwrite each other) is
+    stripped first, so repeated runs still group under the same tool/host.
+    """
+    stem = _RUN_STAMP.sub("", stem)
     host = ""
     if "__" in stem:
         stem, host = stem.rsplit("__", 1)

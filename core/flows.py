@@ -24,8 +24,32 @@ def _next_custom_key() -> str:
 
 
 def _valid_flow(flow) -> bool:
-    """Drop entries that are not flow objects so a corrupt file cannot poison the menu."""
-    return isinstance(flow, dict)
+    """Drop entries that are not well-formed flow objects so a corrupt file
+    cannot poison the menu or silently run the wrong preset.
+
+    A valid flow is a dict with a non-empty ``name`` and a non-empty ``steps``
+    list; each step is a ``[tool_key, preset_index]`` pair whose tool is in the
+    registry and whose index is in range for that tool's presets. Mirrors the
+    desktop validator (``desktop/flows.py``).
+    """
+    from core.tools import TOOLS
+
+    if not isinstance(flow, dict):
+        return False
+    if not isinstance(flow.get("name"), str) or not flow["name"].strip():
+        return False
+    steps = flow.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return False
+    for step in steps:
+        if not isinstance(step, (list, tuple)) or len(step) != 2:
+            return False
+        key, index = step
+        if not isinstance(key, str) or key not in TOOLS:
+            return False
+        if type(index) is not int or not (0 <= index < len(TOOLS[key].get("presets", []))):
+            return False
+    return True
 
 
 def load_custom_flows() -> None:
@@ -290,6 +314,10 @@ def _resolve_steps(flow):
         problem = None
         if tool is None:
             problem = "missing registry entry"
+        elif type(preset_idx) is not int:
+            problem = f"invalid preset index {preset_idx!r}"
+        elif preset_idx < 0:
+            problem = f"negative preset index {preset_idx}"
         elif preset_idx >= len(tool.get("presets", [])):
             problem = f"missing preset #{preset_idx + 1}"
         else:
@@ -385,7 +413,8 @@ def _ask_mode():
 
 
 _PROGRESS_GLYPH = {"done": ("✓", "brand.ok"), "failed": ("✗", "brand.danger"),
-                   "aborted": ("✗", "brand.warn"), "skipped": ("»", "brand.muted")}
+                   "aborted": ("✗", "brand.warn"), "skipped": ("»", "brand.muted"),
+                   "blocked": ("⊘", "brand.warn"), "not-found": ("✗", "brand.danger")}
 
 
 def _progress_recap(active, current_index):
@@ -487,11 +516,20 @@ def run_flow(flow):
             r["status"] = "aborted"
             ui.pause()
             return
-        if mode == "auto" and rc == 127:  # tool could not launch — stop the auto chain
-            ui.console.print(f"\n[bright_red][!] {tool['name']} could not run — stopping run-all.[/bright_red]")
-            r["status"] = "failed"
-            ui.pause()
-            return
+        if rc is None:  # never launched (missing key, cancelled confirmation, blocked route)
+            ui.console.print(f"\n[bright_yellow][!] {tool['name']} did not launch — step not run.[/bright_yellow]")
+            r["status"] = "blocked"
+            i += 1
+            continue
+        if rc == 127:  # binary could not be launched (not found)
+            r["status"] = "not-found"
+            if mode == "auto":  # a launch failure stops the auto chain
+                ui.console.print(f"\n[bright_red][!] {tool['name']} could not run — stopping run-all.[/bright_red]")
+                ui.pause()
+                return
+            ui.console.print(f"\n[bright_red][!] {tool['name']} could not run (binary not found).[/bright_red]")
+            i += 1
+            continue
 
         r["status"] = "done"
         i += 1

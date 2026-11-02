@@ -42,7 +42,7 @@ class InstallationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             legacy = Path(directory) / "custom_flows.json"
             current = Path(directory) / "data/custom_flows.json"
-            legacy.write_text('{"cf-1": {"persistent": true, "name": "demo"}}')
+            legacy.write_text('{"cf-1": {"persistent": true, "name": "demo", "steps": [["dig", 0]]}}')
             with patch.object(flows, "LEGACY_FLOWS_PATH", legacy), patch.object(flows, "CUSTOM_FLOWS_PATH", current), patch.object(flows, "CUSTOM_FLOWS", {}), patch.object(flows.tgt, "_chown_path"):
                 flows.load_custom_flows()
                 self.assertIn("cf-1", flows.CUSTOM_FLOWS)

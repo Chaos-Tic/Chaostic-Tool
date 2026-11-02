@@ -15,7 +15,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
+try:
+    import pytest
+    xfail = pytest.mark.xfail
+except ImportError:  # the unittest-only CI runner has no pytest; this xfail function is not collected there
+    def xfail(*_args, **_kwargs):
+        def _decorator(func):
+            return func
+        return _decorator
 
 # Importing the harness builds the one offscreen QApplication the GUI needs.
 from desktop_harness import wait_run
@@ -166,7 +173,7 @@ class FlowChainingTests(unittest.TestCase):
                 window.close()
 
 
-@pytest.mark.xfail(
+@xfail(
     strict=True,
     reason="R10: only the last host of a fan-out finalises a flow step, so earlier failed hosts count as success — pro plan Lot 0",
 )

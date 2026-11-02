@@ -27,7 +27,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
+try:
+    import pytest
+    xfail = pytest.mark.xfail
+except ImportError:  # the unittest-only CI runner has no pytest; these xfail functions are not collected there
+    def xfail(*_args, **_kwargs):
+        def _decorator(func):
+            return func
+        return _decorator
 
 # Importing the harness builds the one offscreen QApplication the GUI needs.
 from desktop_harness import APP
@@ -43,19 +50,19 @@ FIRST = "https://first.example"
 SECOND = "https://second.example"
 ACCEPTED = QDialog.DialogCode.Accepted
 
-R08 = pytest.mark.xfail(
+R08 = xfail(
     strict=True,
     reason="R08: FlowSession keeps a reference to the store target and Store.update_target mutates it in place — pro plan Lot 0",
 )
-R09 = pytest.mark.xfail(
+R09 = xfail(
     strict=True,
     reason="R09: the fan-out confirmation is skipped when a prepared flow step launches with show_dialog=False — pro plan Lot 0",
 )
-R10 = pytest.mark.xfail(
+R10 = xfail(
     strict=True,
     reason="R10: only the last host of a fan-out finalises a flow step, so earlier failed hosts count as success — pro plan Lot 0",
 )
-R11 = pytest.mark.xfail(
+R11 = xfail(
     strict=True,
     reason="R11: change_target drops the session but keeps auto_run/prepared, so start_step crashes on session=None — pro plan Lot 0",
 )

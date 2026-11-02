@@ -19,11 +19,18 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
-import pytest
+try:
+    import pytest
+    xfail = pytest.mark.xfail
+except ImportError:  # the unittest-only CI runner has no pytest; these xfail functions are not collected there
+    def xfail(*_args, **_kwargs):
+        def _decorator(func):
+            return func
+        return _decorator
 
 FULL_URL = "https://example.com/app?x=1"
 
-R07 = pytest.mark.xfail(
+R07 = xfail(
     strict=True,
     reason="R07: scope_url rebuilds the URL from host+port and drops scheme, path and query — pro plan Lot 0",
 )

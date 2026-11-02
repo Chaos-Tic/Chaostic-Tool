@@ -15,7 +15,14 @@ anchors the neighbouring behaviour that is already correct.
 import unittest
 from unittest.mock import patch
 
-import pytest
+try:
+    import pytest
+    xfail = pytest.mark.xfail
+except ImportError:  # the unittest-only CI runner has no pytest; these xfail functions are not collected there
+    def xfail(*_args, **_kwargs):
+        def _decorator(func):
+            return func
+        return _decorator
 
 from core import proxy
 
@@ -23,7 +30,7 @@ CMD = ["httpx", "-u", "https://example.com"]
 TOOL = {"name": "httpx", "binary": "httpx", "category": "web_enum"}
 PROXYCHAINS = "/usr/bin/proxychains4"
 
-R01 = pytest.mark.xfail(
+R01 = xfail(
     strict=True,
     reason="R01: Tor requested without proxychains silently launches the command directly — pro plan Lot 0",
 )

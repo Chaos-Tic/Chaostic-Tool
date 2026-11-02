@@ -1,3 +1,12 @@
+chaostictool (2.2.1-1) unstable; urgency=medium
+
+  * Targeting and routing fixes: the entered URL (scheme, path and query) is preserved across the subdomain scope; a Tor-routed tool is blocked instead of launched directly when proxychains is missing, with a route status that matches.
+  * Attack-flow integrity: never-launched, blocked and not-found steps are no longer reported as success; a fan-out step reflects any host failure instead of being masked by the last success; strict flow validation rejects malformed flows and out-of-range or negative preset indices; prepared steps honour the large fan-out confirmation; and changing the target after preparation no longer crashes.
+  * Reporting: the report states the declared scope instead of an unverifiable "no host outside scope" guarantee and no longer re-attributes past results to the current scope; CLI runs are preserved with unique output paths instead of overwriting the previous result; log excerpts are read bounded instead of loading whole logs into memory.
+  * Documentation: version references and download links aligned to the 2.2.1 release.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Mon, 02 Nov 2026 20:00:00 +0100
+
 chaostictool (2.2.0-1) unstable; urgency=medium
 
   * Mission report export in Markdown, text, PDF and JSON from the CLI and the desktop history.

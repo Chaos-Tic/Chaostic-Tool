@@ -1,3 +1,9 @@
+chaostictool (2.2.2-1) unstable; urgency=medium
+
+  * Unified target-address parsing across the CLI and the desktop GUI: the same input now yields the same host, URL and port on both sides (a bare entry defaults to https), with one clear address prompt, an echo of how the target was understood, and the same strict validation everywhere.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Mon, 02 Nov 2026 22:10:00 +0100
+
 chaostictool (2.2.1-1) unstable; urgency=medium
 
   * Targeting and routing fixes: the entered URL (scheme, path and query) is preserved across the subdomain scope; a Tor-routed tool is blocked instead of launched directly when proxychains is missing, with a route status that matches.

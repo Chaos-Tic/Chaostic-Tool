@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import threading
 import time
+import uuid
 from collections import deque
 
 try:
@@ -77,6 +78,21 @@ def target_path(directory, basename, target_name, ext="txt"):
     """Returns path: directory/basename_targetname.ext"""
     safe = re.sub(r'[^\w.\-]', '_', target_name) if target_name else "unknown"
     return Path(directory) / f"{basename}_{safe}.{ext}"
+
+
+# Per-run stamp appended to a target path so re-running the same tool/preset on
+# the same target never overwrites the previous output. The shape
+# (``YYYYMMDD-HHMMSS-<6 hex>``) carries no inner ``_`` and is matched back out by
+# ``core.report._split_cli_name`` so the report still recovers the tool/host.
+def run_stamp():
+    return datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6]
+
+
+def unique_target_path(directory, basename, target_name, ext="txt"):
+    """Like ``target_path`` but with a per-run stamp, so two runs of the same
+    tool/preset on the same target produce two distinct, preserved files."""
+    safe = re.sub(r'[^\w.\-]', '_', target_name) if target_name else "unknown"
+    return Path(directory) / f"{basename}_{safe}_{run_stamp()}.{ext}"
 
 
 def _print_command_panel(cmd, output_path, interactive):

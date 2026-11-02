@@ -312,5 +312,119 @@ class CliAvailabilityStateTests(unittest.TestCase):
         self.assertEqual(indices, [1, 2])
 
 
+class StepStatusRegressionTests(unittest.TestCase):
+    """R03: a flow step that never launched (``run_preset`` returns ``None``) or
+    whose binary is not found (127) must not be recorded as done/success."""
+
+    def _run_single(self, rc_value, mode="auto", inputs=()):
+        """Run a one-step flow, stub run_preset's return, return the step status."""
+        flow = {"name": "One", "desc": "", "steps": [("dig", 0)]}
+        captured = {}
+        real_resolve = flows._resolve_steps
+
+        def resolve(f):
+            records = real_resolve(f)
+            captured["records"] = records
+            return records
+
+        console = FakeConsole(inputs)
+        with patch.object(flows.tgt, "is_defined", return_value=True), \
+                patch.dict(flows.tgt.TARGET,
+                           {"host": "example.test", "url": "http://example.test", "port": "80"},
+                           clear=False), \
+                patch.object(flows.ui, "tool_available", return_value=True), \
+                patch.object(flows, "_resolve_steps", resolve), \
+                patch.object(flows, "_preview_flow", return_value=True), \
+                patch.object(flows, "_ask_mode", return_value=mode), \
+                patch.object(flows.ui, "header"), \
+                patch.object(flows.ui, "pause"), \
+                patch.object(flows.ui, "console", console), \
+                patch.object(flows.ui, "run_preset", return_value=rc_value):
+            flows.run_flow(flow)
+        return captured["records"][0]["status"]
+
+    def test_never_launched_step_is_not_marked_done(self):
+        status = self._run_single(None)
+        self.assertNotIn(status, ("done", "success"))
+        self.assertEqual(status, "blocked")
+
+    def test_not_found_step_in_step_mode_is_not_marked_done(self):
+        # Step mode previously let a 127 fall through to "done".
+        status = self._run_single(127, mode="step", inputs=["y"])
+        self.assertNotIn(status, ("done", "success"))
+        self.assertEqual(status, "not-found")
+
+    def test_successful_step_is_still_marked_done(self):
+        self.assertEqual(self._run_single(0), "done")
+
+
+class FlowValidationRegressionTests(unittest.TestCase):
+    """R04: malformed flows and out-of-range indices are rejected, never run."""
+
+    def test_valid_flow_accepts_a_well_formed_flow(self):
+        self.assertTrue(flows._valid_flow({"name": "ok", "steps": [["dig", 0]]}))
+
+    def test_valid_flow_rejects_missing_keys_and_bad_steps(self):
+        n = len(TOOLS["dig"]["presets"])
+        self.assertFalse(flows._valid_flow("not a dict"))
+        self.assertFalse(flows._valid_flow({"persistent": True, "name": "demo"}))   # no steps
+        self.assertFalse(flows._valid_flow({"steps": [["dig", 0]]}))                # no name
+        self.assertFalse(flows._valid_flow({"name": "  ", "steps": [["dig", 0]]}))  # blank name
+        self.assertFalse(flows._valid_flow({"name": "x", "steps": []}))             # empty steps
+        self.assertFalse(flows._valid_flow({"name": "x", "steps": ["dig"]}))        # step not a pair
+        self.assertFalse(flows._valid_flow({"name": "x", "steps": [["nope", 0]]}))  # unknown tool
+        self.assertFalse(flows._valid_flow({"name": "x", "steps": [["dig", -1]]}))  # negative index
+        self.assertFalse(flows._valid_flow({"name": "x", "steps": [["dig", n]]}))   # out of range
+
+    def test_resolve_steps_rejects_negative_and_out_of_range_without_selecting(self):
+        flow = {"name": "x", "desc": "", "steps": [("dig", -1), ("dig", 999)]}
+        with patch.object(flows.ui, "tool_available", return_value=True):
+            records = flows._resolve_steps(flow)
+        # A negative index must NOT silently resolve to the last preset.
+        self.assertIsNone(records[0]["preset"])
+        self.assertFalse(records[0]["enabled"])
+        self.assertIn("negative", records[0]["problem"])
+        self.assertIsNone(records[1]["preset"])
+        self.assertFalse(records[1]["enabled"])
+        self.assertTrue(records[1]["problem"].startswith("missing preset"))
+
+
+class UniqueOutputPathRegressionTests(unittest.TestCase):
+    """R06: re-running the same tool/preset on the same target must not
+    overwrite the previous output — each run gets its own preserved file."""
+
+    def test_two_runs_produce_two_distinct_preserved_files(self):
+        import tempfile
+        from pathlib import Path
+        tool = {"name": "Nmap", "binary": "nmap", "category": "recon", "output_dir": "recon"}
+        preset = {"label": "Quick", "cmd": ["nmap", "{host}"], "output": "nmap_quick"}
+        with tempfile.TemporaryDirectory() as directory:
+            cat = Path(directory)
+            written = []
+
+            def fake_run_tool(cmd, output_path=None, **kwargs):
+                written.append(output_path)
+                Path(output_path).write_text("result\n", encoding="utf-8")
+                return 0
+
+            with patch.object(ui, "console", FakeConsole([])), \
+                    patch.object(ui.tui, "available", return_value=False), \
+                    patch.object(ui, "resolve_tool_binary", return_value="nmap"), \
+                    patch.object(ui.tgt, "scope_hosts", return_value=["example.test"]), \
+                    patch.object(ui.tgt, "category_dir", return_value=cat), \
+                    patch.object(ui.tgt, "target_name", return_value="example.test"), \
+                    patch.dict(ui.tgt.TARGET,
+                               {"host": "example.test", "url": "http://example.test", "port": "80"},
+                               clear=False), \
+                    patch.object(ui.executor, "run_tool", side_effect=fake_run_tool):
+                ui.run_preset(tool, preset, pause_after=False)
+                ui.run_preset(tool, preset, pause_after=False)
+            self.assertEqual(len(written), 2)
+            self.assertTrue(all(p is not None for p in written))
+            self.assertNotEqual(written[0], written[1])
+            # Both files survive on disk — neither overwrote the other.
+            self.assertEqual(len(list(cat.glob("*.txt"))), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

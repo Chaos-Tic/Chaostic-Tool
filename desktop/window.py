@@ -134,6 +134,14 @@ def fill_table(widget, rows, pill_cols=()):
 from desktop.hud import Hero,GridBackground,ScanOverlay,CircuitCard,HUDRail,clock
 
 
+def _target_echo(target):
+    """Confirmation line echoing how a saved target's address was understood."""
+    if not target:
+        return T("Cible enregistrée et sélectionnée.")
+    return T("Cible : {url} · hôte {host} · port {port}").format(
+        url=target.get("url", ""), host=target.get("host", ""), port=target.get("port", ""))
+
+
 class TargetDialog(QDialog):
     def __init__(self, parent, *, name="", address="", editing=False):
         super().__init__(parent)
@@ -143,7 +151,9 @@ class TargetDialog(QDialog):
         layout.setContentsMargins(26, 26, 26, 26)
         layout.setSpacing(18)
         layout.addWidget(label("Modifier la cible" if editing else "Nouvelle cible", "sectionTitle"))  # i18n: traduit via label()
-        layout.addWidget(label("Un domaine, une adresse IP ou une URL complète.\nL’ajout n’effectue aucune connexion réseau.", "muted", True))
+        layout.addWidget(label("Un domaine comme example.com pour énumérer ses sous-domaines, ou un hôte/URL précis "
+                               "pour le viser directement.\nUne saisie nue (sans schéma) utilise https par défaut. "
+                               "L’ajout n’effectue aucune connexion réseau.", "muted", True))
         form = QFormLayout()
         form.setSpacing(14)
         self.name = QLineEdit()
@@ -151,7 +161,7 @@ class TargetDialog(QDialog):
         if name:
             self.name.setText(name)
         self.address = QLineEdit()
-        self.address.setPlaceholderText(T("https://example.com ou 127.0.0.1"))
+        self.address.setPlaceholderText(T("example.com, 127.0.0.1 ou https://example.com:8443/chemin"))
         self.address.setObjectName("targetAddress")
         if address:
             self.address.setText(address)
@@ -1154,12 +1164,12 @@ class Window(QMainWindow):
         dialog = TargetDialog(self)
         while dialog.exec() == QDialog.DialogCode.Accepted:
             try:
-                self.store.add_target(dialog.address.text(), dialog.name.text())
+                saved = self.store.add_target(dialog.address.text(), dialog.name.text())
             except (ValueError, OSError) as exc:
                 QMessageBox.warning(self, T("Cible non enregistrée"), str(exc))
                 continue
             self.refresh()
-            self.statusBar().showMessage(T("Cible enregistrée et sélectionnée."))
+            self.statusBar().showMessage(_target_echo(saved))
             break
 
     def activate_target(self):
@@ -1185,12 +1195,12 @@ class Window(QMainWindow):
         dialog = TargetDialog(self, name=target.get("label", ""), address=target.get("url", ""), editing=True)
         while dialog.exec() == QDialog.DialogCode.Accepted:
             try:
-                self.store.update_target(target["id"], dialog.address.text(), dialog.name.text())
+                saved = self.store.update_target(target["id"], dialog.address.text(), dialog.name.text())
             except (ValueError, OSError) as exc:
                 QMessageBox.warning(self, T("Cible non modifiée"), str(exc))
                 continue
             self.refresh()
-            self.statusBar().showMessage(T("Cible modifiée."))
+            self.statusBar().showMessage(_target_echo(saved))
             break
 
     def filter_tools(self):

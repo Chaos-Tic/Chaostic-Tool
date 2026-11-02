@@ -267,6 +267,15 @@ FR_EN = {
     # --- Dialogue Ajouter une cible ---
     "Ex. Mon environnement de test": "e.g. My test environment",
     "https://example.com ou 127.0.0.1": "https://example.com or 127.0.0.1",
+    "example.com, 127.0.0.1 ou https://example.com:8443/chemin":
+        "example.com, 127.0.0.1 or https://example.com:8443/path",
+    "Un domaine comme example.com pour énumérer ses sous-domaines, ou un hôte/URL précis "
+    "pour le viser directement.\nUne saisie nue (sans schéma) utilise https par défaut. "
+    "L’ajout n’effectue aucune connexion réseau.":
+        "A domain like example.com to enumerate its subdomains, or a specific host/URL to "
+        "target it directly.\nA bare entry (no scheme) defaults to https. "
+        "Adding a target performs no network connection.",
+    "Cible : {url} · hôte {host} · port {port}": "Target: {url} · host {host} · port {port}",
     "Ajouter la cible": "Add the target",
     "Cible enregistrée et sélectionnée.": "Target saved and selected.",
 

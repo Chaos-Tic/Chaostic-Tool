@@ -67,9 +67,9 @@ class LiquidGlassTests(unittest.TestCase):
                 self.assertTrue(window.brand_panel.compact)
                 self.assertFalse(window.brand_panel.icon.isNull())
                 self.assertEqual(window.stack.widget(0).horizontalScrollBar().maximum(),0)
-                self.assertEqual(window.active_host.text(),'https://example.com:8443/')
+                self.assertEqual(window.active_host.text(),'https://example.com:8443')
                 window.toggle_theme();APP.processEvents()
-                self.assertEqual(window.active_host.text(),'https://example.com:8443/')
+                self.assertEqual(window.active_host.text(),'https://example.com:8443')
                 self.assertFalse(window.runner.active)
             finally:window.close();window.deleteLater();APP.processEvents()
 

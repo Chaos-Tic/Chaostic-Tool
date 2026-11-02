@@ -1,7 +1,6 @@
 """Local, per-user state. Never writes into the application installation."""
 from __future__ import annotations
 
-import ipaddress
 import json
 import os
 import re
@@ -37,43 +36,33 @@ def write_json(path: Path, value) -> None:
     temp.replace(path)
 
 
+# French messages for the shared normalizer's error codes. The validation and
+# normalization live once in ``core.target.normalize_target``; only the wording
+# is localized here so the French GUI keeps its existing messages.
+_TARGET_ERRORS = {
+    "empty": "Indiquez un domaine, une adresse IP ou une URL sans espaces.",
+    "whitespace": "Indiquez un domaine, une adresse IP ou une URL sans espaces.",
+    "malformed": "Adresse ou port invalide.",
+    "scheme": "Utilisez une adresse HTTP(S) sans identifiants intégrés.",
+    "credentials": "Utilisez une adresse HTTP(S) sans identifiants intégrés.",
+    "idna": "Nom de domaine invalide.",
+    "host": "Utilisez une seule cible : domaine, IPv4 ou IPv6.",
+    "port": "Le port doit être compris entre 1 et 65535.",
+}
+
+
 def parse_target(value: str, label: str = "") -> dict:
-    value = value.strip()
-    if not value or any(c.isspace() or ord(c) < 32 for c in value):
-        raise ValueError("Indiquez un domaine, une adresse IP ou une URL sans espaces.")
+    from core.target import normalize_target, TargetError
     try:
-        ip = ipaddress.ip_address(value)
-        value = f"[{ip}]" if ip.version == 6 else str(ip)
-    except ValueError:
-        pass
-    try:
-        parsed = urlsplit(value if "://" in value else "https://" + value)
-        port = parsed.port
-        host = parsed.hostname or ""
-    except ValueError as exc:
-        raise ValueError("Adresse ou port invalide.") from exc
-    if parsed.scheme not in ("http", "https") or parsed.username is not None or parsed.password is not None:
-        raise ValueError("Utilisez une adresse HTTP(S) sans identifiants intégrés.")
-    try:
-        ipaddress.ip_address(host)
-    except ValueError:
-        try:
-            host = host.encode("idna").decode("ascii").rstrip(".")
-        except UnicodeError as exc:
-            raise ValueError("Nom de domaine invalide.") from exc
-        if len(host) > 253 or not all(re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", p) for p in host.split(".")):
-            raise ValueError("Utilisez une seule cible : domaine, IPv4 ou IPv6.")
-    if port is not None and not 1 <= port <= 65535:
-        raise ValueError("Le port doit être compris entre 1 et 65535.")
-    netloc = f"[{host}]" if ":" in host else host
-    if port:
-        netloc += f":{port}"
+        info = normalize_target(value)
+    except TargetError as exc:
+        raise ValueError(_TARGET_ERRORS.get(exc.code, str(exc))) from exc
     return {
         "id": uuid.uuid4().hex,
-        "label": label.strip()[:100] or host,
-        "host": host,
-        "port": port or (443 if parsed.scheme == "https" else 80),
-        "url": urlunsplit((parsed.scheme, netloc, parsed.path or "/", parsed.query, "")),
+        "label": label.strip()[:100] or info["host"],
+        "host": info["host"],
+        "port": info["port"],
+        "url": info["url"],
         "created": now(),
     }
 

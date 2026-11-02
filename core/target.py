@@ -7,7 +7,7 @@ try:
 except ImportError:
     pwd = None
 import ipaddress
-from urllib.parse import urlparse, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from core.paths import data_home, ensure_directory
 
@@ -83,28 +83,132 @@ def _normalize_url(url, host, port):
     return ""
 
 
-def _split_host_input(host):
-    host = host.strip()
-    if not host:
-        return "", ""
-    if re.match(r"^https?://", host):
-        parsed = urlparse(host)
-        return parsed.hostname or "", host
-    authority = host.split("/")[0]
+class TargetError(ValueError):
+    """Invalid target input.
+
+    Carries a stable ``code`` so each front end can render the message in its own
+    language (the CLI shows the English message directly; the GUI maps the code to
+    a French string). ``ValueError`` subclass so existing ``except ValueError``
+    handlers keep catching it.
+    """
+
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
+_HOST_LABEL = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
+
+
+def _bracket(host):
+    """Wrap a literal IPv6 address in brackets for an HTTP authority."""
+    return f"[{host}]" if ":" in host and not host.startswith("[") else host
+
+
+def normalize_target(raw, port_override=None):
+    """Canonical, validated interpretation of a target address.
+
+    Single source of truth shared by the CLI (:func:`set_target`) and the GUI
+    (``desktop.storage.parse_target``) so the same input yields the same host,
+    URL and port on both sides. Accepts a bare domain or subdomain, an IPv4 or
+    IPv6 literal, or a full URL.
+
+    Scheme and port: a URL's own scheme is respected, along with its explicit
+    port (otherwise the scheme default). A bare entry (no scheme) defaults to
+    https on port 443 -- the port no longer silently decides the scheme.
+    ``port_override`` (an int, a digit string, or ``None``/empty for "no
+    override") forces the port without changing the scheme.
+
+    Canonical URL form: ``scheme://host[:port]`` with the port shown only when it
+    was given explicitly (an override or a port in the URL); the entered path,
+    query and fragment are preserved verbatim and no trailing ``/`` is added to a
+    bare host. Raises :class:`TargetError` on invalid input (spaces or control
+    characters, a non-http(s) scheme, embedded credentials, an invalid IDNA or
+    host label, or a port outside 1-65535).
+
+    Returns a dict with ``host``, ``url``, ``port`` (int), ``scheme`` and
+    ``echo`` (a one-line human-readable interpretation).
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        raise TargetError("empty", "Enter a target: a domain, an IP address, or a full URL.")
+    if any(c.isspace() or ord(c) < 32 for c in raw):
+        raise TargetError("whitespace", "The target must not contain spaces or control characters.")
+    value = raw
     try:
-        return str(ipaddress.ip_address(authority)), ""
+        ip = ipaddress.ip_address(value)
+        value = f"[{ip}]" if ip.version == 6 else str(ip)
     except ValueError:
-        parsed = urlparse("//" + authority)
-        return parsed.hostname or "", ""
+        pass
+    try:
+        parsed = urlsplit(value if "://" in value else "https://" + value)
+        url_port = parsed.port
+        host = parsed.hostname or ""
+    except ValueError as exc:
+        raise TargetError("malformed", "The address or its port is malformed.") from exc
+    if parsed.scheme not in ("http", "https"):
+        raise TargetError("scheme", "Use an http:// or https:// address (no other scheme).")
+    if parsed.username is not None or parsed.password is not None:
+        raise TargetError("credentials", "Remove the embedded username or password from the URL.")
+    if not host:
+        raise TargetError("host", "Enter a single target: a domain, an IPv4 or an IPv6 address.")
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        try:
+            host = host.encode("idna").decode("ascii").rstrip(".")
+        except UnicodeError as exc:
+            raise TargetError("idna", "Invalid domain name.") from exc
+        if len(host) > 253 or not all(_HOST_LABEL.fullmatch(p) for p in host.split(".")):
+            raise TargetError("host", "Enter a single target: a domain, an IPv4 or an IPv6 address.") from None
+    # An explicit override wins, else the URL's own port, else the scheme default.
+    override = None if port_override is None else str(port_override).strip()
+    if override:
+        try:
+            port = int(override)
+        except ValueError as exc:
+            raise TargetError("port", "The port must be between 1 and 65535.") from exc
+        explicit_port = True
+    elif url_port is not None:
+        port = url_port
+        explicit_port = True
+    else:
+        port = None
+        explicit_port = False
+    if port is not None and not 1 <= port <= 65535:
+        raise TargetError("port", "The port must be between 1 and 65535.")
+    scheme = parsed.scheme
+    if port is None:
+        port = 443 if scheme == "https" else 80
+    netloc = _bracket(host)
+    if explicit_port:
+        netloc += f":{port}"
+    url = urlunsplit((scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+    return {"host": host, "url": url, "port": port, "scheme": scheme,
+            "echo": _echo(scheme, host, port)}
 
 
-def set_target(host="", url="", port="80", wordlist=None):
-    clean_host, host_url = _split_host_input(host)
-    TARGET["host"] = clean_host
-    TARGET["port"] = port.strip() or "80"
-    TARGET["url"] = _normalize_url((url.strip() or host_url), TARGET["host"], TARGET["port"])
-    if not TARGET["host"] and TARGET["url"]:
-        TARGET["host"] = urlparse(TARGET["url"]).hostname or ""
+def _echo(scheme, host, port):
+    """One-line, human-readable interpretation of a normalized target."""
+    return f"{scheme}://{_bracket(host)}:{port} — host {host} · scheme {scheme} · port {port}"
+
+
+def describe_target():
+    """Echo line for the active target (what the input was understood to mean)."""
+    if not is_defined():
+        return "No target defined"
+    host = TARGET["host"]
+    scheme = urlsplit(TARGET["url"]).scheme if TARGET["url"] else "https"
+    port = TARGET["port"] or ("443" if scheme == "https" else "80")
+    return _echo(scheme, host, port)
+
+
+def set_target(host="", url="", port=None, wordlist=None):
+    raw = (url or "").strip() or (host or "").strip()
+    info = normalize_target(raw, port_override=port)
+    TARGET["host"] = info["host"]
+    TARGET["url"] = info["url"]
+    TARGET["port"] = str(info["port"])
     if wordlist:
         TARGET["wordlist"] = wordlist
 

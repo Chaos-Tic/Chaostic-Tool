@@ -25,7 +25,9 @@ from core import availability as av
 from core import executor, tui
 from core import subdomains as sd
 from core import target as tgt
-from core.proxy import PROXY_STATE, route_status, should_proxy_tool, wrap_command
+from core.proxy import (
+    PROXY_STATE, ProxyRouteError, route_status, should_proxy_tool, tor_route_blocked, wrap_command,
+)
 from core.redaction import SECRET_FIELDS, redact, secrets_for
 from core.terminal import console
 from core.theme import EYEBROW, EYEBROW_COMPACT
@@ -546,6 +548,14 @@ def _launch_panel(tool, preset, cmd, route, output_path):
     )
 
 
+def _print_route_blocked(tool):
+    """Tell the operator a tool was not launched because its Tor route is unavailable."""
+    console.print(f"[bright_red][!] {escape(tool['name'])} not launched: Tor routing is enabled "
+                  f"but proxychains / proxychains4 is not installed.[/bright_red]")
+    console.print("[brand.muted]    Install proxychains or disable Tor routing in the Proxy menu; "
+                  "the tool is never launched directly while Tor is requested.[/brand.muted]")
+
+
 def run_preset(tool, preset, pause_after=True, flow_context=None):
     """Run one tool preset.
 
@@ -553,9 +563,16 @@ def run_preset(tool, preset, pause_after=True, flow_context=None):
     the scan view so a flow run shows its position in the chain. The return value
     is the run's exit code (the first abort/not-found code when fanning out over
     subdomains, else the last code), or ``None`` when the preset never launched
-    (missing key, cancelled confirmation); flows read it to stop a "run all"
-    chain only on a real failure.
+    (missing key, cancelled confirmation, blocked proxy route); flows read it to
+    stop a "run all" chain only on a real failure.
     """
+    # Tor requested but proxychains missing: refuse before asking the operator
+    # for anything. Launching directly would leak the real IP behind a UI that
+    # announces a Tor route.
+    if should_proxy_tool(tool) and tor_route_blocked():
+        _print_route_blocked(tool)
+        return None
+
     base_fill = {
         "host": tgt.TARGET["host"],
         "url":  tgt.TARGET["url"],
@@ -673,7 +690,12 @@ def run_preset(tool, preset, pause_after=True, flow_context=None):
             else:
                 console.print("[brand.warn][!] No target defined - results will not be saved.[/brand.warn]")
 
-        run_cmd = wrap_command(cmd) if should_proxy_tool(tool) else cmd
+        try:
+            run_cmd = wrap_command(cmd) if should_proxy_tool(tool) else cmd
+        except ProxyRouteError:
+            # Safety net for the guard above: the step is blocked, never launched directly.
+            _print_route_blocked(tool)
+            return result_rc
         if not should_proxy_tool(tool) and PROXY_STATE["enabled"]:
             console.print("[brand.muted]Proxy/VPN skipped for this local or network-interface tool.[/brand.muted]")
         display_cmd = [redact(argument, redactions) for argument in run_cmd]

@@ -47,7 +47,7 @@ GitHub Release, and refreshes the AUR, Fedora COPR, the signed Chaos-Tic apt rep
 the Launchpad PPA. The winget manifests follow each release once the package is accepted in
 `microsoft/winget-pkgs`.
 
-[Project website](https://tool.chaostic.cloud/cybersecurite.html) · [Install](#install) · [Uninstall](#uninstall) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
+[Project website](https://tools.chaostic.cloud/#chaostictool) · [Install](#install) · [Uninstall](#uninstall) · [How it works](#how-it-works) · [Phases and profiles](#phases-and-profiles) · [Architecture](docs/ARCHITECTURE.md) · [User guide](docs/USER_GUIDE.md) · [Compatibility](docs/COMPATIBILITY.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Verifying](docs/VERIFYING.md)
 
 ---
 

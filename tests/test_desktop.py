@@ -30,7 +30,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_target_parsing(self):
         self.assertEqual(parse_target("https://example.com:8443/path?q=1")["port"], 8443)
-        self.assertEqual(parse_target("::1")["url"], "https://[::1]/")
+        self.assertEqual(parse_target("::1")["url"], "https://[::1]")
         self.assertEqual(parse_target("https://[::1]:443/a")["host"], "::1")
         self.assertEqual(parse_target("éxemple.fr")["host"], "xn--xemple-9ua.fr")
         for invalid in ("-oN", "example.com -p 22", "../..", "http://", "ftp://host", "https://user:pass@host", "example.com:0", "https://host:99999", "host\nInjected", "*.example.com"):

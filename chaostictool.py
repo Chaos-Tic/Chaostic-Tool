@@ -42,11 +42,19 @@ def configure_target():
     ui.header("Configure target")
     if tgt.is_defined():
         ui.console.print(f"[brand.muted]Current target:[/brand.muted] [brand.ok]{tgt.summary()}[/brand.ok]\n")
-    host = ui.ask("Host / domain / IP", tgt.TARGET["host"] or None)
-    url = ui.ask("URL (optional, otherwise derived from host)", tgt.TARGET["url"] or None)
-    port = ui.ask("Port", tgt.TARGET["port"])
-    d = tgt.set_target(host=host, url=url, port=port)
-    ui.console.print(f"\n[brand.ok][+] Target set:[/brand.ok] [brand.white]{tgt.summary()}[/brand.white]")
+    ui.console.print("[brand.muted]Enter a domain like example.com to enumerate its subdomains, or a specific "
+                     "host/URL to target it directly.\nA bare entry (no scheme) defaults to https. "
+                     "Example: https://example.com:8443/app[/brand.muted]")
+    d = None
+    while True:
+        address = ui.ask("Target address (domain / host / IP / URL)", tgt.TARGET["url"] or tgt.TARGET["host"] or None)
+        port = ui.ask("Port override (optional, blank = scheme default)")
+        try:
+            d = tgt.set_target(url=address, port=(port or None))
+            break
+        except tgt.TargetError as exc:
+            ui.console.print(f"[bright_red][!] {exc}[/bright_red]")
+    ui.console.print(f"\n[brand.ok][+] Target set:[/brand.ok] [brand.white]{tgt.describe_target()}[/brand.white]")
     if d:
         ui.console.print(f"[brand.ok][+] Directory:[/brand.ok] [brand.command]{d}[/brand.command]")
     _warn_if_unresolved()

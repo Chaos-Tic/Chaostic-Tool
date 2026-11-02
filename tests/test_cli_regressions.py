@@ -21,8 +21,10 @@ class CliRegressions(unittest.TestCase):
             self.assertEqual(target.TARGET['url'], 'https://[2001:db8::1]:8443')
             target.set_target(url='https://[::1]:8443/path')
             self.assertEqual(target.TARGET['host'], '::1')
+            # A bare entry defaults to https regardless of the port override;
+            # the port no longer decides the scheme.
             target.set_target(host='[::1]:8080', port='8080')
-            self.assertEqual(target.TARGET['url'], 'http://[::1]:8080')
+            self.assertEqual(target.TARGET['url'], 'https://[::1]:8080')
 
     def test_all_cli_modules_import(self):
         for path in (ROOT / 'modules').glob('[0-9]*.py'):

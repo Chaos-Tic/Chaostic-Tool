@@ -1,16 +1,12 @@
 """Target URL preservation across the subdomain scope (pro plan Lot 0, R07).
 
 A target entered as a full URL ("https://example.com/app?x=1") must reach a
-``{url}`` preset intact. ``core.ui.run_preset`` rebuilds ``fill["url"]`` from
+``{url}`` preset intact. ``core.ui.run_preset`` fills ``fill["url"]`` from
 ``tgt.scope_url(host)`` for every scoped host, including the base host when the
-subdomain scope is off, and ``scope_url`` derives the URL from host and port
-alone: the scheme follows the port and the path, query and fragment are lost.
-
-The bug-demonstrating tests are plain pytest functions marked
-``xfail(strict=True)``: ``python -m unittest discover`` (the CI runner) does not
-collect them, so CI stays green, and under pytest they turn red (XPASS) the day
-the bug is fixed without the marker being removed. The ``unittest`` class
-anchors the neighbouring behaviour that is already correct.
+subdomain scope is off, so ``scope_url`` must hand back the entered URL for the
+base host and swap only the hostname for a subdomain, keeping the scheme, port,
+path, query and fragment. Before the fix it rebuilt the URL from host and port
+alone.
 """
 import contextlib
 import os
@@ -19,21 +15,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
-try:
-    import pytest
-    xfail = pytest.mark.xfail
-except ImportError:  # the unittest-only CI runner has no pytest; these xfail functions are not collected there
-    def xfail(*_args, **_kwargs):
-        def _decorator(func):
-            return func
-        return _decorator
-
 FULL_URL = "https://example.com/app?x=1"
-
-R07 = xfail(
-    strict=True,
-    reason="R07: scope_url rebuilds the URL from host+port and drops scheme, path and query — pro plan Lot 0",
-)
 
 
 class _TargetEnv:
@@ -71,7 +53,7 @@ def _run_preset(preset):
 
 
 class TargetUrlAnchorTests(unittest.TestCase):
-    """Behaviour that already holds and must keep holding once R07 is fixed."""
+    """Neighbouring behaviour that held before the R07 fix and must keep holding."""
 
     def test_target_entered_as_url_keeps_path_query_and_scheme(self):
         with _TargetEnv() as tgt:
@@ -84,6 +66,12 @@ class TargetUrlAnchorTests(unittest.TestCase):
             tgt.set_target(host="example.com", port="8443")
             self.assertEqual(tgt.scope_url("api.example.com"), "https://api.example.com:8443")
 
+    def test_scope_url_without_any_target_url_derives_from_host_and_port(self):
+        with _TargetEnv() as tgt:
+            tgt.set_target(host="example.com", port="8080")
+            tgt.TARGET["url"] = ""  # a target set without a URL (not reachable through set_target)
+            self.assertEqual(tgt.scope_url("api.example.com"), "http://api.example.com:8080")
+
     def test_host_preset_receives_the_bare_host(self):
         with _TargetEnv() as tgt:
             tgt.set_target(host=FULL_URL)
@@ -91,29 +79,33 @@ class TargetUrlAnchorTests(unittest.TestCase):
             self.assertEqual([cmd[-1] for cmd in calls], ["example.com"])
 
 
-@R07
-def test_scope_url_for_the_base_host_returns_the_target_url_unchanged():
-    with _TargetEnv() as tgt:
-        tgt.set_target(host=FULL_URL)
-        assert tgt.scope_url("example.com") == FULL_URL
+class TargetUrlScopeTests(unittest.TestCase):
+    """R07: the entered URL survives the scope expansion."""
 
+    def test_scope_url_for_the_base_host_returns_the_target_url_unchanged(self):
+        with _TargetEnv() as tgt:
+            tgt.set_target(host=FULL_URL)
+            self.assertEqual(tgt.scope_url("example.com"), FULL_URL)
 
-@R07
-def test_scope_url_for_a_subdomain_keeps_scheme_path_and_query():
-    with _TargetEnv() as tgt:
-        tgt.set_target(host=FULL_URL)
-        parsed = urlsplit(tgt.scope_url("api.example.com"))
-        assert (parsed.scheme, parsed.hostname, parsed.path, parsed.query) == ("https", "api.example.com", "/app", "x=1")
+    def test_scope_url_for_a_subdomain_keeps_scheme_path_and_query(self):
+        with _TargetEnv() as tgt:
+            tgt.set_target(host=FULL_URL)
+            parsed = urlsplit(tgt.scope_url("api.example.com"))
+            self.assertEqual((parsed.scheme, parsed.hostname, parsed.path, parsed.query),
+                             ("https", "api.example.com", "/app", "x=1"))
 
+    def test_scope_url_for_a_subdomain_keeps_explicit_port_and_fragment(self):
+        with _TargetEnv() as tgt:
+            tgt.set_target(host="https://example.com:8443/app?x=1#top")
+            self.assertEqual(tgt.scope_url("api.example.com"), "https://api.example.com:8443/app?x=1#top")
 
-@R07
-def test_url_preset_receives_the_full_target_url_when_scope_is_off():
-    """What the operator sees: the command gets the URL they typed, not a rebuilt one."""
-    with _TargetEnv() as tgt:
-        tgt.set_target(host=FULL_URL)
-        calls = _run_preset({"label": "probe", "cmd": ["ZZ", "{url}"], "output": "probe"})
-        assert len(calls) == 1
-        assert calls[0][-1] == FULL_URL
+    def test_url_preset_receives_the_full_target_url_when_scope_is_off(self):
+        """What the operator sees: the command gets the URL they typed, not a rebuilt one."""
+        with _TargetEnv() as tgt:
+            tgt.set_target(host=FULL_URL)
+            calls = _run_preset({"label": "probe", "cmd": ["ZZ", "{url}"], "output": "probe"})
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][-1], FULL_URL)
 
 
 if __name__ == "__main__":

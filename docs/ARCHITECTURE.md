@@ -69,7 +69,7 @@ flowchart TD
 | [`uninstall.sh`](../uninstall.sh) | Manifest-driven uninstaller shipped as `chaostictool-uninstall`; `--dry-run`, `--yes`, `--remove-packages`, `--force-detect` |
 | [`core/terminal.py`](../core/terminal.py) | POSIX pseudo-terminal allocation and ANSI color terminal streaming |
 | [`desktop/storage.py`](../desktop/storage.py) | Target persistence, deduplication, run history metadata, JSON Lines export |
-| [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.1.0`) |
+| [`core/version.py`](../core/version.py) | Single source of truth for release version (`2.2.0`) |
 | [`core/update_service.py`](../core/update_service.py) | GitHub release verification, cache throttling (once-a-day), package-manager detection |
 | [`desktop/window.py`](../desktop/window.py) | Main Liquid Glass window, navigation stack, arsenal selector, run monitor |
 | [`desktop/theme.py`](../desktop/theme.py) | Frosted-glass stylesheets, translucent palettes (light pastel & neon dark), typography |
@@ -80,7 +80,7 @@ flowchart TD
 
 1. **Target Parsing & Canonicalization**: Network targets are resolved into IP addresses, CIDR subnets, hostnames, or URLs. Invalid hosts and shell injection characters are strictly rejected.
 2. **Phase Sequencing**: A user selects an individual tool or an automated flow (e.g. *Full Discovery & Web Surface*). Profiles are organized across ten phases and flow steps are ordered deterministically.
-3. **Execution & PTY Sandboxing**: Commands are executed directly as argument vectors without passing through a shell (`/bin/sh -c`). Interactive or color-aware tools are attached to a real pseudo-terminal (`pty`) with VT100 escape sequence parsing.
+3. **Execution & PTY Supervision**: Commands are executed directly as argument vectors without passing through a shell (`/bin/sh -c`) — this is process supervision, not a security sandbox. Interactive or color-aware tools are attached to a real pseudo-terminal (`pty`) with VT100 escape sequence parsing.
 4. **Secret Masking & Output Streaming**: Terminal chunks are scanned in real time to redact credentials, API keys, and sensitive tokens before writing to disk.
 5. **Atomic Persistence & History**: Run logs and JSON metadata are written to private user directories (`~/.local/share/chaostictool` on Linux, `%APPDATA%\ChaosticTool` on Windows). Symbolic links and directory traversal attempts are strictly refused during history cleanup.
 

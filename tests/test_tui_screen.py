@@ -5,8 +5,12 @@ dialog still scrolls on the plain text, and the alternate screen is entered and
 left exactly once per session on a recording Output. What a real terminal
 shows (no flash between screens, actual colours) still needs a hands-on run.
 """
+import io
+import os
 import unittest
 from unittest.mock import patch
+
+from rich.color import ColorSystem
 
 from core.terminal import ScreenConsole
 
@@ -22,12 +26,33 @@ from core import tui
 
 class DrainTests(unittest.TestCase):
     def test_drain_keeps_ansi_colours_and_plain_text_stays_measurable(self):
-        console = ScreenConsole()
-        console.begin_screen("Demo")
-        console.print("[bold #ff0000]ALERT[/bold #ff0000] secret-free body")
-        drained = console._drain()
+        # Colour must not depend on the shell that runs the suite: NO_COLOR is
+        # dropped for this test and the capture sink is pinned to truecolor.
+        with patch.dict(os.environ, clear=False):
+            os.environ.pop("NO_COLOR", None)
+            console = ScreenConsole()
+            console.begin_screen("Demo")
+            console._sink.no_color = False
+            console._sink._color_system = ColorSystem.TRUECOLOR
+            console.print("[bold #ff0000]ALERT[/bold #ff0000] secret-free body")
+            drained = console._drain()
         self.assertIn("\x1b[1;38;2;255;0;0mALERT\x1b[0m", drained)
         self.assertEqual(tui.plain(drained), "ALERT secret-free body")
+
+    def test_no_color_disables_colours_on_the_plain_console_path(self):
+        """NO_COLOR is honoured on purpose: no colour codes reach the terminal, the text does."""
+        with patch.dict(os.environ, {"NO_COLOR": "1"}):
+            console = ScreenConsole()
+            self.assertTrue(console.no_color)
+            self.assertFalse(console._capturing)
+            terminal = io.StringIO()
+            console.file = terminal
+            console._color_system = ColorSystem.TRUECOLOR  # a colour-capable terminal
+            console.print("[bold #ff0000]ALERT[/bold #ff0000] secret-free body")
+        written = terminal.getvalue()
+        self.assertNotIn("38;2;255;0;0", written)
+        self.assertNotIn("[31m", written)
+        self.assertEqual(tui.plain(written).strip(), "ALERT secret-free body")
 
     def test_plain_console_path_is_unchanged(self):
         console = ScreenConsole()

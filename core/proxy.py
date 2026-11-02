@@ -18,12 +18,29 @@ PROXY_STATE = {
 }
 
 
+class ProxyRouteError(RuntimeError):
+    """The requested proxy route cannot be applied; the command must not run.
+
+    Raised by :func:`wrap_command` instead of handing back a bare command when
+    Tor routing is enabled but proxychains is missing: launching directly would
+    leak the operator's real IP while the UI announces a Tor route.
+    """
+
+
+TOR_BLOCKED_REASON = "Tor routing is enabled but proxychains / proxychains4 is not installed"
+
+
 def is_tor_running():
     return subprocess.run(["pgrep", "-x", "tor"], capture_output=True).returncode == 0
 
 
 def proxychains_binary():
     return shutil.which("proxychains4") or shutil.which("proxychains")
+
+
+def tor_route_blocked():
+    """True when Tor routing is requested but cannot be honoured (no proxychains)."""
+    return bool(PROXY_STATE["enabled"] and PROXY_STATE.get("mode") == "tor" and not proxychains_binary())
 
 
 def get_vpn_interfaces():
@@ -162,22 +179,28 @@ def proxy_menu(ui_module):
 
 
 def wrap_command(cmd):
-    """Prepend proxychains to cmd if Tor mode is active."""
+    """Prepend proxychains to cmd if Tor mode is active.
+
+    Raises :class:`ProxyRouteError` when Tor routing is requested but
+    proxychains is missing: the caller must treat the step as blocked and
+    never fall back to a direct launch.
+    """
     if not PROXY_STATE["enabled"]:
         return cmd
     if PROXY_STATE["mode"] == "tor":
         pc = proxychains_binary()
-        if pc:
-            if PROXY_STATE.get("tor_auto_rotate"):
-                old_ip = PROXY_STATE.get("tor_exit_ip")
-                rotate_tor_identity()
-                time.sleep(4)
-                new_ip = update_tor_exit_ip()
-                if new_ip and old_ip and new_ip != old_ip:
-                    console.print(f"[brand.ok][+] Tor exit IP changed: {old_ip} -> {new_ip}[/brand.ok]")
-                elif new_ip:
-                    console.print(f"[bright_yellow][!] Tor exit IP unchanged: {new_ip}[/bright_yellow]")
-            return [pc, "-q"] + cmd
+        if not pc:
+            raise ProxyRouteError(TOR_BLOCKED_REASON)
+        if PROXY_STATE.get("tor_auto_rotate"):
+            old_ip = PROXY_STATE.get("tor_exit_ip")
+            rotate_tor_identity()
+            time.sleep(4)
+            new_ip = update_tor_exit_ip()
+            if new_ip and old_ip and new_ip != old_ip:
+                console.print(f"[brand.ok][+] Tor exit IP changed: {old_ip} -> {new_ip}[/brand.ok]")
+            elif new_ip:
+                console.print(f"[bright_yellow][!] Tor exit IP unchanged: {new_ip}[/bright_yellow]")
+        return [pc, "-q"] + cmd
     if PROXY_STATE["mode"] == "vpn":
         chosen = PROXY_STATE.get("interface")
         default_iface = get_default_interface()
@@ -202,6 +225,8 @@ def route_status(tool=None):
             return f"VPN {iface}"
         return f"VPN guard {iface} (default: {default_iface})"
     if PROXY_STATE.get("mode") == "tor":
+        if not proxychains_binary():
+            return "TOR BLOCKED (proxychains missing)"
         return "TOR via proxychains"
     return mode
 

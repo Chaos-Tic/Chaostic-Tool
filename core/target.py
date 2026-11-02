@@ -7,7 +7,7 @@ try:
 except ImportError:
     pwd = None
 import ipaddress
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 from core.paths import data_home, ensure_directory
 
@@ -223,8 +223,29 @@ def scope_hosts(limit="default"):
 
 
 def scope_url(host):
-    """URL for a given scope host, following the active target's port/scheme."""
-    return _normalize_url("", host, TARGET["port"])
+    """URL for a given scope host.
+
+    The active target's URL is kept intact (scheme, port, path, query and
+    fragment): only its hostname is swapped for ``host``, so the base host gets
+    back exactly the URL that was entered. Without a target URL the result is
+    derived from the host and the active port.
+    """
+    url = TARGET["url"]
+    if not url:
+        return _normalize_url("", host, TARGET["port"])
+    if host.lower() == TARGET["host"].lower():
+        return url
+    parts = urlsplit(url)
+    # Literal IPv6 addresses need brackets in an HTTP authority.
+    netloc = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    try:
+        port = parts.port
+    except ValueError:  # malformed port in the entered URL: keep the hostname swap only
+        port = None
+    if port is not None:
+        netloc = f"{netloc}:{port}"
+    userinfo, sep, _ = parts.netloc.rpartition("@")
+    return urlunsplit(parts._replace(netloc=f"{userinfo}{sep}{netloc}"))
 
 
 def summary():

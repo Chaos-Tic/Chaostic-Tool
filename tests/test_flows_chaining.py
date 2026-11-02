@@ -4,6 +4,10 @@ Covers the overhaul of the Attack flows panel: a single "run the whole flow"
 that chains steps automatically, visible step i/N progress, fields collected
 once in the preparation screen, and the subdomain fan-out fix where a step is
 only marked done after its final host.
+
+The aggregated status of a fan-out step (R10, pro plan Lot 0) is now fixed and
+asserted directly in ``FlowChainingTests``, so ``python -m unittest discover``
+(the CI runner) exercises it.
 """
 import tempfile
 import unittest
@@ -95,13 +99,32 @@ class FlowChainingTests(unittest.TestCase):
                     self.assertEqual(panel.session.record["steps"][0]["status"], "running")
                     panel.completed(_run(sid, 0, "failed", last=False, rid="h2"))
                     self.assertEqual(panel.session.record["steps"][0]["status"], "running")
-                    # The final host finalises it.
+                    # The final host finalises it. Which status the step then carries
+                    # is a separate contract (R10, test_fanout_step_reports_the_failure_of_any_host):
+                    # a host failed above, so it finalises as not-running (and not success).
                     panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
-                    self.assertEqual(panel.session.record["steps"][0]["status"], "success")
+                    self.assertNotEqual(panel.session.record["steps"][0]["status"], "running")
                     # Aborting mid fan-out finalises the running step as cancelled.
                     panel.list.setCurrentRow(1); panel.start_step()
                     panel.completed(_run(sid, 1, "cancelled", last=False, rid="h4"))
                     self.assertEqual(panel.session.record["steps"][1]["status"], "cancelled")
+            finally:
+                window.close()
+
+    def test_fanout_step_reports_the_failure_of_any_host(self):
+        """A step whose hosts did not all succeed is not reported as a success (R10)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(Path(tmp)); store.add_target("localhost"); window = Window(store)
+            panel = window.flow_panel; panel.ensure_session(); sid = panel.session.record["id"]
+            try:
+                with patch.object(window, "launch", return_value=True):
+                    panel.list.setCurrentRow(0); panel.start_step()
+                    panel.completed(_run(sid, 0, "success", last=False, rid="h1"))
+                    panel.completed(_run(sid, 0, "failed", last=False, rid="h2"))
+                    panel.completed(_run(sid, 0, "success", last=True, rid="h3"))
+                    step = panel.session.record["steps"][0]
+                    self.assertNotIn(step["status"], ("running", "success"))
+                    self.assertNotEqual(panel.session.record["status"], "success")
             finally:
                 window.close()
 

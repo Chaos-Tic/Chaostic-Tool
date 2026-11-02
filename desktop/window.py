@@ -1692,9 +1692,11 @@ class Window(QMainWindow):
         from core import report
         run = self.selected_history()
         filters = [(T(text), key) for text, key in self.REPORT_FILTERS if key != "log" or run]
-        mission = report.from_gui_history(self.report_target(run), self.store.history(), source=str(self.store.root))
+        target = self.report_target(run)
         if destination is None:
-            destination, chosen = QFileDialog.getSaveFileName(self, T("Exporter un rapport"), report.default_filename(mission, "md"), ";;".join(f for f, _ in filters))
+            # Header only (no history scan, no log read) for the suggested file name.
+            header = report.from_gui_history(target, [])
+            destination, chosen = QFileDialog.getSaveFileName(self, T("Exporter un rapport"), report.default_filename(header, "md"), ";;".join(f for f, _ in filters))
         if not destination:
             return None
         key = next((k for f, k in filters if f == chosen), None)
@@ -1709,6 +1711,9 @@ class Window(QMainWindow):
                     shutil.copyfile(source, destination)
                 self.statusBar().showMessage(T("Journal exporté."))
                 return Path(destination)
+            # Log excerpts are read bounded (core.report.EXCERPT_MAX_BYTES per run),
+            # so building the report here stays cheap even with large logs.
+            mission = report.from_gui_history(target, self.store.history(), source=str(self.store.root))
             written = report.write_report(mission, destination, key)
             self.statusBar().showMessage(T("Rapport de mission exporté : {path}").format(path=written))
             return written

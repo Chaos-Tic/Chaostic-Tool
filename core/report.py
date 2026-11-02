@@ -24,6 +24,9 @@ from core.version import VERSION
 FORMATS = ("md", "txt", "pdf", "json")
 EXCERPT_LINES = 40
 EXCERPT_WIDTH = 160
+# Upper bound on the bytes ``_excerpt`` reads from one log: the excerpt only
+# needs its first lines, so a multi-gigabyte log must never be loaded whole.
+EXCERPT_MAX_BYTES = 64 * 1024
 MAX_LISTED_SUBDOMAINS = 50
 
 # Status keys as stored by the desktop ``run.json`` records, plus ``recorded``
@@ -47,9 +50,11 @@ class ReportRun:
     detail: str = ""
     log_path: str = ""
     excerpt: list[str] = field(default_factory=list)
-    excerpt_more: int = 0  # lines not shown
+    excerpt_more: int = 0  # lines not shown (exact when the whole log was inspected)
+    excerpt_truncated: bool = False  # the log is longer than the bytes inspected
     group: str = ""        # phase (CLI category) or flow name
     host: str = ""         # scope host when it differs from the base target
+    scope: str = ""        # scope recorded with the run; "" when none was recorded
 
     def duration(self) -> str:
         a, b = _parse_time(self.started), _parse_time(self.finished)
@@ -83,10 +88,31 @@ class MissionReport:
         return {k: counts[k] for k in STATUS_ORDER if k in counts}
 
     def scope_text(self) -> str:
-        base = self.host or self.url or self.target or "undefined"
-        if self.include_subdomains and self.subdomains:
-            return f"{base} + {len(self.subdomains)} subdomain(s)"
-        return f"{base} (base host only)"
+        """The declared scope: what the operator configured, not what tools emitted."""
+        return _scope_text(self.host or self.url or self.target, self.include_subdomains, self.subdomains)
+
+    def planned_hosts(self) -> list[str]:
+        """Hosts the listed operations were planned against, from the run records."""
+        base = self.host or self.url or ""
+        return sorted({r.host or base for r in self.runs if r.host or base})
+
+    def runs_without_scope(self) -> int:
+        return sum(1 for r in self.runs if not r.scope)
+
+
+def _scope_text(base: str, include_subdomains, subdomains) -> str:
+    base = base or "undefined"
+    if include_subdomains and subdomains:
+        return f"{base} + {len(subdomains)} subdomain(s)"
+    return f"{base} (base host only)"
+
+
+def _snapshot_scope(target) -> str:
+    """Scope text from a target dict recorded with a run; "" when nothing was recorded."""
+    if not isinstance(target, dict) or not (target.get("host") or target.get("url")):
+        return ""
+    subs = [s for s in target.get("subdomains", []) if isinstance(s, str)]
+    return _scope_text(target.get("host") or target.get("url"), target.get("include_subdomains"), subs)
 
 
 # --------------------------------------------------------------------------- builders
@@ -109,15 +135,19 @@ def from_gui_history(target: dict | None, records: list[dict], excerpt_lines: in
         if isinstance(command, (list, tuple)):
             command = shlex.join(str(a) for a in command)
         log = Path(rec["directory"]) / "output.txt" if rec.get("directory") else None
-        excerpt, more = _excerpt(log, excerpt_lines) if log else ([], 0)
+        excerpt, more, truncated = _excerpt(log, excerpt_lines) if log else ([], 0, False)
         host = (rec.get("target") or {}).get("host", "")
         runs.append(ReportRun(
             tool=str(rec.get("tool", "")), preset=str(rec.get("preset", "")), command=str(command),
             status=str(rec.get("status", "unknown")), started=str(rec.get("started", "")),
             finished=str(rec.get("finished", "")), exit_code=rec.get("exit_code"),
             detail=str(rec.get("detail", "") or ""), log_path=str(log) if log else "",
-            excerpt=excerpt, excerpt_more=more, group=str(rec.get("flow_name", "") or ""),
-            host=host if host and host != (target or {}).get("host", host) else ""))
+            excerpt=excerpt, excerpt_more=more, excerpt_truncated=truncated,
+            group=str(rec.get("flow_name", "") or ""),
+            host=host if host and host != (target or {}).get("host", host) else "",
+            # The run record keeps the target as it was when the run started; that
+            # snapshot, not the current configuration, is the run's scope.
+            scope=_snapshot_scope(rec_target)))
     t = target or {}
     return MissionReport(
         target=t.get("label") or t.get("host") or "This computer",
@@ -132,6 +162,10 @@ def from_cli_results(target_dir: Path, target: dict, scope: dict | None = None,
 
     ``target`` is ``core.target.TARGET`` (host/url/port); ``scope`` is
     ``core.target.SCOPE``. Each saved file becomes one ``recorded`` run.
+
+    Result files carry no scope snapshot, so ``target``/``scope`` describe the
+    configuration at report time only; each run keeps ``scope=""`` (unknown)
+    rather than being attributed to the current scope.
     """
     target_dir = Path(target_dir)
     scope = scope or {}
@@ -144,12 +178,12 @@ def from_cli_results(target_dir: Path, target: dict, scope: dict | None = None,
                 stat = f.stat()
             except OSError:
                 continue
-            excerpt, more = _excerpt(f, excerpt_lines)
+            excerpt, more, truncated = _excerpt(f, excerpt_lines)
             runs.append(ReportRun(
                 tool=tool, status="recorded",
                 started=datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(timespec="seconds"),
                 detail=f"{f.name} · {stat.st_size} bytes", log_path=str(f), excerpt=excerpt,
-                excerpt_more=more, group=cat.name, host=host))
+                excerpt_more=more, excerpt_truncated=truncated, group=cat.name, host=host))
     subs = [s for s in scope.get("subdomains", []) if isinstance(s, str)]
     return MissionReport(
         target=target.get("host") or target.get("url") or safe, host=target.get("host", ""),
@@ -183,18 +217,32 @@ def _split_cli_name(stem: str, safe_target: str) -> tuple[str, str]:
     return stem or "result", host
 
 
-def _excerpt(path: Path | None, limit: int) -> tuple[list[str], int]:
+def _excerpt(path: Path | None, limit: int,
+             max_bytes: int = EXCERPT_MAX_BYTES) -> tuple[list[str], int, bool]:
+    """First ``limit`` lines of a log: (lines, lines not shown, truncated).
+
+    Reads at most ``max_bytes`` (+1 to detect a longer file), never the whole
+    log. When the file is longer than that window, ``truncated`` is True and
+    the "not shown" count only covers the lines inside the window.
+    """
     if path is None or limit <= 0:
-        return [], 0
+        return [], 0, False
     try:
-        data = path.read_bytes()
+        with path.open("rb") as handle:
+            data = handle.read(max_bytes + 1)
     except OSError:
-        return [], 0
+        return [], 0, False
     if b"\0" in data[:2048]:
-        return ["[binary file, not shown]"], 0
+        return ["[binary file, not shown]"], 0, False
+    truncated = len(data) > max_bytes
+    if truncated:
+        data = data[:max_bytes]
+        cut = data.rfind(b"\n")  # drop the line the window cut in half
+        if cut > 0:
+            data = data[:cut]
     lines = data.decode("utf-8", errors="replace").splitlines()
     shown = [l[:EXCERPT_WIDTH] + ("…" if len(l) > EXCERPT_WIDTH else "") for l in lines[:limit]]
-    return shown, max(0, len(lines) - limit)
+    return shown, max(0, len(lines) - limit), truncated
 
 
 def _parse_time(value: str):
@@ -227,7 +275,7 @@ def _blocks(report: MissionReport) -> list[tuple]:
     """Format-neutral document: (kind, payload) with kinds h1/h2/h3/p/kv/code/bullets."""
     doc: list[tuple] = [("h1", f"Mission report — {report.target}")]
     head = [("Target", report.target), ("Host", report.host or "—"), ("URL", report.url or "—"),
-            ("Port", report.port or "—"), ("Scope", report.scope_text()),
+            ("Port", report.port or "—"), ("Declared scope", report.scope_text()),
             ("Generated", _stamp(report.generated)), ("Generator", f"ChaosticTool {report.version}"),
             ("Operations", str(len(report.runs)))]
     if report.source:
@@ -280,14 +328,14 @@ def _blocks(report: MissionReport) -> list[tuple]:
                 rows.append(("Exit code", str(run.exit_code)))
             if run.command:
                 rows.append(("Command", run.command))
+            rows.append(("Scope at run time", run.scope or "not recorded"))
             if run.log_path:
                 rows.append(("Raw log", run.log_path))
             doc.append(("kv", rows))
             if run.detail:
                 doc.append(("p", run.detail))
             if run.excerpt:
-                tail = [f"… {run.excerpt_more} more line(s) in the raw log"] if run.excerpt_more else []
-                doc.append(("code", run.excerpt + tail))
+                doc.append(("code", run.excerpt + _excerpt_tail(run)))
             elif run.log_path:
                 doc.append(("p", "No output captured."))
 
@@ -304,9 +352,37 @@ def _blocks(report: MissionReport) -> list[tuple]:
                      "assessment is derived from the raw logs referenced above; no automatic "
                      "severity classification is made."))
     doc.append(("h2", "Scope statement"))
-    doc.append(("p", f"Testing stayed within the declared scope: {report.scope_text()}. "
-                     "No host outside this scope was targeted by the operations listed."))
+    for line in scope_statement(report):
+        doc.append(("p", line))
     return doc
+
+
+def _excerpt_tail(run: ReportRun) -> list[str]:
+    if run.excerpt_truncated:
+        return [f"… at least {run.excerpt_more} more line(s) in the raw log "
+                f"(only the first {EXCERPT_MAX_BYTES} bytes were inspected)"]
+    return [f"… {run.excerpt_more} more line(s) in the raw log"] if run.excerpt_more else []
+
+
+def scope_statement(report: MissionReport) -> list[str]:
+    """Honest scope paragraphs: declared configuration, planned hosts, missing snapshots.
+
+    Nothing here certifies what traffic the tools actually emitted; the report
+    has no way to verify that, so it does not claim it.
+    """
+    lines = [f"Declared scope (operator configuration at report time): {report.scope_text()}. "
+             "This is the scope the operator configured, not a verification of the traffic "
+             "the listed tools actually emitted; the raw logs are the only record of that."]
+    hosts = report.planned_hosts()
+    if hosts:
+        lines.append("Hosts the listed operations were planned against, from the run records: "
+                     + ", ".join(hosts) + ".")
+    missing = report.runs_without_scope()
+    if missing:
+        lines.append(f"{missing} of {len(report.runs)} operation(s) carry no recorded scope "
+                     "snapshot; the declared scope above describes the current configuration, "
+                     "not necessarily the one in force when they ran.")
+    return lines
 
 
 # --------------------------------------------------------------------------- renderers
@@ -498,7 +574,7 @@ def to_dict(report: MissionReport) -> dict:
         "generated": report.generated,
         "target": {"label": report.target, "host": report.host, "url": report.url, "port": report.port,
                    "include_subdomains": report.include_subdomains, "subdomains": list(report.subdomains),
-                   "scope": report.scope_text()},
+                   "scope": report.scope_text(), "scope_kind": "declared"},
         "source": report.source,
         "summary": {"operations": len(report.runs), "status_counts": report.status_counts(),
                     "tools": sorted({r.tool for r in report.runs if r.tool}),
@@ -506,7 +582,10 @@ def to_dict(report: MissionReport) -> dict:
         "operations": runs,
         "findings": {"attention": [{"tool": r.tool, "preset": r.preset, "status": r.status, "detail": r.detail}
                                    for r in report.runs if r.status in ATTENTION],
-                     "scope_statement": f"Testing stayed within the declared scope: {report.scope_text()}."},
+                     "scope_statement": " ".join(scope_statement(report)),
+                     "declared_scope": report.scope_text(),
+                     "planned_hosts": report.planned_hosts(),
+                     "runs_without_scope_snapshot": report.runs_without_scope()},
     }
 
 

@@ -79,11 +79,15 @@ class ReportEngineTests(unittest.TestCase):
         for doc in (md, txt):
             for needle in ("Demo", "example.com + 2 subdomain(s)", f"ChaosticTool {VERSION}",
                            "Completed", "Failed", "Interrupted", "1 min 30 s", "nmap: host down",
-                           "api.example.com", "--key '[redacted]'", "Testing stayed within the declared scope",
+                           "api.example.com", "--key '[redacted]'",
+                           "Declared scope (operator configuration at report time)",
                            "… 20 more line(s) in the raw log", "Raw log"):
                 self.assertIn(needle, doc)
             self.assertNotIn("Whois", doc)
             self.assertNotIn("line 59", doc)  # excerpt bounded to EXCERPT_LINES
+            # R02: the report never certifies what traffic was emitted.
+            self.assertNotIn("No host outside this scope was targeted", doc)
+            self.assertNotIn("Testing stayed within", doc)
         self.assertIn("# Mission report — Demo", md)
         self.assertIn("## Summary", md)
         self.assertIn("```text", md)
@@ -147,6 +151,135 @@ class ReportEngineTests(unittest.TestCase):
         mission = report.from_cli_results(d, target)
         self.assertEqual([(r.tool, r.host) for r in mission.runs],
                          [("nmap_quick", ""), ("nmap_quick", ""), ("nmap_quick", "api.example.com")])
+
+    def test_scope_is_declared_not_certified(self):
+        # R02: the scope statement describes the operator's configuration and
+        # the hosts the runs were planned against; it never asserts, as proven
+        # fact, that nothing outside the scope was contacted.
+        store, target = _gui_fixture(self.root)
+        mission = report.from_gui_history(target, store.history())
+        for fmt in ("md", "txt"):
+            doc = " ".join(report.render(mission, fmt).split())  # undo the 80-column wrapping
+            self.assertIn("Declared scope (operator configuration at report time): example.com + 2 subdomain(s)", doc)
+            self.assertIn("not a verification of the traffic", doc)
+            self.assertIn("planned against, from the run records: example.com", doc)
+            self.assertNotIn("No host outside this scope was targeted", doc)
+            self.assertNotIn("stayed within", doc)
+        pdf_text = _pdf_text(report.render_pdf(mission))  # parentheses are escaped in PDF streams
+        self.assertIn("Declared scope", pdf_text)
+        self.assertNotIn("No host outside this scope", pdf_text)
+        data = json.loads(report.render_json(mission))
+        self.assertEqual(data["target"]["scope_kind"], "declared")
+        self.assertEqual(data["findings"]["declared_scope"], "example.com + 2 subdomain(s)")
+        self.assertEqual(data["findings"]["planned_hosts"], ["example.com"])
+        self.assertNotIn("No host outside", data["findings"]["scope_statement"])
+        self.assertNotIn("stayed within", data["findings"]["scope_statement"])
+
+    def test_gui_runs_keep_their_recorded_scope_not_the_current_one(self):
+        # R02: a run recorded under the base-host-only scope keeps that scope in the
+        # report even after the operator enables subdomains on the same target.
+        store, target = _gui_fixture(self.root)
+        store.set_target_scope(target["id"], include=False)
+        store.save()
+        folder, rec = store.new_run("Nmap", "Later", store.active_target, ["nmap", "example.com"])
+        rec.update(status="success", finished=rec["started"], exit_code=0)
+        write_json(folder / "run.json", rec)
+        (folder / "output.txt").write_text("ok\n", encoding="utf-8")
+        store.set_target_scope(target["id"], include=True)
+        store.save()
+        mission = report.from_gui_history(store.active_target, store.history())
+        self.assertEqual(mission.scope_text(), "example.com + 2 subdomain(s)")
+        by_preset = {r.preset: r.scope for r in mission.runs}
+        self.assertEqual(by_preset["Later"], "example.com (base host only)")
+        self.assertEqual(by_preset["Profil 0"], "example.com + 2 subdomain(s)")
+        self.assertEqual(mission.runs_without_scope(), 0)
+        txt = " ".join(report.render_text(mission).split())
+        self.assertIn("Scope at run time: example.com (base host only)", txt)
+        self.assertNotIn("carry no recorded scope snapshot", txt)
+
+    def test_cli_results_are_not_attributed_to_the_current_scope(self):
+        # R02: CLI result files carry no scope snapshot; the report says so
+        # instead of stamping the live SCOPE globals onto historical results.
+        d = _cli_fixture(self.root)
+        target = {"host": "example.com", "url": "https://example.com", "port": "443"}
+        mission = report.from_cli_results(d, target, {"include_subdomains": True, "subdomains": ["api.example.com"]})
+        self.assertEqual([r.scope for r in mission.runs], ["", "", ""])
+        self.assertEqual(mission.runs_without_scope(), 3)
+        self.assertEqual(mission.planned_hosts(), ["api.example.com", "example.com"])
+        txt = " ".join(report.render_text(mission).split())
+        self.assertIn("Scope at run time: not recorded", txt)
+        self.assertIn("3 of 3 operation(s) carry no recorded scope snapshot", txt)
+        self.assertIn("not necessarily the one in force when they ran", txt)
+        self.assertIn("planned against, from the run records: api.example.com, example.com", txt)
+        self.assertNotIn("No host outside this scope was targeted", txt)
+        data = json.loads(report.render_json(mission))
+        self.assertEqual(data["findings"]["runs_without_scope_snapshot"], 3)
+        self.assertEqual(data["findings"]["planned_hosts"], ["api.example.com", "example.com"])
+
+    def test_excerpt_reads_a_bounded_window_of_a_large_log(self):
+        # R05: the excerpt must never materialise the whole log. A spy on the
+        # file handle counts every byte read; the total must stay far below the
+        # file size, and the report must flag the truncation.
+        log = self.root / "output.txt"
+        line = ("x" * 200 + "\n").encode()
+        size = 0
+        with log.open("wb") as fh:
+            for n in range(20_000):  # ~4 MB, far above EXCERPT_MAX_BYTES
+                size += fh.write(f"line {n} ".encode() + line)
+        self.assertGreater(size, 50 * report.EXCERPT_MAX_BYTES)
+        reads = []
+        real_open = Path.open
+
+        class Spy:
+            def __init__(self, handle):
+                self.handle = handle
+
+            def read(self, n=-1):
+                data = self.handle.read(n)
+                reads.append(len(data))
+                return data
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return self.handle.__exit__(*exc)
+
+            def __getattr__(self, name):
+                return getattr(self.handle, name)
+
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("whole-file read")), \
+                patch.object(Path, "open", lambda self, *a, **k: Spy(real_open(self, *a, **k))):
+            shown, more, truncated = report._excerpt(log, report.EXCERPT_LINES)
+        self.assertTrue(reads, "the excerpt must read through the file handle")
+        self.assertLessEqual(sum(reads), report.EXCERPT_MAX_BYTES + 1)
+        self.assertLess(sum(reads), size // 50)
+        self.assertEqual(len(shown), report.EXCERPT_LINES)
+        self.assertEqual(shown[0][:7], "line 0 ")
+        self.assertTrue(all(len(l) <= report.EXCERPT_WIDTH + 1 for l in shown))
+        self.assertTrue(truncated)
+        self.assertGreater(more, 0)
+        self.assertLess(more, 20_000 - report.EXCERPT_LINES)  # counted inside the window only
+        run = report.ReportRun(tool="t", excerpt=shown, excerpt_more=more, excerpt_truncated=truncated)
+        mission = report.MissionReport(target="x.test", host="x.test", runs=[run])
+        txt = report.render_text(mission)
+        self.assertIn(f"… at least {more} more line(s) in the raw log", txt)
+        self.assertIn(f"only the first {report.EXCERPT_MAX_BYTES} bytes were inspected", txt)
+        self.assertNotIn("line 19999", txt)
+        # Small files keep the exact, untruncated behaviour.
+        small = self.root / "small.txt"
+        small.write_text("\n".join(f"l{n}" for n in range(60)), encoding="utf-8")
+        shown, more, truncated = report._excerpt(small, report.EXCERPT_LINES)
+        self.assertEqual((len(shown), more, truncated), (report.EXCERPT_LINES, 20, False))
+        # A huge single line without newline is cut at the window, not loaded whole.
+        huge = self.root / "huge.txt"
+        with huge.open("wb") as fh:
+            for _ in range(300):
+                fh.write(b"y" * 10_000)
+        shown, more, truncated = report._excerpt(huge, report.EXCERPT_LINES)
+        self.assertTrue(truncated)
+        self.assertLessEqual(len(shown), 1)
+        self.assertTrue(all(len(l) <= report.EXCERPT_WIDTH + 1 for l in shown))
 
     def test_write_report_infers_format_and_rejects_unknown(self):
         mission = report.MissionReport(target="x.test", host="x.test", generated="2026-10-31T10:00:00+00:00")

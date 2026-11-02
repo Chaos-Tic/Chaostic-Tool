@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.2.0
+Version:        2.2.1
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -82,6 +82,12 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Mon Nov 02 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.1-1
+- Targeting/routing: preserve the entered URL (scheme, path, query) across the subdomain scope; block a Tor-routed tool instead of launching it directly when proxychains is missing (honest route status).
+- Attack-flow integrity: never-launched/blocked/not-found steps are no longer reported as success; fan-out status reflects any host failure; strict flow validation (malformed flows, out-of-range/negative preset indices); prepared steps honour the large fan-out confirmation; no crash when the target changes after preparation.
+- Reporting: declared-scope statement instead of an unverifiable guarantee, no re-attribution of history; CLI runs preserved (unique output paths); bounded log excerpts.
+- Documentation: version references and download links aligned to 2.2.1.
+
 * Sun Nov 01 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.0-1
 - Mission report export (Markdown, text, PDF, JSON); subdomain scope controls (fan-out cap with confirmation, exclusions, clearer enumerate, target-liveness warning, amass v5 enum fix); arsenal/flows UX (tool availability states incl. needs-key, honest amass emitting names, flow host counter, TUI Liquid Glass polish, i18n pill-key fix); persistent opt-in API-key file store with optional encryption (python3-cryptography recommended).
 

@@ -326,6 +326,7 @@ ChaosticTool adheres to the privacy and security principles of the [Chaos-Tic](h
 - **[Cross-system Desktop guide](docs/DESKTOP.md)**: Windows, Linux and macOS downloads, Linux backends (local, WSL, SSH) and data locations.
 - **[Architecture & Internals](docs/ARCHITECTURE.md)**: Process model, PTY backend, install manifest, and source map.
 - **[User Guide](docs/USER_GUIDE.md)**: Command reference, flags, desktop walkthrough, API keys and theme controls.
+- **[Henon export](docs/HENON_EXPORT.md)**: Emit a `recon.json` the [Henon](https://github.com/Chaos-Tic) attack-path engine can ingest, from a target's saved recon.
 - **[Compatibility Matrix](docs/COMPATIBILITY.md)**: Dated CI evidence per platform, catalogue coverage, and package channels.
 - **[GitHub updates](docs/UPDATES.md)**: What the once-a-day release check sends, how to disable it, how updates are applied.
 - **[Testing & CI](docs/TESTING.md)**: Unit tests, headless X11 visual contracts, and clean container validation.

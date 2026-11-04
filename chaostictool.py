@@ -299,6 +299,34 @@ def main_menu():
     return ui.menu("Main Menu", MAIN_ENTRIES, footer_extra=ui.context_footer(), show_back=False, home=True)
 
 
+def _export_henon(target_arg, output):
+    """Non-interactive Henon export: map a target's saved recon to recon.json.
+
+    Runs without root and without launching any tool — it only reads the
+    results tree ChaosticTool already produced for ``target_arg`` and writes the
+    Henon contract document. Returns nothing; sets the process exit status.
+    """
+    from core import henon_export as henon
+    try:
+        tgt.set_target(url=target_arg)
+    except tgt.TargetError as exc:
+        print(f"[!] Invalid target '{target_arg}': {exc}")
+        raise SystemExit(2) from exc
+    directory = tgt.target_dir()
+    if directory is None:
+        print(f"[!] Invalid target '{target_arg}': no results directory.")
+        raise SystemExit(2)
+    document = henon.from_cli_results(directory, tgt.TARGET, tgt.SCOPE)
+    destination = output or (directory / henon.default_filename())
+    try:
+        written = henon.write_export(document, destination)
+    except OSError as exc:
+        print(f"[!] Could not write the export: {exc}")
+        raise SystemExit(1) from exc
+    print(f"Henon export written: {written}")
+    print(henon.summary(document))
+
+
 def main():
     from core import logging_setup
     logging_setup.setup_logging()
@@ -310,7 +338,14 @@ def main():
     parser.add_argument("--check-updates", action="store_true", help="check the latest public CLI release")
     parser.add_argument("--update", action="store_true", help="check and propose a package update with confirmation")
     parser.add_argument("--no-update-check", action="store_true", help="disable automatic release checks for this launch")
+    parser.add_argument("--export-henon", metavar="TARGET",
+                        help="write the Henon exchange file (recon.json) from a target's saved "
+                             "results, then exit (no root, no scan; ingest with "
+                             "'henon ingest chaostictool <file>')")
+    parser.add_argument("-o", "--output", metavar="FILE", help="output path for --export-henon")
     args = parser.parse_args()
+    if args.export_henon is not None:
+        return _export_henon(args.export_henon, args.output)
     if args.check_updates or args.update:
         from core import cli_updates
         if args.check_updates and not args.update:

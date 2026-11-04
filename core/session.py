@@ -60,6 +60,7 @@ def view_results():
         console.print(
             Panel(
                 ui.key_hints([("N", "display"), ("pN", "print path"), ("x", "export mission report"),
+                              ("h", "export for Henon"),
                               ("c", "clean", "brand.key.danger"), ("r/0", "back")]),
                 border_style="brand.dim",
                 box=box.SQUARE,
@@ -73,6 +74,9 @@ def view_results():
             continue
         if choice == "x":
             export_mission_report(d)
+            continue
+        if choice == "h":
+            export_henon(d)
             continue
         if not files:
             console.print("\n[brand.muted]No results saved yet.[/brand.muted]")
@@ -137,6 +141,39 @@ def export_mission_report(target_dir, fmt=None, destination=None):
         ui.pause()
         return None
     console.print(f"[brand.ok][+] Mission report written:[/brand.ok] [brand.command]{escape(str(written))}[/brand.command]")
+    ui.pause()
+    return written
+
+
+def export_henon(target_dir, destination=None):
+    """Write the Henon exchange file (``recon.json``) for the active target.
+
+    Builds the Henon contract document from the saved recon results via the
+    shared ``core.henon_export`` engine and writes it next to the results (or to
+    a chosen path). Henon ingests it with ``henon ingest chaostictool <file>``.
+    """
+    from core import henon_export as henon
+    document = henon.from_cli_results(target_dir, tgt.TARGET, tgt.SCOPE)
+    console.print(
+        Panel(
+            f"[brand.muted]TARGET[/brand.muted] [brand.ok]{escape(tgt.summary())}[/brand.ok]\n"
+            f"[brand.muted]Mapped[/brand.muted] [brand.white]{escape(henon.summary(document))}[/brand.white]\n"
+            f"[brand.muted]Ingest with:[/brand.muted] "
+            f"[brand.command]henon ingest chaostictool recon.json[/brand.command]",
+            title="[brand.red] HENON EXPORT [/brand.red]",
+            border_style="brand.red",
+            box=box.HEAVY,
+        )
+    )
+    default = Path(target_dir) / henon.default_filename()
+    destination = Path(destination or ui.ask("Output path", default=str(default))).expanduser()
+    try:
+        written = henon.write_export(document, destination)
+    except OSError as e:
+        console.print(f"[bright_red][!] Could not write the export: {e}[/bright_red]")
+        ui.pause()
+        return None
+    console.print(f"[brand.ok][+] Henon export written:[/brand.ok] [brand.command]{escape(str(written))}[/brand.command]")
     ui.pause()
     return written
 

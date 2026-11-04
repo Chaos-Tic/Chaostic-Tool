@@ -248,7 +248,9 @@ class FlowPanel(QWidget):
         except (ValueError,OSError,RuntimeError) as exc:
             self.auto_run=False; self.feedback.setText(T('Enchaînement interrompu : ')+str(exc))
             QMessageBox.warning(self,T('Étape non lancée'),str(exc)); return False
-        if started: self._fanout_outcomes.pop(i,None); self.session.update(i,'running'); self.refresh()
+        # A step is (re)running: invalidate any export already written for this
+        # flow so a relaunch rebuilds recon.json from the fresh results.
+        if started: self._fanout_outcomes.pop(i,None); self._henon_flow_id=None; self.session.update(i,'running'); self.refresh()
         return started
     def run_all(self):
         if self.window.runner.active: self.window.navigate(3); return
@@ -277,7 +279,7 @@ class FlowPanel(QWidget):
             self.ensure_session(); key,index=self.session.flow['steps'][i]
             tool=step_tool(self.window.tool_by_key[key],index)
             started=self.window.launch(key,tool_override=tool,metadata=self._context(i),target_override=self.session.record.get('target'))
-            if started: self._fanout_outcomes.pop(i,None); self.session.update(i,'running'); self.refresh()
+            if started: self._fanout_outcomes.pop(i,None); self._henon_flow_id=None; self.session.update(i,'running'); self.refresh()
         except (ValueError,OSError) as exc: QMessageBox.warning(self,T('Étape non lancée'),str(exc))
     def skip_step(self):
         i=self.list.currentRow()

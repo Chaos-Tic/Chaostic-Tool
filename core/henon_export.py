@@ -31,7 +31,9 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -642,12 +644,28 @@ def default_filename() -> str:
 
 
 def write_export(document: dict, path: Path | str) -> Path:
-    """Write the contract JSON to ``path`` (default extension ``.json``)."""
+    """Write the contract JSON to ``path`` (default extension ``.json``).
+
+    Atomic and symlink-safe: the payload is written to a fresh temp file in the
+    destination directory, then ``os.replace``'d onto the name. ``os.replace``
+    replaces a pre-existing symlink at ``path`` rather than following it, so a
+    planted ``recon.json`` symlink can never redirect this write to another file
+    — relevant because the CLI often runs under ``sudo`` (CWE-59)."""
     path = Path(path)
     if not path.suffix:
         path = path.with_suffix(".json")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_json(document), encoding="utf-8")
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(render_json(document))
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
     return path
 
 

@@ -261,6 +261,10 @@ class Store:
                     step.pop('run_id');step['status']='deleted';changed=True
             if changed:
                 record['status']='active';write_json(path,record)
+                # A Henon export derived from this flow's runs now references a
+                # deleted result; drop the stale artifact so it never outlives
+                # the data it was built from (regenerated on the next run).
+                (path.parent/(path.stem+'.recon.json')).unlink(missing_ok=True)
 
     def new_run(self, tool, preset, target, command):
         def slug(value,limit):

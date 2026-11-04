@@ -18,6 +18,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from core import flows
+from core import henon_export as henon
 from core import target as tgt
 from core.flow_definitions import FLOWS
 from desktop import flows as dflows
@@ -190,6 +191,52 @@ class HenonFlowDesktopExportTests(unittest.TestCase):
         blob = Path(path).read_text(encoding="utf-8")
         self.assertIn("api.example.com", blob)
         self.assertNotIn("legacy.example.com", blob)
+
+
+class HenonWriteExportSafetyTests(unittest.TestCase):
+    def test_write_export_replaces_symlink_without_following_it(self):
+        # A planted recon.json symlink must never redirect the write to its
+        # target (CWE-59); the CLI often runs under sudo (see write_export).
+        tmp = Path(tempfile.mkdtemp(prefix="chaostic-henon-link-"))
+        self.addCleanup(lambda: __import__("shutil").rmtree(tmp, ignore_errors=True))
+        victim = tmp / "victim.txt"
+        victim.write_text("DO NOT OVERWRITE", encoding="utf-8")
+        link = tmp / "recon.json"
+        link.symlink_to(victim)
+        henon.write_export({"schema_version": 1}, link)
+        self.assertFalse(link.is_symlink(), "the symlink must be replaced, not followed")
+        self.assertEqual(victim.read_text(encoding="utf-8"), "DO NOT OVERWRITE")
+        self.assertEqual(json.loads(link.read_text(encoding="utf-8"))["schema_version"], 1)
+
+
+class HenonDeletedRunCleanupTests(unittest.TestCase):
+    def test_delete_run_drops_the_stale_recon_export(self):
+        from desktop.storage import Store, write_json
+        temp = tempfile.TemporaryDirectory(prefix="chaostic-henon-del-")
+        self.addCleanup(temp.cleanup)
+        store = Store(Path(temp.name))
+        target = {"id": "t1", "label": "acme", "host": "acme.tld",
+                  "port": "443", "url": "https://acme.tld"}
+        directory, record = store.new_run("subfinder", "Passive subdomains (fast)", target, ["subfinder"])
+        (directory / "output.txt").write_text("api.acme.tld\n", encoding="utf-8")
+        record["status"] = "success"
+        write_json(directory / "run.json", record)
+        # A flow history record that referenced that run, plus its derived export.
+        fid = "flow-del-1"
+        hist = store.root / "flows" / "history"
+        hist.mkdir(parents=True, exist_ok=True)
+        write_json(hist / (fid + ".json"), {
+            "id": fid, "name": "Henon attack-map flow", "target": target,
+            "steps": [{"tool": "subfinder", "cli_index": 0, "status": "success",
+                       "run_id": record["id"]}], "status": "success"})
+        recon = hist / (fid + ".recon.json")
+        recon.write_text('{"schema_version": 1}\n', encoding="utf-8")
+
+        store.delete_run(record["id"])
+
+        self.assertFalse(recon.exists(), "a stale export must not outlive its source runs")
+        flow = json.loads((hist / (fid + ".json")).read_text(encoding="utf-8"))
+        self.assertEqual(flow["steps"][0]["status"], "deleted")
 
 
 if __name__ == "__main__":

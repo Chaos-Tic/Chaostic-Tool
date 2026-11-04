@@ -21,6 +21,17 @@ Profile selection and execution currently happen inside the interactive TUI. A
 machine-readable catalog and non-interactive profile runner are planned, but are not
 part of the current command-line contract.
 
+### Henon export (`--export-henon`)
+```bash
+chaostictool --export-henon example.com            # writes recon.json in the target's folder
+chaostictool --export-henon https://example.com -o /tmp/recon.json
+```
+Maps a target's already-saved reconnaissance to the JSON exchange file the
+[Henon](https://github.com/Chaos-Tic) attack-path engine ingests
+(`henon ingest chaostictool recon.json`). It needs no root and launches no scan.
+The same action is available in the TUI under **Results & Session** (`h`). See
+[Henon export](HENON_EXPORT.md) for the contract and field mapping.
+
 ### Interactive TUI Fullscreen Mode
 If launched without arguments in an interactive terminal, `chaostictool` opens a
 full-screen Rich TUI navigator with keyboard shortcuts:

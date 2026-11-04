@@ -146,6 +146,34 @@ class HenonExportEngineTests(unittest.TestCase):
             self.assertIn(a["kind"], ("domain", "subdomain", "ip"))
         self.assertTrue(json.dumps(self.doc))  # fully JSON-serialisable
 
+    def test_excluded_hosts_are_never_exported(self):
+        # An operator-excluded subdomain, with its own scanned result file and a
+        # crawl of the base host that references it, must not reach the engine.
+        root = self.root / "excl"
+        d = root / "targets" / "example.com"
+        for cat in tgt.CATEGORIES:
+            (d / cat).mkdir(parents=True)
+        # subfinder still lists the excluded host in its output: it must not be
+        # re-introduced from file content either.
+        (d / "osint" / "subfinder_example.com.txt").write_text(
+            "api.example.com\nlegacy.example.com\n", encoding="utf-8")
+        (d / "recon" / "nmap_quick_example.com__legacy.example.com.txt").write_text(
+            "Nmap scan report for legacy.example.com (203.0.113.9)\n"
+            "23/tcp open telnet\n", encoding="utf-8")
+        (d / "web_enum" / "gau_example.com.txt").write_text(
+            "https://legacy.example.com/old\nhttps://example.com/ok\n", encoding="utf-8")
+        scope = {"subdomains": ["api.example.com", "legacy.example.com"],
+                 "excluded": ["legacy.example.com"], "include_subdomains": True}
+        doc = henon.from_cli_results(d, _TARGET, scope)
+        fqdns = {a.get("fqdn") for a in doc.get("assets", [])}
+        self.assertNotIn("legacy.example.com", fqdns)
+        self.assertIn("api.example.com", fqdns)
+        hosts = {s["host"] for s in doc.get("services", [])}
+        self.assertNotIn("legacy.example.com", hosts)
+        urls = {e["url"] for e in doc.get("web_endpoints", [])}
+        self.assertNotIn("https://legacy.example.com/old", urls)
+        self.assertIn("https://example.com/ok", urls)
+
     def test_empty_tree_is_still_valid(self):
         empty = self.root / "targets" / "nothing.test"
         doc = henon.from_cli_results(empty, {"host": "nothing.test", "url": "", "port": ""}, {})
@@ -159,6 +187,23 @@ class HenonParserUnitTests(unittest.TestCase):
                          ("https://h.tld/a", ["x", "y"]))
         self.assertEqual(henon.sanitize_url("ftp://h.tld/x"), ("", []))
         self.assertEqual(henon.sanitize_url("https://h.tld:8443/p"), ("https://h.tld:8443/p", []))
+
+    def test_sanitize_drops_valueless_and_path_params(self):
+        # A bare query segment with no '=' is never emitted as a param name: a
+        # secret dropped there must not leak. A ';jsessionid=…' path param is
+        # stripped from the path.
+        clean, params = henon.sanitize_url("https://h.tld/app;jsessionid=SECRET/x?SECRETBLOB&id=5")
+        self.assertEqual(clean, "https://h.tld/app/x")
+        self.assertEqual(params, ["id"])
+        self.assertNotIn("SECRETBLOB", params)
+
+    def test_sanitize_malformed_url_never_raises(self):
+        # A port that ValueError's on parse must yield ("", []) instead of
+        # aborting the export; any other odd input must simply not raise.
+        self.assertEqual(henon.sanitize_url("https://h.tld:99999999999/x"), ("", []))
+        clean, params = henon.sanitize_url("http://[::bad]/x")
+        self.assertIsInstance(clean, str)
+        self.assertIsInstance(params, list)
 
     def test_parse_hosts_skips_noise(self):
         self.assertEqual(henon.parse_hosts("a.x.tld\n[INF] foo bar\n1.2.3.4\nb.x.tld\n"),

@@ -33,7 +33,7 @@ import ipaddress
 import json
 import re
 from pathlib import Path
-from urllib.parse import parse_qsl, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from core.version import VERSION
 
@@ -53,6 +53,10 @@ MAX_WEB_ENDPOINTS = 5000
 _RUN_STAMP = re.compile(r"_\d{8}-\d{6}-[0-9a-f]{6}$")
 _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _CVE = re.compile(r"CVE-\d{4}-\d{4,7}", re.IGNORECASE)
+# A query parameter name worth keeping: a conservative identifier shape. Anything
+# else (a bare secret dropped into the query string with no ``=``, an encoded
+# blob) is never emitted, so a secret can never masquerade as a "param name".
+_PARAM_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.\[\]-]{0,64}")
 # A plain "host:port" line (naabu -silent). Host is an IP or a DNS name.
 _HOSTPORT = re.compile(r"^(\[?[0-9A-Fa-f:.\-]+\]?|[A-Za-z0-9.\-]+):(\d{1,5})$")
 # nmap/rustscan port row: "80/tcp   open   http    nginx 1.18.0".
@@ -82,22 +86,33 @@ def sanitize_url(url: str) -> tuple[str, list[str]]:
     parameter *names* are returned (Henon's SSRF rule R03 keys on them). A value
     that cannot be parsed yields ``("", [])`` so the caller skips it.
     """
+    # ``hostname``/``port`` parse the authority and can raise ValueError on a
+    # malformed URL, so they stay inside the guard: one bad URL yields
+    # ``("", [])`` and is skipped, never aborting the export (contract §1).
     try:
         parts = urlsplit(url.strip())
+        scheme, host, port = parts.scheme, parts.hostname, parts.port
     except ValueError:
         return "", []
-    if parts.scheme not in ("http", "https") or not parts.hostname:
+    if scheme not in ("http", "https") or not host:
         return "", []
-    params = [name for name, _value in parse_qsl(parts.query, keep_blank_values=True)]
-    host = parts.hostname
-    netloc = f"[{host}]" if ":" in host and not host.startswith("[") else host
-    if parts.port:
-        netloc += f":{parts.port}"
-    clean = urlunsplit((parts.scheme, netloc, parts.path, "", ""))
-    # De-duplicate param names while preserving first-seen order.
+    # Keep a param name only when the raw segment actually carries a value
+    # (``name=…``) and the name is a plain identifier; ``?token`` alone, or a
+    # bare secret in the query, is dropped rather than leaked as a "name".
     seen: dict[str, None] = {}
-    for name in params:
-        seen.setdefault(name, None)
+    for segment in parts.query.split("&"):
+        if "=" not in segment:
+            continue
+        name = segment.split("=", 1)[0]
+        if _PARAM_NAME.fullmatch(name):
+            seen.setdefault(name, None)
+    # Strip ``;``-path parameters (e.g. ``;jsessionid=…``) from each segment so a
+    # session token embedded in the path never persists.
+    path = "/".join(seg.split(";", 1)[0] for seg in parts.path.split("/"))
+    netloc = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    if port:
+        netloc += f":{port}"
+    clean = urlunsplit((scheme, netloc, path, "", ""))
     return clean, list(seen)
 
 
@@ -199,6 +214,22 @@ class HenonExport:
             "assumable_by", "metadata_endpoint", "principal", "grants_access_to",
             "host", "ip") if k in record and record[k] not in (None, "", [])}
         self._cloud[key] = {**self._cloud.get(key, {}), **clean}
+
+    def drop_web_hosts(self, hosts: set[str]) -> None:
+        """Remove every web endpoint served by one of ``hosts`` (excluded scope).
+
+        A crawl of an in-scope host can surface URLs on an excluded subdomain;
+        this drops them so an operator exclusion is honoured end to end.
+        """
+        if not hosts:
+            return
+        for url in list(self._web):
+            try:
+                served = (urlsplit(url).hostname or "").lower().rstrip(".")
+            except ValueError:
+                continue
+            if served in hosts:
+                del self._web[url]
 
     # ---- output -----------------------------------------------------------
     def document(self) -> dict:
@@ -400,6 +431,8 @@ def parse_cloud_json(text: str) -> list[dict]:
         records = data
     else:
         records = []
+    if not isinstance(records, list):
+        return []
     return [r for r in records if isinstance(r, dict)]
 
 
@@ -466,9 +499,15 @@ def add_base_target(export: HenonExport, target: dict) -> None:
         export.add_service(host, int(port))
 
 
-def _add_hosts(export: HenonExport, hosts: list[str], base_host: str) -> None:
+def _add_hosts(export: HenonExport, hosts: list[str], base_host: str,
+               excluded: set[str] | None = None) -> None:
+    excluded = excluded or set()
     apex = _registrable_apex(base_host) if base_host and not _is_ip(base_host) else ""
     for name in hosts:
+        # A host the operator excluded must never be re-introduced, even when a
+        # tool's output still lists it (subfinder/amass seen it before exclusion).
+        if name.strip().lower().rstrip(".") in excluded:
+            continue
         if _is_ip(name):
             export.add_asset("ip", addr=name)
         elif apex and name.endswith("." + apex):
@@ -490,30 +529,44 @@ def from_cli_results(target_dir: Path | str, target: dict, scope: dict | None = 
     scope = scope or {}
     safe = target_dir.name
     base_host = (target.get("host") or "").strip().strip("[]").rstrip(".")
+    # Hosts the operator excluded from the fan-out must never reach Henon, an
+    # offensive engine: exporting them would re-introduce a host the operator
+    # deliberately took out of scope (mirrors ``core.target.scope_hosts``).
+    excluded = {s.strip().lower().rstrip(".") for s in scope.get("excluded", []) if isinstance(s, str)}
+    subs = [s for s in scope.get("subdomains", [])
+            if isinstance(s, str) and s.strip().lower().rstrip(".") not in excluded]
     export = HenonExport()
     add_base_target(export, target)
-    _add_hosts(export, [s for s in scope.get("subdomains", []) if isinstance(s, str)], base_host)
+    _add_hosts(export, subs, base_host)
 
-    if not target_dir.is_dir():
-        return export.document()
-    for cat in sorted(p for p in target_dir.iterdir() if p.is_dir()):
-        for f in sorted(p for p in cat.glob("*") if p.is_file()):
-            tool_base, run_host = _split_cli_name(f.stem, safe)
-            family = _classify(tool_base)
-            if not family:
-                continue
-            try:
-                text = f.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            _ingest(export, family, text, host=run_host or base_host)
+    if target_dir.is_dir():
+        for cat in sorted(p for p in target_dir.iterdir() if p.is_dir()):
+            for f in sorted(p for p in cat.glob("*") if p.is_file()):
+                tool_base, run_host = _split_cli_name(f.stem, safe)
+                if run_host and run_host.strip().lower().rstrip(".") in excluded:
+                    continue  # result file for an excluded host: skip it whole
+                family = _classify(tool_base)
+                if not family:
+                    continue
+                try:
+                    text = f.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                # One malformed file is skipped, never fatal (contract §1).
+                try:
+                    _ingest(export, family, text, host=run_host or base_host, excluded=excluded)
+                except (ValueError, TypeError):
+                    continue
+    # Endpoints harvested from a crawl can point at an excluded subdomain.
+    export.drop_web_hosts(excluded)
     return export.document()
 
 
-def _ingest(export: HenonExport, family: str, text: str, host: str) -> None:
+def _ingest(export: HenonExport, family: str, text: str, host: str,
+            excluded: set[str] | None = None) -> None:
     """Route one parsed result file into the accumulator for its family."""
     if family == "hosts":
-        _add_hosts(export, parse_hosts(text), host)
+        _add_hosts(export, parse_hosts(text), host, excluded=excluded)
     elif family == "a_record":
         # A/AAAA answers give the resolved IPs; the host↔ip tie is wired through
         # services/web_endpoints (their ``ip`` field), not here.

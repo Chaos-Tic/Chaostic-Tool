@@ -208,6 +208,23 @@ class HenonWriteExportSafetyTests(unittest.TestCase):
         self.assertEqual(victim.read_text(encoding="utf-8"), "DO NOT OVERWRITE")
         self.assertEqual(json.loads(link.read_text(encoding="utf-8"))["schema_version"], 1)
 
+    def test_write_export_refuses_a_symlinked_parent_under_root(self):
+        # A symlinked *directory* component under the app-owned root must be
+        # refused when `within` bounds the write, so it cannot redirect the
+        # write outside the tree under sudo (CWE-59, parent-component vector).
+        tmp = Path(tempfile.mkdtemp(prefix="chaostic-henon-linkdir-"))
+        self.addCleanup(lambda: __import__("shutil").rmtree(tmp, ignore_errors=True))
+        root = tmp / "targets"
+        root.mkdir()
+        outside = tmp / "outside"
+        outside.mkdir()
+        (root / "acme.tld").symlink_to(outside, target_is_directory=True)
+        dest = root / "acme.tld" / "recon.json"
+        with self.assertRaises(OSError):
+            henon.write_export({"schema_version": 1}, dest, within=root)
+        self.assertFalse((outside / "recon.json").exists(),
+                         "nothing may be written through the symlinked directory")
+
 
 class HenonDeletedRunCleanupTests(unittest.TestCase):
     def test_delete_run_drops_the_stale_recon_export(self):

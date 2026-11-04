@@ -643,17 +643,51 @@ def default_filename() -> str:
     return "recon.json"
 
 
-def write_export(document: dict, path: Path | str) -> Path:
+def _reject_symlinked_parent(root: Path | str, path: Path) -> None:
+    """Refuse to write ``path`` when it is reached through a symlink.
+
+    ``root`` is a directory the application created and owns (the per-target
+    results tree, or the Desktop store root). Every component between ``root``
+    and ``path``'s parent must be a real directory, and the resolved parent must
+    stay inside the resolved ``root`` — so a symlinked component cannot redirect
+    the write outside the tree when the CLI runs under ``sudo`` (CWE-59). Mirrors
+    ``desktop.storage.Store._check_history_tree``; raises ``OSError`` on refusal
+    (callers already treat a failed export as non-fatal)."""
+    root = Path(root)
+    parent = Path(path).parent
+    try:
+        parts = parent.relative_to(root).parts
+    except ValueError as exc:
+        raise OSError(f"export path escapes its results root: {path}") from exc
+    current = root
+    for part in parts:
+        current = current / part
+        is_junction = getattr(current, "is_junction", None)
+        if current.is_symlink() or (callable(is_junction) and is_junction()):
+            raise OSError(f"refusing export through a symlinked directory: {current}")
+    if parent.exists() and parent.resolve() != root.resolve().joinpath(*parts):
+        raise OSError(f"export parent resolves outside the results root: {parent}")
+
+
+def write_export(document: dict, path: Path | str, within: Path | str | None = None) -> Path:
     """Write the contract JSON to ``path`` (default extension ``.json``).
 
     Atomic and symlink-safe: the payload is written to a fresh temp file in the
     destination directory, then ``os.replace``'d onto the name. ``os.replace``
     replaces a pre-existing symlink at ``path`` rather than following it, so a
     planted ``recon.json`` symlink can never redirect this write to another file
-    — relevant because the CLI often runs under ``sudo`` (CWE-59)."""
+    — relevant because the CLI often runs under ``sudo`` (CWE-59).
+
+    When ``within`` is given (the app-owned root the destination must live
+    under), every directory component down to ``path`` is checked first, so a
+    symlinked *parent* cannot redirect the write either. A user-chosen
+    destination (``-o`` / an interactive path prompt) passes ``within=None`` and
+    is written as given, like any explicit output redirection."""
     path = Path(path)
     if not path.suffix:
         path = path.with_suffix(".json")
+    if within is not None:
+        _reject_symlinked_parent(within, path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:

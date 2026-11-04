@@ -109,5 +109,5 @@ def export_flow_henon(root,flow,record,scope=None):
         except OSError: continue
         pairs.append((out_base,text))
     document=henon.from_run_records(target,pairs,target if scope is None else scope)
-    return henon.write_export(document,root/'flows'/'history'/(record['id']+'.recon.json'))
+    return henon.write_export(document,root/'flows'/'history'/(record['id']+'.recon.json'),within=root)
 

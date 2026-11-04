@@ -561,7 +561,8 @@ def _auto_export_henon(flow) -> None:
         return
     try:
         document = henon.from_cli_results(target_dir, tgt.TARGET, tgt.SCOPE)
-        written = henon.write_export(document, target_dir / henon.default_filename())
+        written = henon.write_export(document, target_dir / henon.default_filename(),
+                                     within=tgt.TARGETS_ROOT)
     except OSError as exc:
         ui.console.print(f"[bright_yellow][!] Henon export skipped: {exc}[/bright_yellow]")
         return

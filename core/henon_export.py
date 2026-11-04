@@ -31,7 +31,9 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -562,6 +564,40 @@ def from_cli_results(target_dir: Path | str, target: dict, scope: dict | None = 
     return export.document()
 
 
+def from_run_records(target: dict, records: list[tuple[str, str]],
+                     scope: dict | None = None) -> dict:
+    """Build the contract from ``(output_base, text)`` pairs.
+
+    The Desktop keeps each run's output in its own ``runs/<id>/output.txt``
+    rather than the CLI's per-target tree, so it feeds the engine the preset's
+    ``output`` base (``dig_a``, ``nmap_svcver``, …) — the exact token a CLI
+    result *filename* would carry — paired with that run's text. Same families,
+    same exclusions and same URL redaction as ``from_cli_results``; only the
+    source of the text differs, so both front-ends emit an identical contract.
+    """
+    scope = scope or {}
+    base_host = (target.get("host") or "").strip().strip("[]").rstrip(".")
+    excluded = {s.strip().lower().rstrip(".") for s in scope.get("excluded", []) if isinstance(s, str)}
+    subs = [s for s in scope.get("subdomains", [])
+            if isinstance(s, str) and s.strip().lower().rstrip(".") not in excluded]
+    export = HenonExport()
+    add_base_target(export, target)
+    _add_hosts(export, subs, base_host)
+    for output_base, text in records:
+        if not isinstance(output_base, str) or not isinstance(text, str):
+            continue
+        family = _classify(output_base)
+        if not family:
+            continue
+        # One malformed run is skipped, never fatal (contract §1).
+        try:
+            _ingest(export, family, text, host=base_host, excluded=excluded)
+        except (ValueError, TypeError):
+            continue
+    export.drop_web_hosts(excluded)
+    return export.document()
+
+
 def _ingest(export: HenonExport, family: str, text: str, host: str,
             excluded: set[str] | None = None) -> None:
     """Route one parsed result file into the accumulator for its family."""
@@ -607,13 +643,63 @@ def default_filename() -> str:
     return "recon.json"
 
 
-def write_export(document: dict, path: Path | str) -> Path:
-    """Write the contract JSON to ``path`` (default extension ``.json``)."""
+def _reject_symlinked_parent(root: Path | str, path: Path) -> None:
+    """Refuse to write ``path`` when it is reached through a symlink.
+
+    ``root`` is a directory the application created and owns (the per-target
+    results tree, or the Desktop store root). Every component between ``root``
+    and ``path``'s parent must be a real directory, and the resolved parent must
+    stay inside the resolved ``root`` — so a symlinked component cannot redirect
+    the write outside the tree when the CLI runs under ``sudo`` (CWE-59). Mirrors
+    ``desktop.storage.Store._check_history_tree``; raises ``OSError`` on refusal
+    (callers already treat a failed export as non-fatal)."""
+    root = Path(root)
+    parent = Path(path).parent
+    try:
+        parts = parent.relative_to(root).parts
+    except ValueError as exc:
+        raise OSError(f"export path escapes its results root: {path}") from exc
+    current = root
+    for part in parts:
+        current = current / part
+        is_junction = getattr(current, "is_junction", None)
+        if current.is_symlink() or (callable(is_junction) and is_junction()):
+            raise OSError(f"refusing export through a symlinked directory: {current}")
+    if parent.exists() and parent.resolve() != root.resolve().joinpath(*parts):
+        raise OSError(f"export parent resolves outside the results root: {parent}")
+
+
+def write_export(document: dict, path: Path | str, within: Path | str | None = None) -> Path:
+    """Write the contract JSON to ``path`` (default extension ``.json``).
+
+    Atomic and symlink-safe: the payload is written to a fresh temp file in the
+    destination directory, then ``os.replace``'d onto the name. ``os.replace``
+    replaces a pre-existing symlink at ``path`` rather than following it, so a
+    planted ``recon.json`` symlink can never redirect this write to another file
+    — relevant because the CLI often runs under ``sudo`` (CWE-59).
+
+    When ``within`` is given (the app-owned root the destination must live
+    under), every directory component down to ``path`` is checked first, so a
+    symlinked *parent* cannot redirect the write either. A user-chosen
+    destination (``-o`` / an interactive path prompt) passes ``within=None`` and
+    is written as given, like any explicit output redirection."""
     path = Path(path)
     if not path.suffix:
         path = path.with_suffix(".json")
+    if within is not None:
+        _reject_symlinked_parent(within, path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_json(document), encoding="utf-8")
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(render_json(document))
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
     return path
 
 

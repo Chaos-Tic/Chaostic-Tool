@@ -86,6 +86,19 @@ class SafeIoPrimitiveTests(unittest.TestCase):
         safe_io.atomic_write(out, '{"ok": true}', within=root)
         self.assertEqual(json.loads(out.read_text(encoding="utf-8")), {"ok": True})
 
+    @unittest.skipUnless(hasattr(os, "O_NOFOLLOW"), "mode bits are POSIX")
+    def test_atomic_write_result_is_not_world_readable(self):
+        # Result files can hold recon data; the written file must be 0o600
+        # whichever path (dir_fd or fallback) produced it (CWE-732).
+        root = self.tmp / "t2"
+        root.mkdir()
+        inside = root / "sub" / "f.txt"
+        safe_io.atomic_write(inside, "secret-ish", within=root)
+        self.assertEqual(inside.stat().st_mode & 0o777, 0o600)
+        outside = self.tmp / "o.txt"
+        safe_io.atomic_write(outside, "x")  # fallback (within=None)
+        self.assertEqual(outside.stat().st_mode & 0o777, 0o600)
+
     def test_results_root_membership(self):
         saved = tgt.TARGETS_ROOT
         try:

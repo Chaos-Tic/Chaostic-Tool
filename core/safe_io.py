@@ -54,7 +54,13 @@ def results_root(path: Path | str):
     the guard (and so the rule lives in one place)."""
     from core import target
     try:
-        return target.TARGETS_ROOT if Path(path).is_relative_to(target.TARGETS_ROOT) else None
+        root = target.TARGETS_ROOT
+        # Normalise ``..`` / relative segments (abspath, NOT resolve — we must not
+        # chase symlinks here, that is the guard's job) before the lexical test so
+        # a non-canonical path under the tree cannot slip past as "outside".
+        if Path(os.path.abspath(path)).is_relative_to(Path(os.path.abspath(root))):
+            return root
+        return None
     except (ValueError, OSError):
         return None
 
@@ -131,7 +137,10 @@ def _atomic_dirfd(path: Path, within: Path | str, writer) -> Path:
     parent_fd = _descend(Path(within), parts, create=True)
     try:
         tmp = f".{path.name}.{uuid.uuid4().hex}.tmp"
-        tfd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_NOFOLLOW, 0o644, dir_fd=parent_fd)
+        # 0o600, matching tempfile.mkstemp in the fallback: result files can hold
+        # recon data and must not be world-readable (CWE-732). The owner is the
+        # sudo-invoking user (callers chown as they already did).
+        tfd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_NOFOLLOW, 0o600, dir_fd=parent_fd)
         try:
             writer(tfd)  # takes ownership of tfd and closes it
             os.replace(tmp, path.name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)

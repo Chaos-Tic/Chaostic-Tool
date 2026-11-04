@@ -226,14 +226,8 @@ def _capture_worker(state, cmd, output_path, textual, timeout, redactions):
                 # output actually lives under it; an explicit path elsewhere still
                 # gets the atomic replace (which never follows a final symlink).
                 from core import safe_io
-                from core import target as _target
-                # Lexical check (no resolve): a symlinked component UNDER the
-                # results root must still trigger the guard, so decide membership
-                # on the path as written, not on where symlinks would resolve to.
-                within = (_target.TARGETS_ROOT
-                          if Path(output_path).is_relative_to(_target.TARGETS_ROOT)
-                          else None)
-                safe_io.atomic_copyfileobj(state.journal, output_path, text=True, within=within)
+                safe_io.atomic_copyfileobj(state.journal, output_path, text=True,
+                                           within=safe_io.results_root(output_path))
                 _chown_to_sudo_user(output_path)
                 state.saved = True
         except OSError as exc:

@@ -68,6 +68,35 @@ class SafeIoPrimitiveTests(unittest.TestCase):
         with self.assertRaises(OSError):
             safe_io.reject_symlinked_parent(root, self.tmp / "elsewhere" / "f.txt")
 
+    def test_atomic_write_refuses_symlinked_root_itself(self):
+        # The `within` root being a symlink is refused (CWE-59): O_NOFOLLOW on the
+        # dir_fd descent, and an explicit lstat on the name-based fallback.
+        real = self.tmp / "real_root"
+        real.mkdir()
+        link_root = self.tmp / "link_root"
+        link_root.symlink_to(real, target_is_directory=True)
+        with self.assertRaises(OSError):
+            safe_io.atomic_write(link_root / "sub" / "f.txt", "x", within=link_root)
+        self.assertFalse((real / "sub").exists())
+
+    def test_atomic_write_creates_nested_dirs_under_root(self):
+        root = self.tmp / "tree"
+        root.mkdir()
+        out = root / "a" / "b" / "f.json"
+        safe_io.atomic_write(out, '{"ok": true}', within=root)
+        self.assertEqual(json.loads(out.read_text(encoding="utf-8")), {"ok": True})
+
+    def test_results_root_membership(self):
+        saved = tgt.TARGETS_ROOT
+        try:
+            tgt.TARGETS_ROOT = self.tmp / "targets"
+            inside = tgt.TARGETS_ROOT / "example.com" / "recon" / "nmap.txt"
+            outside = self.tmp / "elsewhere" / "x.txt"
+            self.assertEqual(safe_io.results_root(inside), tgt.TARGETS_ROOT)
+            self.assertIsNone(safe_io.results_root(outside))
+        finally:
+            tgt.TARGETS_ROOT = saved
+
     @unittest.skipUnless(hasattr(os, "O_NOFOLLOW"), "O_NOFOLLOW is POSIX-only")
     def test_open_nofollow_refuses_symlinked_final_component(self):
         victim = self.tmp / "v2.txt"

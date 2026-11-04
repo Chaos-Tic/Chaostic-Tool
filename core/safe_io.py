@@ -30,12 +30,33 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 from typing import IO
 
 # Absent on Windows; 0 is a no-op flag, so open() there is a plain open (Windows
 # has no POSIX symlink-following semantics for these paths — see module docstring).
 _O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_O_DIRECTORY = getattr(os, "O_DIRECTORY", 0)
+# A race-free descent needs dir_fd support on each syscall plus both flags; where
+# that holds (Linux/macOS) the parent directory is *held by fd* across the whole
+# write so no symlink swapped in after a name check can be followed (CWE-367).
+_DIRFD_SAFE = (bool(_O_NOFOLLOW) and bool(_O_DIRECTORY)
+               and {os.open, os.mkdir, os.replace, os.unlink} <= os.supports_dir_fd)
+
+
+def results_root(path: Path | str):
+    """The results root ``path`` lives under, for use as ``within`` — or ``None``.
+
+    Callers pass this so a file saved *inside* the per-target results tree is
+    guarded against symlinked components, while a file saved to an explicit
+    user-chosen path is written as given. Centralised here so no writer forgets
+    the guard (and so the rule lives in one place)."""
+    from core import target
+    try:
+        return target.TARGETS_ROOT if Path(path).is_relative_to(target.TARGETS_ROOT) else None
+    except (ValueError, OSError):
+        return None
 
 
 def reject_symlinked_parent(within: Path | str, path: Path | str) -> None:
@@ -48,8 +69,14 @@ def reject_symlinked_parent(within: Path | str, path: Path | str) -> None:
     (CWE-59). The *final* component is not checked here: ``atomic_write`` replaces
     it with ``os.replace`` (which never follows it), while ``open_nofollow``
     refuses a symlinked final component via ``O_NOFOLLOW``. Mirrors
-    ``desktop.storage.Store._check_history_tree``; raises ``OSError`` on refusal."""
+    ``desktop.storage.Store._check_history_tree``; raises ``OSError`` on refusal.
+
+    This name-based check is the fallback for platforms without race-free
+    ``dir_fd`` descent (Windows); where ``_DIRFD_SAFE`` holds, ``_atomic`` instead
+    holds each directory by fd so no post-check swap can be followed."""
     root = Path(within)
+    if root.is_symlink():
+        raise OSError(f"refusing to write under a symlinked root: {root}")
     parent = Path(path).parent
     try:
         parts = parent.relative_to(root).parts
@@ -65,11 +92,73 @@ def reject_symlinked_parent(within: Path | str, path: Path | str) -> None:
         raise OSError(f"write parent resolves outside its root: {parent}")
 
 
+def _descend(root: Path, parts: tuple, *, create: bool) -> int:
+    """Return an fd for the final parent directory, opening the trusted ``root``
+    and then each component with ``O_DIRECTORY | O_NOFOLLOW`` relative to the
+    previous fd. Because the directory is held *by descriptor*, a symlink swapped
+    into the path after any name check cannot be followed (CWE-367). A symlinked
+    ``root`` or component is refused (``O_NOFOLLOW`` → ``OSError``). With
+    ``create`` the missing components are made one at a time, never through a
+    symlink. The caller closes the returned fd."""
+    root = Path(root)
+    if create:
+        root.mkdir(parents=True, exist_ok=True)  # the app-owned root itself
+    flags = os.O_RDONLY | _O_DIRECTORY | _O_NOFOLLOW
+    fd = os.open(root, flags)  # O_NOFOLLOW: refuses a symlinked root
+    try:
+        for part in parts:
+            if create:
+                try:
+                    os.mkdir(part, 0o755, dir_fd=fd)
+                except FileExistsError:
+                    pass
+            nxt = os.open(part, flags, dir_fd=fd)  # O_NOFOLLOW: refuses a symlinked component
+            os.close(fd)
+            fd = nxt
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _atomic_dirfd(path: Path, within: Path | str, writer) -> Path:
+    """Race-free ``_atomic``: hold the parent dir by fd, create+rename the temp
+    relative to it (``O_EXCL | O_NOFOLLOW``, ``os.replace`` with ``*_dir_fd``)."""
+    try:
+        parts = path.parent.relative_to(Path(within)).parts
+    except ValueError as exc:
+        raise OSError(f"write path escapes its root: {path}") from exc
+    parent_fd = _descend(Path(within), parts, create=True)
+    try:
+        tmp = f".{path.name}.{uuid.uuid4().hex}.tmp"
+        tfd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_NOFOLLOW, 0o644, dir_fd=parent_fd)
+        try:
+            writer(tfd)  # takes ownership of tfd and closes it
+            os.replace(tmp, path.name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+        except BaseException:
+            try:
+                os.unlink(tmp, dir_fd=parent_fd)
+            except OSError:
+                pass
+            raise
+    finally:
+        os.close(parent_fd)
+    return path
+
+
 def _atomic(path: Path, within: Path | str | None, writer) -> Path:
-    """Shared temp-file + ``os.replace`` core; ``writer(fd)`` fills the temp."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+    """Shared symlink-safe atomic core; ``writer(fd)`` fills (and closes) a temp.
+
+    With a ``within`` root and ``dir_fd`` support, the parent is held by fd for
+    the whole write (race-free). Otherwise — a user-chosen path (``within`` None)
+    or a platform without ``dir_fd``/``O_NOFOLLOW`` (Windows) — the check runs
+    *before* anything is created and the temp is replaced onto the name
+    (``os.replace`` never follows a final symlink)."""
+    if within is not None and _DIRFD_SAFE:
+        return _atomic_dirfd(path, within, writer)
     if within is not None:
-        reject_symlinked_parent(within, path)
+        reject_symlinked_parent(within, path)  # before creating anything
+    path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
         writer(fd)
@@ -129,9 +218,9 @@ def open_nofollow(path: Path | str, mode: str = "w", *,
     ``"wb"``/``"ab"`` (binary). The parent is checked against ``within`` first.
     The caller owns the returned file object."""
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
     if within is not None:
-        reject_symlinked_parent(within, path)
+        reject_symlinked_parent(within, path)  # before creating anything
+    path.parent.mkdir(parents=True, exist_ok=True)
     binary = "b" in mode
     append = "a" in mode
     flags = os.O_WRONLY | os.O_CREAT | _O_NOFOLLOW

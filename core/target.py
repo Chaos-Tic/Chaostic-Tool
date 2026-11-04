@@ -253,10 +253,12 @@ def save_scope():
     if path is None:
         return
     ensure_directory(path.parent)
-    path.write_text(json.dumps({"include_subdomains": SCOPE["include_subdomains"],
-                                "subdomains": SCOPE["subdomains"],
-                                "excluded": SCOPE["excluded"],
-                                "fanout_limit": SCOPE["fanout_limit"]}, indent=2), encoding="utf-8")
+    from core import safe_io
+    safe_io.atomic_write(path, json.dumps({"include_subdomains": SCOPE["include_subdomains"],
+                                           "subdomains": SCOPE["subdomains"],
+                                           "excluded": SCOPE["excluded"],
+                                           "fanout_limit": SCOPE["fanout_limit"]}, indent=2),
+                         within=TARGETS_ROOT)
     _chown_path(path)
 
 

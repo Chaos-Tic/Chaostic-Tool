@@ -55,9 +55,14 @@ def results_root(path: Path | str):
     from core import target
     try:
         root = target.TARGETS_ROOT
-        # Normalise ``..`` / relative segments (abspath, NOT resolve — we must not
-        # chase symlinks here, that is the guard's job) before the lexical test so
-        # a non-canonical path under the tree cannot slip past as "outside".
+        # A ``..`` anywhere stays guarded (never fail-open to within=None): the
+        # dir_fd descent then refuses it rather than let abspath collapse it to a
+        # different, possibly-outside file.
+        if ".." in Path(path).parts:
+            return root
+        # Normalise relative segments (abspath, NOT resolve — we must not chase
+        # symlinks here, that is the guard's job) before the lexical test so a
+        # non-canonical path under the tree cannot slip past as "outside".
         if Path(os.path.abspath(path)).is_relative_to(Path(os.path.abspath(root))):
             return root
         return None
@@ -113,6 +118,10 @@ def _descend(root: Path, parts: tuple, *, create: bool) -> int:
     fd = os.open(root, flags)  # O_NOFOLLOW: refuses a symlinked root
     try:
         for part in parts:
+            if part in ("..", "."):
+                # A ``..`` component would walk the held fd back out of the tree,
+                # defeating the descent; refuse it (callers never emit one).
+                raise OSError(f"refusing a '{part}' component in a guarded write path")
             if create:
                 try:
                     os.mkdir(part, 0o755, dir_fd=fd)

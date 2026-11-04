@@ -99,6 +99,17 @@ class SafeIoPrimitiveTests(unittest.TestCase):
         safe_io.atomic_write(outside, "x")  # fallback (within=None)
         self.assertEqual(outside.stat().st_mode & 0o777, 0o600)
 
+    def test_atomic_write_refuses_dotdot_component_under_root(self):
+        # A `..` in a guarded path must be refused, never collapsed to a
+        # different (possibly outside) file (CWE-59 lexical differential).
+        root = self.tmp / "g"
+        (root / "a").mkdir(parents=True)
+        escapee = self.tmp / "escapee.txt"
+        escapee.write_text("KEEP", encoding="utf-8")
+        with self.assertRaises(OSError):
+            safe_io.atomic_write(root / "a" / ".." / ".." / "escapee.txt", "x", within=root)
+        self.assertEqual(escapee.read_text(encoding="utf-8"), "KEEP")
+
     def test_results_root_membership(self):
         saved = tgt.TARGETS_ROOT
         try:

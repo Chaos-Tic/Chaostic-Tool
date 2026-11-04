@@ -32,6 +32,10 @@ Maps a target's already-saved reconnaissance to the JSON exchange file the
 The same action is available in the TUI under **Results & Session** (`h`). See
 [Henon export](HENON_EXPORT.md) for the contract and field mapping.
 
+For a one-click scan-then-export, the **Henon attack-map flow** (Attack flows
+entry `4`, also in the desktop Flow panel) runs a Henon-tuned recon chain and
+writes `recon.json` automatically when it finishes.
+
 ### Interactive TUI Fullscreen Mode
 If launched without arguments in an interactive terminal, `chaostictool` opens a
 full-screen Rich TUI navigator with keyboard shortcuts:

@@ -20,7 +20,13 @@ def validate_flow(value):
         if not isinstance(key,str) or key not in TOOLS or type(index) is not int or not 0<=index<len(TOOLS[key]['presets']):
             raise ValueError(f'Outil ou profil CLI introuvable : {key} / {index}')
         clean.append([key,index])
-    return dict(name=name,desc=str(value.get('desc',''))[:1000],steps=clean)
+    result=dict(name=name,desc=str(value.get('desc',''))[:1000],steps=clean)
+    # Preserve the optional auto-export marker so the Desktop runner honours a
+    # built-in flow's end-of-run export exactly as the CLI does (parity). Only a
+    # non-empty string survives; the runner acts solely on the ones it knows.
+    export=value.get('export')
+    if isinstance(export,str) and export.strip(): result['export']=export.strip()
+    return result
 
 def load_flows(root):
     result={key:validate_flow(value) for key,value in FLOWS.items()}
@@ -78,4 +84,30 @@ class FlowSession:
         if run: self.record['steps'][index]['run_id']=run['id']
         self.record['status']='success' if all(s['status'] in ('success','skipped') for s in self.record['steps']) else 'active'
         self.save()
+
+def export_flow_henon(root,flow,record,scope=None):
+    """Write the Henon contract (``recon.json``) for a finished flow's runs.
+
+    The CLI reads a per-target results tree; the Desktop keeps each run's output
+    under ``runs/<id>/output.txt``, so feed the engine each succeeded step's
+    preset ``output`` base paired with that run's text (the same token a CLI
+    filename carries). Pure of Qt — the panel calls it in a try/except — so it is
+    unit-testable on its own. Returns the written path; ``scope`` defaults to the
+    flow's target dict, which carries the Desktop's subdomains/excluded lists."""
+    from core import henon_export as henon
+    root=Path(root); target=record.get('target') or {}
+    pairs=[]
+    for step in record.get('steps',[]):
+        if not isinstance(step,dict) or step.get('status')!='success': continue
+        run_id=step.get('run_id'); key=step.get('tool'); index=step.get('cli_index')
+        if not isinstance(run_id,str) or not run_id: continue
+        tool=TOOLS.get(key)
+        if not tool or type(index) is not int or not 0<=index<len(tool.get('presets',[])): continue
+        out_base=tool['presets'][index].get('output')
+        if not out_base: continue
+        try: text=(root/'runs'/run_id/'output.txt').read_text(encoding='utf-8',errors='replace')
+        except OSError: continue
+        pairs.append((out_base,text))
+    document=henon.from_run_records(target,pairs,target if scope is None else scope)
+    return henon.write_export(document,root/'flows'/'history'/(record['id']+'.recon.json'))
 

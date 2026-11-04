@@ -55,6 +55,31 @@ It writes `recon.json` into the target's results folder (or the path given with
 **From the interactive TUI**: open **Results & Session** (menu entry `11`) and
 press `h` (*export for Henon*). The file lands next to the other results.
 
+### One-click: the Henon attack-map flow
+
+For the common case — *scan, then hand the result to Henon* — there is a
+built-in attack flow that does both. In **Attack flows**, pick **Henon
+attack-map flow** (entry `4`, also present in the desktop Flow panel). It runs a
+recon chain tuned for what Henon ingests best and, when the last step completes,
+**writes `recon.json` automatically** next to the results — no separate export
+step:
+
+| Step | Tool / preset | Feeds |
+|------|---------------|-------|
+| 1 | `dig` A record | `assets` (resolved IP) |
+| 2 | `subfinder` passive subdomains | `assets` (subdomains) |
+| 3 | `nmap -sV` service versions (no root) | `services` (product/version → CVE→RCE inference) |
+| 4 | `httpx` title/tech/status | `web_endpoints` (entry points) |
+| 5 | `nuclei` default templates | `web_endpoints[].cve` / `interesting` (exposed-git, default-creds, SSRF, CVEs) |
+
+The auto-export is driven by an `export: henon` marker on the flow definition,
+honoured by both the CLI runner (`core.flows`) and the desktop runner
+(`desktop.flow_panel`), so the one-click behaviour is identical on both
+front-ends. A step that is skipped or whose tool is missing degrades the result
+gracefully — the flow still finishes and exports whatever recon it gathered. The
+same secret redaction applies: no query value or credential from a crawled URL
+is ever written to `recon.json`.
+
 ## What maps to what
 
 | ChaosticTool recon                                   | Contract collection |

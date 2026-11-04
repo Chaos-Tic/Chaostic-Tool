@@ -537,4 +537,36 @@ def run_flow(flow):
     ui.header(flow["name"])
     _progress_recap(active, len(active))
     ui.console.print("\n[brand.ok][+] Flow complete.[/brand.ok]")
+    _auto_export_henon(flow)
     ui.pause()
+
+
+def _auto_export_henon(flow) -> None:
+    """When a flow declares ``export: henon``, map the recon it just produced to
+    the Henon exchange file (``recon.json``) next to the results, with no prompt.
+
+    Only runs on a flow that reached the end of its steps. It reads the saved
+    results tree the same way the ``h`` Results action and ``--export-henon`` do,
+    so a one-click Henon flow leaves a contract file ready for
+    ``henon ingest chaostictool recon.json``. Never fatal: a missing results
+    directory or a write error is reported, but the completed flow still stands.
+    """
+    if flow.get("export") != "henon":
+        return
+    from core import henon_export as henon
+
+    target_dir = tgt.target_dir()
+    if target_dir is None:
+        ui.console.print("[bright_yellow][!] Henon export skipped: no results directory for this target.[/bright_yellow]")
+        return
+    try:
+        document = henon.from_cli_results(target_dir, tgt.TARGET, tgt.SCOPE)
+        written = henon.write_export(document, target_dir / henon.default_filename())
+    except OSError as exc:
+        ui.console.print(f"[bright_yellow][!] Henon export skipped: {exc}[/bright_yellow]")
+        return
+    ui.console.print(
+        f"\n[brand.ok][+] Henon export written:[/brand.ok] [brand.command]{written}[/brand.command]\n"
+        f"[brand.muted]{henon.summary(document)}[/brand.muted]\n"
+        f"[brand.muted]Ingest with:[/brand.muted] [brand.command]henon ingest chaostictool recon.json[/brand.command]"
+    )

@@ -40,4 +40,15 @@ FLOWS = {'1': {'name': 'Basic attack flow',
                  ('katana', 2),
                  ('nuclei', 2),     # merged CVE + high/critical into one high/critical pass
                  ('testssl.sh', 0),
-                 ('nikto', 0)]}}
+                 ('nikto', 0)]},
+ '4': {'name': 'Henon attack-map flow',
+       'desc': 'one-click recon tuned for the Henon attack-path engine, then auto-exports '
+               'recon.json (the ChaosticTool→Henon contract): apex A record, passive '
+               'subdomains, service/version ports, httpx fingerprint, default nuclei. '
+               'Ingest with: henon ingest chaostictool recon.json',
+       'export': 'henon',       # the flow runner writes the Henon contract when every step is done
+       'steps': [('dig', 0),        # apex A record → ip asset
+                 ('subfinder', 0),  # passive subdomains → assets (Henon pivots on them)
+                 ('nmap', 10),      # -sV service/version (root-free) → services product/version (R08 CVE→RCE)
+                 ('httpx', 1),      # title + tech + status → web_endpoints (R01/R03 entry points)
+                 ('nuclei', 0)]}}   # default templates → CVE / exposed-git / default-creds / SSRF findings

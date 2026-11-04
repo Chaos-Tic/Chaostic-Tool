@@ -306,13 +306,28 @@ class FlowPanel(QWidget):
                 nxt=self._next_runnable(i)
                 if nxt is not None:
                     self.feedback.setText(T('Étape terminée. Lancement de la suivante…')); self._launch_step(nxt); return
-                self.auto_run=False; self.feedback.setText(T('Flow terminé : toutes les étapes ont réussi.')); return
-            self.feedback.setText(T('Étape terminée. Consultez les résultats puis choisissez la suivante.'))
+                self.auto_run=False; self.feedback.setText(T('Flow terminé : toutes les étapes ont réussi.')+self._maybe_export_henon()); return
+            self.feedback.setText(T('Étape terminée. Consultez les résultats puis choisissez la suivante.')+self._maybe_export_henon())
         else:
             # Pure auto-run stops on failure/abort; prepared pas-à-pas keeps its
             # collected values so the user can relaunch or skip the step.
             if self.auto_run and not self.confirm_each: self.auto_run=False
             self.feedback.setText(T('Étape arrêtée ou en échec. Relancez-la, passez-la ou ouvrez son journal.'))
+    def _maybe_export_henon(self):
+        """When a just-completed flow declares ``export: henon``, write its
+        recon.json once and return a short note for the feedback line. Returns ''
+        on any step that does not complete the flow, so it is a no-op until the
+        last step lands — mirroring the CLI runner's end-of-flow auto-export."""
+        if not self.session or self.session.flow.get('export')!='henon': return ''
+        if self.session.record.get('status')!='success': return ''
+        if getattr(self,'_henon_flow_id',None)==self.session.record['id']: return ''
+        from desktop.flows import export_flow_henon
+        try:
+            path=export_flow_henon(self.window.store.root,self.session.flow,self.session.record)
+        except (OSError,ValueError) as exc:
+            return T('  ·  Export Henon impossible : ')+str(exc)
+        self._henon_flow_id=self.session.record['id']
+        return T('  ·  Export Henon : ')+str(path)
     def activity(self,active):
         for widget in (self.select,self.target_select,self.add_target_button,self.run_all_button,self.launch,self.skip,self.restart,*self.edit_buttons): widget.setEnabled(not active)
     def create(self): self.editor()

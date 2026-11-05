@@ -17,8 +17,8 @@ Each release contains a `SHA256SUMS` file covering all installer packages:
 ### Verifying on Linux / macOS:
 ```bash
 # Download the release asset and SHA256SUMS
-curl -fsSL -O https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.2/SHA256SUMS
-curl -fsSL -O https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.2/ChaosticTool-2.2.2-linux-x64.AppImage
+curl -fsSL -O https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.3/SHA256SUMS
+curl -fsSL -O https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.3/ChaosticTool-2.2.3-linux-x64.AppImage
 
 # Verify the file against the checksum manifest
 sha256sum --check --ignore-missing SHA256SUMS
@@ -26,7 +26,7 @@ sha256sum --check --ignore-missing SHA256SUMS
 
 ### Verifying on Windows (PowerShell):
 ```powershell
-Get-FileHash .\ChaosticTool-Setup-2.2.2-windows-x64.exe -Algorithm SHA256
+Get-FileHash .\ChaosticTool-Setup-2.2.3-windows-x64.exe -Algorithm SHA256
 ```
 
 Compare the computed hash against the value published in `SHA256SUMS`.

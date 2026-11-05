@@ -82,6 +82,10 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Thu Nov 05 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.3-1
+- Henon integration: export recon as the Henon exchange contract and a one-click Henon attack-map flow (run recon -> auto-export for the Henon engine).
+- Hardening: symlink-safe auto-export and Henon export that reject a symlinked parent directory (CWE-59), stale-export cleanup, enforced scope exclusions, and a hardened URL sanitiser.
+
 * Mon Nov 02 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.2-1
 - Unified target-address parsing across the CLI and GUI: same input -> same host/url/port (bare entry defaults to https), one clear address prompt, an echo of the interpreted target, and shared strict validation.
 

@@ -649,12 +649,24 @@ def write_export(document: dict, path: Path | str, within: Path | str | None = N
     redirect this write — relevant because the CLI often runs under ``sudo``
     (CWE-59). ``within`` is the app-owned root the destination must live under; a
     user-chosen ``-o`` / prompt path passes ``within=None`` and is written as
-    given, still refusing to follow a symlink at ``path`` itself."""
+    given, still refusing to follow a symlink at ``path`` itself.
+
+    The atomic write lands the file ``root:root`` in mode ``0o600`` when the CLI
+    runs under ``sudo``; Henon then reads it as the unprivileged operator and
+    would hit ``Permission denied``, breaking the ChaosticTool → Henon handoff.
+    So the file is handed back to the sudo-invoking user — resolved once through
+    the shared ``core.target.sudo_user_ids`` helper (``None`` when not under
+    ``sudo``, so the non-elevated path is unchanged) and applied by ``fchown`` on
+    the temp descriptor *before* the rename, never by re-resolving the path as
+    root (CWE-59 / CWE-367 safe). Covers every caller in one place: flow
+    auto-export, ``--export-henon``, TUI ``h`` and the Desktop writer."""
     from core import safe_io
+    from core.target import sudo_user_ids
     path = Path(path)
     if not path.suffix:
         path = path.with_suffix(".json")
-    return safe_io.atomic_write(path, render_json(document), within=within)
+    return safe_io.atomic_write(path, render_json(document), within=within,
+                                chown_to=sudo_user_ids())
 
 
 def summary(document: dict) -> str:

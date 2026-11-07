@@ -372,6 +372,26 @@ def summary():
     return " | ".join(parts)
 
 
+def sudo_user_ids():
+    """``(uid, gid)`` of the sudo-invoking user to hand a file back to, or ``None``.
+
+    ``None`` when the process is not under ``sudo`` (no ``SUDO_USER``), when that
+    user maps to root, when the password database has no such account, or on a
+    platform without ``os.chown`` / ``pwd``. Centralised so every drop-to-operator
+    path (scope cache, tool outputs, the Henon export) resolves the target owner
+    the same way, and so a descriptor-based ``os.fchown`` can reuse it without
+    re-resolving the filesystem path (CWE-59 safe)."""
+    sudo_user = os.environ.get("SUDO_USER")
+    if not sudo_user or sudo_user == "root" or pwd is None or not hasattr(os, "chown"):
+        return None
+    try:
+        pw = pwd.getpwnam(sudo_user)
+    except KeyError:
+        LOG.warning("SUDO_USER %r not found in the password database", sudo_user)
+        return None
+    return (pw.pw_uid, pw.pw_gid)
+
+
 def _chown_path(path):
     """Give a single newly created path back to the sudo-invoking user.
 
@@ -381,13 +401,12 @@ def _chown_path(path):
     which already chowns just the directories it creates, so no recursive walk
     is needed any more.
     """
-    sudo_user = os.environ.get("SUDO_USER")
-    if not sudo_user or sudo_user == "root" or pwd is None or not hasattr(os, "chown"):
+    ids = sudo_user_ids()
+    if ids is None:
         return
     try:
-        pw = pwd.getpwnam(sudo_user)
-        os.chown(path, pw.pw_uid, pw.pw_gid)
-    except (KeyError, OSError):
+        os.chown(path, ids[0], ids[1])
+    except OSError:
         LOG.warning("Could not chown %s to the sudo user", path,
                     exc_info=True)
         return

@@ -649,12 +649,41 @@ def write_export(document: dict, path: Path | str, within: Path | str | None = N
     redirect this write — relevant because the CLI often runs under ``sudo``
     (CWE-59). ``within`` is the app-owned root the destination must live under; a
     user-chosen ``-o`` / prompt path passes ``within=None`` and is written as
-    given, still refusing to follow a symlink at ``path`` itself."""
+    given, still refusing to follow a symlink at ``path`` itself.
+
+    The atomic write lands the file ``root:root`` in mode ``0o600`` when the CLI
+    runs under ``sudo``; Henon then reads it as the unprivileged operator and
+    would hit ``Permission denied``, breaking the ChaosticTool → Henon handoff.
+    So the file is handed back to the sudo-invoking user — resolved once through
+    the shared ``core.target.sudo_user_ids`` helper (``None`` when not under
+    ``sudo``, so the non-elevated path is unchanged) and applied by ``fchown`` on
+    the temp descriptor *before* the rename, never by re-resolving the path as
+    root (CWE-59 / CWE-367 safe). Covers every caller in one place: flow
+    auto-export, ``--export-henon``, TUI ``h`` and the Desktop writer.
+
+    Ownership is handed over only where it is safe to (CWE-269 / CWE-732): the
+    app-owned results tree (``within`` set, its dirs already operator-owned), or
+    a user-chosen ``-o`` / prompt path whose *parent directory is already owned
+    by the operator*. A root write into a root-only directory (e.g. ``-o
+    /etc/...`` under ``sudo``) is left root-owned rather than handed to a
+    lower-privileged user who could then rewrite a file in a privileged
+    location."""
     from core import safe_io
+    from core.target import sudo_user_ids
     path = Path(path)
     if not path.suffix:
         path = path.with_suffix(".json")
-    return safe_io.atomic_write(path, render_json(document), within=within)
+    owner = sudo_user_ids()
+    if owner is not None and within is None:
+        # A user-chosen path outside the app tree: only drop ownership when the
+        # operator already owns the destination directory.
+        try:
+            if path.parent.stat().st_uid != owner[0]:
+                owner = None
+        except OSError:
+            owner = None
+    return safe_io.atomic_write(path, render_json(document), within=within,
+                                chown_to=owner)
 
 
 def summary(document: dict) -> str:

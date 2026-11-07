@@ -195,8 +195,19 @@ def _atomic(path: Path, within: Path | str | None, writer) -> Path:
 
 
 def atomic_write(path: Path | str, data: str | bytes, *,
-                 within: Path | str | None = None, encoding: str = "utf-8") -> Path:
-    """Atomically, symlink-safely write ``data`` (str or bytes) to ``path``."""
+                 within: Path | str | None = None, encoding: str = "utf-8",
+                 chown_to: tuple[int, int] | None = None) -> Path:
+    """Atomically, symlink-safely write ``data`` (str or bytes) to ``path``.
+
+    ``chown_to`` is an optional ``(uid, gid)`` the file is handed to *through its
+    descriptor* (``os.fchown``) before the atomic rename. The temp file is one
+    this writer just created with ``O_EXCL | O_NOFOLLOW``, so the fd is provably
+    the regular file we wrote — a planted symlink can never be followed and there
+    is no re-resolution of the path as root (CWE-59 / CWE-367 safe), unlike a
+    post-write ``os.chown(path, …)``. Needed because the CLI often runs under
+    ``sudo``: the temp lands ``root:root`` 0o600, so without this handback an
+    unprivileged consumer (e.g. Henon) could not read the result. A ``fchown``
+    failure is swallowed — the content is already written and must still land."""
     path = Path(path)
     if not isinstance(data, (bytes, bytearray)):
         data = data.encode(encoding)
@@ -204,6 +215,11 @@ def atomic_write(path: Path | str, data: str | bytes, *,
     def writer(fd: int) -> None:
         with os.fdopen(fd, "wb") as stream:
             stream.write(data)
+            if chown_to is not None and hasattr(os, "fchown"):
+                try:
+                    os.fchown(fd, chown_to[0], chown_to[1])
+                except OSError:
+                    pass  # best effort: the file still lands, owner unchanged
 
     return _atomic(path, within, writer)
 

@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.2.2
+Version:        2.2.3
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later

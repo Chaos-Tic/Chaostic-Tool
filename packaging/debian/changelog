@@ -1,3 +1,10 @@
+chaostictool (2.2.4-1) unstable; urgency=medium
+
+  * Henon handoff: the exported recon.json is now written readable by the invoking operator (owned by SUDO_USER) when ChaosticTool runs under sudo, instead of root:600 — so Henon, running as the normal user, can read it. The ownership handback is restricted to the target results tree (or an operator-owned parent) and never applies to an arbitrary path under a root-only directory.
+  * Documentation: version references and download links aligned to the 2.2.4 release.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Sat, 07 Nov 2026 22:59:31 +0100
+
 chaostictool (2.2.3-1) unstable; urgency=medium
 
   * Henon integration: recon can be exported as the Henon exchange contract, and a one-click Henon attack-map flow runs the recon and auto-exports the result for the Henon attack-path engine.

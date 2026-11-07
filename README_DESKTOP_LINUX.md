@@ -3,10 +3,10 @@
 The PySide6 interface, Linux execution layer and terminal CLI are maintained together
 on `main`. They share one catalog, one version and one installation tree.
 
-## Desktop 2.2.3 downloads
+## Desktop 2.2.4 downloads
 
-Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.3/ChaosticTool-2.2.3-linux-x64.tar.gz)
-or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.3/ChaosticTool-2.2.3-linux-arm64.tar.gz) (or the `.AppImage`, `.deb` and `.rpm` assets on the [release page](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v2.2.3)).
+Download the [Linux x64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.4/ChaosticTool-2.2.4-linux-x64.tar.gz)
+or [Linux ARM64 archive](https://github.com/Chaos-Tic/Chaostic-Tool/releases/download/v2.2.4/ChaosticTool-2.2.4-linux-arm64.tar.gz) (or the `.AppImage`, `.deb` and `.rpm` assets on the [release page](https://github.com/Chaos-Tic/Chaostic-Tool/releases/tag/v2.2.4)).
 The release includes SHA-256 fingerprints. Extract the archive and run `./ChaosticTool`,
 or `sh install.sh` from its folder to add the application to your menu.
 
@@ -117,12 +117,12 @@ before distributing a release.
 
 ## Native packages
 
-Desktop 2.2.3 includes native DEB/RPM packages, AppImages, AUR/COPR/APT channels and CMake source installation.
+Desktop 2.2.4 includes native DEB/RPM packages, AppImages, AUR/COPR/APT channels and CMake source installation.
 See [installation, dependencies and channel status](docs/INSTALLATION.md).
 
 ## GitHub updates
 
-Desktop 2.2.3 checks daily and anonymously for public releases (can be disabled in
+Desktop 2.2.4 checks daily and anonymously for public releases (can be disabled in
 Settings). **Update…** uses the installed package channel on Linux; downloaded
 installers are verified against the release SHA-256 before opening. AppImages can
 replace themselves after confirmation and retain the previous file. Source

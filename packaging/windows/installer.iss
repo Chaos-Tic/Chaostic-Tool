@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "2.2.2"
+  #define AppVersion "2.2.3"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\dist\ChaosticTool"

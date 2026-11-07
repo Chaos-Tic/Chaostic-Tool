@@ -1,3 +1,10 @@
+chaostictool (2.2.3-1) unstable; urgency=medium
+
+  * Henon integration: recon can be exported as the Henon exchange contract, and a one-click Henon attack-map flow runs the recon and auto-exports the result for the Henon attack-path engine.
+  * Hardening: attack-flow auto-export and the Henon export write symlink-safely and reject a symlinked parent directory (CWE-59), stale exports are cleaned up, scope exclusions are enforced, and the URL sanitiser is hardened.
+
+ -- Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com>  Thu, 05 Nov 2026 12:00:00 +0100
+
 chaostictool (2.2.2-1) unstable; urgency=medium
 
   * Unified target-address parsing across the CLI and the desktop GUI: the same input now yields the same host, URL and port on both sides (a bare entry defaults to https), with one clear address prompt, an echo of how the target was understood, and the same strict validation everywhere.

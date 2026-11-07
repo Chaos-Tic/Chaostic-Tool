@@ -611,16 +611,19 @@ def default_filename(report: MissionReport, fmt: str) -> str:
     return f"mission-report_{slug}_{stamp}.{fmt.lower().lstrip('.')}"
 
 
-def write_report(report: MissionReport, path: Path | str, fmt: str | None = None) -> Path:
-    """Write the report to ``path``; the format follows ``fmt`` or the file extension."""
+def write_report(report: MissionReport, path: Path | str, fmt: str | None = None,
+                 within: Path | str | None = None) -> Path:
+    """Write the report to ``path``; the format follows ``fmt`` or the file extension.
+
+    Symlink-safe and atomic (``core.safe_io``): the CLI runs under sudo, so a
+    planted symlink at ``path`` must not redirect the write. ``within`` bounds
+    the destination to an app-owned root when the report is saved inside the
+    results tree; a user-chosen path passes ``within=None`` and is written as
+    given, still refusing to follow a symlink at ``path`` itself."""
+    from core import safe_io
     path = Path(path)
     fmt = (fmt or path.suffix.lstrip(".") or "md").lower()
     if not path.suffix:
         path = path.with_suffix("." + fmt)
     content = render(report, fmt)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if isinstance(content, bytes):
-        path.write_bytes(content)
-    else:
-        path.write_text(content, encoding="utf-8")
-    return path
+    return safe_io.atomic_write(path, content, within=within)

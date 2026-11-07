@@ -319,7 +319,9 @@ def _export_henon(target_arg, output):
     document = henon.from_cli_results(directory, tgt.TARGET, tgt.SCOPE)
     destination = output or (directory / henon.default_filename())
     try:
-        written = henon.write_export(document, destination)
+        from core import safe_io
+        written = henon.write_export(document, destination,
+                                     within=safe_io.results_root(destination))
     except OSError as exc:
         print(f"[!] Could not write the export: {exc}")
         raise SystemExit(1) from exc

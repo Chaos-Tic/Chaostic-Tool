@@ -30,10 +30,10 @@ def data_root() -> Path:
 
 
 def write_json(path: Path, value) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
-    temp.replace(path)
+    # Atomic + symlink-safe (shared core.safe_io writer): settings, run records
+    # and flow history never follow a planted symlink at the destination.
+    from core import safe_io
+    safe_io.atomic_write(path, json.dumps(value, ensure_ascii=False, indent=2))
 
 
 # French messages for the shared normalizer's error codes. The validation and

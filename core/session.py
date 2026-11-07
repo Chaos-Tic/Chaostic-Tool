@@ -135,7 +135,9 @@ def export_mission_report(target_dir, fmt=None, destination=None):
     default = Path(target_dir) / report.default_filename(mission, fmt)
     destination = Path(destination or ui.ask("Output path", default=str(default))).expanduser()
     try:
-        written = report.write_report(mission, destination, fmt)
+        from core import safe_io
+        written = report.write_report(mission, destination, fmt,
+                                      within=safe_io.results_root(destination))
     except OSError as e:
         console.print(f"[bright_red][!] Could not write the report: {e}[/bright_red]")
         ui.pause()
@@ -168,7 +170,9 @@ def export_henon(target_dir, destination=None):
     default = Path(target_dir) / henon.default_filename()
     destination = Path(destination or ui.ask("Output path", default=str(default))).expanduser()
     try:
-        written = henon.write_export(document, destination)
+        from core import safe_io
+        written = henon.write_export(document, destination,
+                                     within=safe_io.results_root(destination))
     except OSError as e:
         console.print(f"[bright_red][!] Could not write the export: {e}[/bright_red]")
         ui.pause()

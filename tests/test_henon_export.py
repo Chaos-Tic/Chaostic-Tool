@@ -250,6 +250,7 @@ class HenonCliExportTests(unittest.TestCase):
         self.assertNotIn("secretvalue", out.read_text(encoding="utf-8"))
 
 
+@unittest.skipUnless(hasattr(os, "fchown"), "chown handback is POSIX-only")
 class HenonExportChownTests(unittest.TestCase):
     """The export must land readable by the sudo-invoking operator.
 

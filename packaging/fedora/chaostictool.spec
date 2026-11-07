@@ -3,7 +3,7 @@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 Name:           chaostictool
-Version:        2.2.3
+Version:        2.2.4
 Release:        1%{?dist}
 Summary:        Terminal and desktop interfaces for authorized security testing
 License:        GPL-3.0-or-later
@@ -82,6 +82,10 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/chaostictool-desktop.svg
 
 %changelog
+* Sat Nov 07 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.4-1
+- Henon handoff: the exported recon.json is written readable by the invoking operator (owned by SUDO_USER) under sudo instead of root:600, so Henon (normal user) can read it; ownership handback gated to the results tree / an operator-owned parent, never an arbitrary root-only path.
+- Documentation: version references and download links aligned to 2.2.4.
+
 * Thu Nov 05 2026 Chaos-Tic <58691435+Chaos-Tic@users.noreply.github.com> - 2.2.3-1
 - Henon integration: export recon as the Henon exchange contract and a one-click Henon attack-map flow (run recon -> auto-export for the Henon engine).
 - Hardening: symlink-safe auto-export and Henon export that reject a symlinked parent directory (CWE-59), stale-export cleanup, enforced scope exclusions, and a hardened URL sanitiser.

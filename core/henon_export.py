@@ -659,14 +659,31 @@ def write_export(document: dict, path: Path | str, within: Path | str | None = N
     ``sudo``, so the non-elevated path is unchanged) and applied by ``fchown`` on
     the temp descriptor *before* the rename, never by re-resolving the path as
     root (CWE-59 / CWE-367 safe). Covers every caller in one place: flow
-    auto-export, ``--export-henon``, TUI ``h`` and the Desktop writer."""
+    auto-export, ``--export-henon``, TUI ``h`` and the Desktop writer.
+
+    Ownership is handed over only where it is safe to (CWE-269 / CWE-732): the
+    app-owned results tree (``within`` set, its dirs already operator-owned), or
+    a user-chosen ``-o`` / prompt path whose *parent directory is already owned
+    by the operator*. A root write into a root-only directory (e.g. ``-o
+    /etc/...`` under ``sudo``) is left root-owned rather than handed to a
+    lower-privileged user who could then rewrite a file in a privileged
+    location."""
     from core import safe_io
     from core.target import sudo_user_ids
     path = Path(path)
     if not path.suffix:
         path = path.with_suffix(".json")
+    owner = sudo_user_ids()
+    if owner is not None and within is None:
+        # A user-chosen path outside the app tree: only drop ownership when the
+        # operator already owns the destination directory.
+        try:
+            if path.parent.stat().st_uid != owner[0]:
+                owner = None
+        except OSError:
+            owner = None
     return safe_io.atomic_write(path, render_json(document), within=within,
-                                chown_to=sudo_user_ids())
+                                chown_to=owner)
 
 
 def summary(document: dict) -> str:

@@ -273,14 +273,19 @@ class HenonExportChownTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_chown_to_sudo_user_when_elevated(self):
-        fake_pw = mock.Mock(pw_uid=4321, pw_gid=8765)
+    def _fake_pwd(self, uid, gid):
+        fake_pw = mock.Mock(pw_uid=uid, pw_gid=gid)
         fake_pwd = mock.Mock()
         fake_pwd.getpwnam.return_value = fake_pw
+        return fake_pwd
+
+    def test_chown_to_sudo_user_when_elevated(self):
+        # within set (the app-owned results tree) => always hand over, by descriptor.
+        fake_pwd = self._fake_pwd(4321, 8765)
         with mock.patch.dict(os.environ, {"SUDO_USER": "operator"}, clear=False), \
                 mock.patch.object(tgt, "pwd", fake_pwd), \
                 mock.patch.object(self.safe_io.os, "fchown") as fchown:
-            written = henon.write_export(self.document, self.dest)
+            written = henon.write_export(self.document, self.dest, within=self.root)
         # The contract file still lands intact...
         self.assertEqual(json.loads(written.read_text(encoding="utf-8"))["schema_version"], 1)
         # ...and is handed back to the operator's uid/gid, through a descriptor.
@@ -290,24 +295,46 @@ class HenonExportChownTests(unittest.TestCase):
         self.assertEqual((args[1], args[2]), (4321, 8765))
         self.assertIsInstance(args[0], int)  # a file descriptor, not a path
 
+    def test_chown_on_arbitrary_path_when_parent_is_operator_owned(self):
+        # within None (user-chosen -o path) but the parent dir is the operator's:
+        # hand over. Simulate by setting the operator uid to the dir's real owner.
+        owner_uid = self.root.stat().st_uid
+        fake_pwd = self._fake_pwd(owner_uid, self.root.stat().st_gid)
+        with mock.patch.dict(os.environ, {"SUDO_USER": "operator"}, clear=False), \
+                mock.patch.object(tgt, "pwd", fake_pwd), \
+                mock.patch.object(self.safe_io.os, "fchown") as fchown:
+            henon.write_export(self.document, self.dest)
+        fchown.assert_called_once()
+
+    def test_no_chown_to_foreign_user_on_arbitrary_path(self):
+        # within None and the parent dir is NOT owned by the operator (a root-only
+        # dir like /etc under sudo): the file must stay as written, never handed
+        # to a lower-privileged user (CWE-269/732).
+        foreign_uid = self.root.stat().st_uid + 99999
+        fake_pwd = self._fake_pwd(foreign_uid, foreign_uid)
+        with mock.patch.dict(os.environ, {"SUDO_USER": "operator"}, clear=False), \
+                mock.patch.object(tgt, "pwd", fake_pwd), \
+                mock.patch.object(self.safe_io.os, "fchown") as fchown:
+            written = henon.write_export(self.document, self.dest)
+        self.assertEqual(json.loads(written.read_text(encoding="utf-8"))["schema_version"], 1)
+        fchown.assert_not_called()
+
     def test_no_chown_without_sudo(self):
         env = {k: v for k, v in os.environ.items() if k != "SUDO_USER"}
         with mock.patch.dict(os.environ, env, clear=True), \
                 mock.patch.object(self.safe_io.os, "fchown") as fchown:
-            written = henon.write_export(self.document, self.dest)
+            written = henon.write_export(self.document, self.dest, within=self.root)
         self.assertEqual(json.loads(written.read_text(encoding="utf-8"))["schema_version"], 1)
         fchown.assert_not_called()
 
     def test_chown_failure_is_not_fatal(self):
         # An fchown that raises OSError must not abort the export: the content is
         # already written and must still land for the operator to read.
-        fake_pw = mock.Mock(pw_uid=1, pw_gid=1)
-        fake_pwd = mock.Mock()
-        fake_pwd.getpwnam.return_value = fake_pw
+        fake_pwd = self._fake_pwd(1, 1)
         with mock.patch.dict(os.environ, {"SUDO_USER": "operator"}, clear=False), \
                 mock.patch.object(tgt, "pwd", fake_pwd), \
                 mock.patch.object(self.safe_io.os, "fchown", side_effect=OSError("EPERM")):
-            written = henon.write_export(self.document, self.dest)
+            written = henon.write_export(self.document, self.dest, within=self.root)
         self.assertTrue(written.exists())
         self.assertEqual(json.loads(written.read_text(encoding="utf-8"))["schema_version"], 1)
 

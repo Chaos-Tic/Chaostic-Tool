@@ -1,6 +1,6 @@
 PySide6==6.11.3
 psutil==7.2.2
-dnspython==2.9.0
+dnspython==2.9.2
 py7zr==1.1.4
 pyte==0.8.2
 # Optional (not installed by default): encrypts the API-key file store
